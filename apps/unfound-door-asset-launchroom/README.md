@@ -1,30 +1,40 @@
-# UFD Asset Launchroom
+# Unfound Door Asset Launchroom
 
-A static asset operations workspace for The Unfound Door.
+## Problem
 
-It supports:
+Creative teams need a clean way to package images and videos for client review without exposing internal working files or overwhelming the client with production controls.
 
-- Photo and video asset upload with local preview
-- Client/campaign/usage metadata capture
-- Review workspace with notes and approval states
-- Hosted asset URL handling
-- Video playback and photo preview
-- Web and social crop/export workflows
-- Static-host friendly architecture
+## Users
 
-## Run locally
+- Creative directors
+- Photographers and videographers
+- Clients reviewing delivered assets
+- Social/media operations teams
 
-```powershell
-cd <project-folder>
-python -m http.server 8789
-```
+## Key Features
 
-Then open:
+- Asset-only client portal
+- Image library and thumbnail-first browsing
+- Client review jump links
+- Lightweight crop presets for social formats
+- Video review direction with mark-in and mark-out concepts
+- Slim client experience separated from internal controls
 
-```text
-http://localhost:8789
-```
+## Technology Notes
 
-## Pitch angle
+- Static HTML/CSS/JS
+- Local manifest-driven asset library
+- Raw full-size media excluded from this repository
+- Demonstrates UX thinking around client delivery and media workflow
 
-The app frames technical value around The Unfound Door's actual service model: efficient photo/video production, post-production, client delivery, and national-team coordination.
+## Screenshot
+
+![Asset Launchroom screenshot](../business-app-portfolio/assets/screenshots/unfound-door-launchroom.jpg)
+
+## Next Steps
+
+- Replace local assets with cloud storage URLs
+- Add secure client links and expiration dates
+- Add approval/download states
+- Add real video transcoding and preview generation
+- Add social post export integrations

@@ -1,34 +1,50 @@
-# RAF Application Portfolio
+# RAF Strategic IT Application Portfolio
 
-This repository collects deployed app prototypes and portfolio-ready product builds created for strategic IT, operations, coaching, media delivery, and interactive learning use cases.
+This repository is a curated portfolio of working application prototypes built around the kinds of problems I lead in IT, operations, product strategy, and digital transformation: roadmaps, executive decision support, workflow automation, client portals, coaching platforms, and AI-assisted interactive tools.
 
-## Apps
+The goal is not to show one narrow stack. It is to show how I turn ambiguous business needs into usable systems: define the workflow, model the data, build an interface people can actually use, and package the work so stakeholders can understand the value.
 
-### BetaVault Coaching App
-Location: `apps/betavault-coaching-app`
+## Portfolio Highlights
 
-Athlete and coach portal with Firebase-backed profiles, goals, session logs, video review notes, notifications, onboarding, authentication, and admin workflows.
+| App | What It Shows | Primary Audience |
+| --- | --- | --- |
+| [BetaVault Coaching App](apps/betavault-coaching-app/) | Role-based athlete/coach portal, Firebase auth/data workflows, session logs, video review, AI-assisted training concepts | Coaches, athletes, program admins |
+| [Workday Optimization Roadmap](apps/workday-optimization-roadmap/) | Executive roadmap planning, dependency mapping, Jira/Smartsheet context, board packet export | IT leadership, PMO, finance, operations |
+| [Business App Portfolio](apps/business-app-portfolio/) | Portfolio site, strategic positioning, app showcase, IT roadmap concept, cognitive bias atlas entry point | Hiring teams, executives, prospective clients |
+| [Unfound Door Asset Launchroom](apps/unfound-door-asset-launchroom/) | Client asset library, image/video review workflows, lightweight social posting concepts | Creative teams, clients, media operations |
+| [Cognitive Bias Atlas Game](apps/cognitive-bias-atlas-game/) | Three.js interactive learning prototype with procedural terrain, collision, collection loops, and game mechanics | Learning design, edtech, interactive media |
 
-### Business App Portfolio
-Location: `apps/business-app-portfolio`
+## Skills Demonstrated
 
-Main portfolio site and supporting concept apps, including executive-facing roadmap tooling, cognitive bias atlas entry points, and systems/project positioning.
+- Strategic IT roadmap design and executive communication
+- Business process translation into working software
+- Workflow automation and operational tooling
+- Firebase-style authentication, role access, and real-time app concepts
+- Jira, Smartsheet, and planning-system integration concepts
+- Interactive dashboards and board-ready reporting
+- Client portal and asset delivery UX
+- AI-assisted product prototyping and recommendation workflows
+- Three.js/gameplay prototyping for learning experiences
+- Secure-by-default repository packaging with secrets and raw media excluded
 
-### Unfound Door Asset Launchroom
-Location: `apps/unfound-door-asset-launchroom`
+## How To Review
 
-Client asset delivery interface for image/video review, lightweight crop/post workflows, client-only review views, and hosted media launchroom concepts.
+Start with the case studies, then open the relevant app folder:
 
-### Workday Optimization Roadmap
-Location: `apps/workday-optimization-roadmap`
+- [BetaVault case study](case-studies/betavault-coaching-platform.md)
+- [Workday roadmap case study](case-studies/workday-optimization-roadmap.md)
+- [Asset Launchroom case study](case-studies/asset-launchroom.md)
+- [Cognitive Bias Atlas case study](case-studies/cognitive-bias-atlas-game.md)
 
-Interactive roadmap and executive context app for Workday optimization planning, priority review, Smartsheet/Jira context, dependency views, board-packet export, and scenario planning.
+Each app folder includes its own README with problem statement, users, features, tech notes, screenshots, and next steps.
 
-### Cognitive Bias Atlas Game
-Location: `apps/cognitive-bias-atlas-game`
+## Architecture Notes
 
-Three.js playable prototype exploring cognitive biases as a 3D atlas with procedural terrain, close shoulder camera, collision, parkour obstacles, collectible bias crystals, washing mechanics, structures, and rare-item scout effects.
+- [Architecture overview](docs/ARCHITECTURE.md)
+- [Running locally](docs/RUNNING_LOCALLY.md)
+- [Security and privacy notes](docs/SECURITY.md)
+- [Portfolio roadmap](docs/ROADMAP.md)
 
-## Notes
+## Repository Notes
 
-Large raw videos, full-resolution client photo libraries, private certs, temporary files, and local build artifacts are intentionally excluded. The included assets are enough to review the app direction and code structure without turning the repository into raw media storage.
+Large raw videos, full-resolution client photo libraries, private certificates, temporary files, and local build artifacts are intentionally excluded. The included assets are enough to review app direction and code structure without turning the repository into raw media storage.
