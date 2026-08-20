@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WD Optimize Executive Reference</title>
+    <link rel="icon" type="image/png" href="./assets/logos/rfta-fullcolor.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div class="brand-lockup">
+          <img src="./assets/logos/rfta-fullcolor-whiteletters.png" alt="Roaring Fork Transportation Authority" />
+          <div>
+            <p class="eyebrow">Workday Optimization Roadmap</p>
+            <h1>Executive Reference</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="dependencyFocusToggle" class="button secondary" type="button">Dependency Focus</button>
+          <button id="exportBoardPacket" class="button secondary" type="button">Board Packet Export</button>
+          <button id="copyBrief" class="button secondary" type="button">Export Executive Summary</button>
+          <button id="resetFilters" class="button" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section class="filters" aria-label="Search and filters">
+        <label class="search">
+          <span>Plain English Search</span>
+          <input id="searchInput" type="search" placeholder="Search task names, Finance, payroll reports, P0 security, mapped dependencies..." autocomplete="off" />
+        </label>
+        <label>
+          <span>Workgroup</span>
+          <select id="workgroupFilter"></select>
+        </label>
+        <label>
+          <span>Roadmap Priority</span>
+          <select id="roadmapFilter">
+            <option value="">All roadmap priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input id="dependencyOnly" type="checkbox" />
+          <span>Mapped dependencies only</span>
+        </label>
+      </section>
+
+      <section class="kpis" aria-label="Portfolio metrics">
+        <article class="kpi">
+          <span>Total Scope</span>
+          <strong id="totalHours">-</strong>
+          <small id="totalItems">-</small>
+        </article>
+        <article class="kpi">
+          <span>Critical Priority</span>
+          <strong id="p0Hours">-</strong>
+          <small id="p0Items">-</small>
+        </article>
+        <article class="kpi">
+          <span>Filtered View</span>
+          <strong id="filteredHours">-</strong>
+          <small id="filteredItems">-</small>
+        </article>
+        <article class="kpi kpi-linked">
+          <a href="https://app.smartsheet.com/b/publish?EQBCT=9b67b4ffb25f4dbca837b649701959c4" target="_blank" rel="noopener noreferrer" aria-label="Open published IMS schedule in Smartsheet">
+            <span>Schedule Window</span>
+            <strong id="scheduleWindow">-</strong>
+            <small id="dependencyCount">Open IMS in Smartsheet</small>
+          </a>
+        </article>
+      </section>
+
+      <section id="dependencyFocusPanel" class="panel dependency-focus-panel hidden" aria-label="Dependency focus">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Dependency Focus</p>
+            <h2>Mapped Predecessors Only</h2>
+          </div>
+          <div id="dependencyFocusSummary" class="active-summary"></div>
+        </div>
+        <div id="dependencyFocusList" class="dependency-focus-list"></div>
+      </section>
+
+      <section class="content-grid">
+        <section class="panel workstreams-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Functional Workstreams</p>
+              <h2>Hours and Critical Load</h2>
+            </div>
+          </div>
+          <div id="workstreamList" class="workstream-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Priority Mix</p>
+              <h2>Global Recommendations</h2>
+            </div>
+          </div>
+          <div id="priorityBars" class="priority-bars"></div>
+          <div class="timeline-header">
+            <p class="eyebrow">Schedule Context</p>
+            <h2>Workstream Timeline</h2>
+          </div>
+          <div id="timeline" class="timeline"></div>
+        </section>
+      </section>
+
+      <section class="panel why-panel" aria-label="Why this matters summary">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Executive Context</p>
+            <h2>Why This Matters</h2>
+          </div>
+          <div id="whySummaryMeta" class="active-summary"></div>
+        </div>
+        <div id="whySummary" class="why-summary">
+          <p class="subtle">Select a task below to see the business impact, risk, decision path, and expected outcome in plain English.</p>
+        </div>
+      </section>
+
+      <section class="panel scenario-panel" aria-label="Roadmap scenario planner">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Roadmap Scenario Planner</p>
+            <h2>Leadership Lens</h2>
+          </div>
+          <div class="scenario-control">
+            <select id="scenarioPlanner">
+              <option value="balanced">Balanced Executive Roadmap</option>
+              <option value="compliance">Compliance First</option>
+              <option value="finance">Finance Close Acceleration</option>
+              <option value="payroll">Payroll Stability</option>
+              <option value="quickWins">Aggressive Quick Wins</option>
+              <option value="conservative">Conservative Capacity</option>
+            </select>
+          </div>
+        </div>
+        <div id="scenarioSummary" class="scenario-summary"></div>
+      </section>
+
+      <section class="executive-grid">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Owner Accountability</p>
+              <h2>Department Impact</h2>
+            </div>
+          </div>
+          <div id="ownerAccountability" class="owner-list"></div>
+        </section>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Task Reference</p>
+            <h2 id="tableTitle">All Optimization Tasks</h2>
+          </div>
+          <div id="activeSummary" class="active-summary"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Priority</th>
+                <th>Workgroup</th>
+                <th>Task</th>
+                <th>Hours</th>
+                <th>Dates</th>
+                <th>Mapped Dependencies</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="taskTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./jspdf.umd.min.js"></script>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

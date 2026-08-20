@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UFD Asset Launchroom</title>
+    <link rel="stylesheet" href="./styles.css?v=mark-in-out" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="https://www.theunfounddoor.com/" target="_blank" rel="noreferrer">
+          <span class="brand-mark">UFD</span>
+          <span>
+            <strong>Asset Launchroom</strong>
+            <small>Media hosting workspace</small>
+          </span>
+        </a>
+        <nav class="side-nav" aria-label="Workspace views">
+          <button class="nav-item is-active" data-view="home">Home</button>
+          <button class="nav-item" data-view="library">Library</button>
+          <button class="nav-item" data-view="review">Review</button>
+          <a class="nav-item" id="clientPortalNavLink" href="#client" target="_blank" rel="noreferrer" data-view="client">Client Portal</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Creative asset operations</p>
+            <h1>Host, review, and share photo/video deliverables.</h1>
+          </div>
+          <div class="top-actions">
+            <button id="resetPackageBtn" class="ghost-button">Reset package</button>
+            <button id="publishBtn" class="primary-button">Publish package</button>
+          </div>
+        </header>
+
+        <section class="hero-panel dashboard-chrome">
+          <div>
+            <p class="eyebrow">Built for photography + videography teams</p>
+            <h2>From shoot day to polished delivery, without losing the thread.</h2>
+            <p class="hero-copy">
+              Upload raw selects, tag usage rights, preview video, collect client approvals, then open a polished client portal.
+            </p>
+            <div class="hero-proof">
+              <span>Live asset workflow</span>
+              <strong>Using photo and video assets as the working media package.</strong>
+            </div>
+          </div>
+          <div class="hero-media" aria-label="Featured media preview">
+            <img src="./assets/film/corp-001-all-things-pretty094.jpg" alt="Featured photo asset" />
+          </div>
+        </section>
+
+        <section class="feature-strip-wrap dashboard-chrome" aria-label="Featured media assets">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Visual source package</p>
+              <h2>Selected media staged for review and delivery</h2>
+            </div>
+            <span>Click a tile to review the asset</span>
+          </div>
+          <div class="feature-strip" id="featureStrip"></div>
+        </section>
+
+        <section class="metrics dashboard-chrome" aria-label="Asset package status">
+          <article>
+            <span>Total assets</span>
+            <strong id="totalAssets">0</strong>
+          </article>
+          <article>
+            <span>Ready to publish</span>
+            <strong id="readyAssets">0</strong>
+          </article>
+          <article>
+            <span>Hosted size</span>
+            <strong id="hostedSize">0 MB</strong>
+          </article>
+          <article>
+            <span>Open approvals</span>
+            <strong id="openApprovals">0</strong>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <div class="panel upload-panel dashboard-chrome">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Ingest</p>
+                <h2>Upload photo or video assets</h2>
+              </div>
+              <span id="uploadHint">Images and video preview locally</span>
+            </div>
+            <label class="drop-zone" id="dropZone">
+              <input id="assetInput" type="file" accept="image/*,video/*" multiple />
+              <span class="drop-icon">+</span>
+              <strong>Drop files or choose media</strong>
+              <small>Create previews, hosting URLs, metadata, and social-ready renditions in-browser.</small>
+            </label>
+            <div class="ingest-grid">
+              <label>
+                Client
+                <input id="clientInput" value="Populous Hotel" />
+              </label>
+              <label>
+                Campaign
+                <input id="campaignInput" value="Architecture launch package" />
+              </label>
+              <label>
+                Usage
+                <select id="usageInput">
+                  <option>Website + social</option>
+                  <option>Internal communications</option>
+                  <option>Paid media</option>
+                  <option>Press kit</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel active-view" id="libraryView">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Hosted library</p>
+                <h2>Production assets</h2>
+              </div>
+              <div class="filters" role="group" aria-label="Asset filters">
+                <button class="filter is-active" data-filter="all">All</button>
+                <button class="filter" data-filter="photo">Photos</button>
+                <button class="filter" data-filter="video">Videos</button>
+                <button class="filter" data-filter="approved">Approved</button>
+              </div>
+            </div>
+            <div class="asset-grid" id="assetGrid"></div>
+          </div>
+
+          <div class="panel hidden-view" id="reviewView">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Client review</p>
+                <h2>Preview, notes, and approvals</h2>
+              </div>
+              <span id="selectedAssetName">No asset selected</span>
+            </div>
+            <div class="review-layout">
+              <div class="review-media" id="reviewMedia"></div>
+              <div class="review-notes">
+                <label>
+                  Client-facing note
+                  <textarea id="reviewNote" rows="7" placeholder="Add direction, revision notes, or delivery context..."></textarea>
+                </label>
+                <div class="review-actions">
+                  <button class="status-button" data-status="needs review">Needs review</button>
+                  <button class="status-button" data-status="approved">Approve</button>
+                  <button class="status-button" data-status="published">Mark published</button>
+                </div>
+                <div class="crop-panel" id="cropPanel">
+                  <div class="crop-head">
+                    <div>
+                      <p class="eyebrow">Live crop</p>
+                      <h3>Frame the selected image</h3>
+                    </div>
+                    <button class="ghost-button" id="resetCropBtn" type="button">Reset</button>
+                  </div>
+                  <div class="crop-presets" role="group" aria-label="Crop presets">
+                    <button class="crop-preset is-active" data-crop-preset="free" type="button"><span class="preset-logo logo-free" aria-hidden="true"></span>Free</button>
+                    <button class="crop-preset" data-crop-preset="instagram-square" type="button"><span class="preset-logo logo-instagram" aria-hidden="true"></span>Instagram Square</button>
+                    <button class="crop-preset" data-crop-preset="instagram-feed" type="button"><span class="preset-logo logo-instagram" aria-hidden="true"></span>Instagram Feed</button>
+                    <button class="crop-preset" data-crop-preset="tiktok" type="button"><span class="preset-logo logo-tiktok" aria-hidden="true"></span>TikTok</button>
+                    <button class="crop-preset" data-crop-preset="stories" type="button"><span class="preset-logo logo-instagram" aria-hidden="true"></span>Stories/Reels</button>
+                    <button class="crop-preset" data-crop-preset="facebook-feed" type="button"><span class="preset-logo logo-facebook" aria-hidden="true"></span>Facebook Feed</button>
+                    <button class="crop-preset" data-crop-preset="youtube-thumb" type="button"><span class="preset-logo logo-youtube" aria-hidden="true"></span>YouTube Thumb</button>
+                  </div>
+                  <div class="crop-sliders">
+                    <label>Width <input id="cropW" type="range" min="10" max="100" value="84" /></label>
+                    <label>Height <input id="cropH" type="range" min="10" max="100" value="84" /></label>
+                  </div>
+                  <div class="crop-preview-wrap">
+                    <canvas id="cropPreview" width="320" height="220"></canvas>
+                  </div>
+                  <div class="crop-actions">
+                    <button class="ghost-button" id="downloadCropBtn" type="button">Download crop</button>
+                    <button class="primary-button" id="postCropBtn" type="button">Post</button>
+                  </div>
+                  <p class="crop-note" id="cropNote">Drag the frame on the image, adjust size, then export a cropped preview.</p>
+                </div>
+                <div class="video-panel" id="videoPanel">
+                  <div class="crop-head">
+                    <div>
+                      <p class="eyebrow">Video cutdown</p>
+                      <h3>Post the selected cut</h3>
+                    </div>
+                    <button class="ghost-button" id="resetVideoBtn" type="button">Reset</button>
+                  </div>
+                  <div class="crop-presets" role="group" aria-label="Video post presets">
+                    <button class="crop-preset is-active" data-video-preset="reels" type="button"><span class="preset-logo logo-instagram" aria-hidden="true"></span>Reels</button>
+                    <button class="crop-preset" data-video-preset="tiktok" type="button"><span class="preset-logo logo-tiktok" aria-hidden="true"></span>TikTok</button>
+                    <button class="crop-preset" data-video-preset="youtube-shorts" type="button"><span class="preset-logo logo-youtube" aria-hidden="true"></span>Shorts</button>
+                    <button class="crop-preset" data-video-preset="facebook-video" type="button"><span class="preset-logo logo-facebook" aria-hidden="true"></span>Facebook</button>
+                    <button class="crop-preset" data-video-preset="youtube-video" type="button"><span class="preset-logo logo-youtube" aria-hidden="true"></span>YouTube</button>
+                  </div>
+                  <div class="video-actions">
+                    <button class="ghost-button" id="downloadVideoBtn" type="button">Download source</button>
+                    <button class="primary-button" id="postVideoBtn" type="button">Post</button>
+                  </div>
+                  <p class="crop-note" id="videoNote">Use Mark In and Mark Out on the video, then choose a destination platform.</p>
+                </div>
+                <div class="timeline-box" id="timelineBox"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel hidden-view client-portal" id="clientView">
+            <div class="client-hero">
+              <div>
+                <p class="eyebrow">Client delivery portal</p>
+                <h2 id="clientPortalTitle">Hosted asset package</h2>
+                <p id="clientPortalSummary">Review final selects, open hosted assets, and hand off approved media to web, social, and press channels.</p>
+              </div>
+              <div class="client-package-card">
+                <span>Package status</span>
+                <strong id="clientPackageStatus">Draft</strong>
+                <small id="clientPackageMeta">0 assets</small>
+              </div>
+            </div>
+            <div class="client-layout">
+              <div class="client-gallery" id="clientGallery"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js?v=mark-in-out"></script>
+  </body>
+</html>

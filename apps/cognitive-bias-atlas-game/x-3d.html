@@ -1,0 +1,2346 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X: Neural Wash Atlas</title>
+    <style>
+      :root {
+        --bg: #050607;
+        --panel: rgba(9, 12, 18, 0.82);
+        --line: rgba(238, 243, 247, 0.16);
+        --text: #eef3f7;
+        --muted: #9aa7b5;
+        --blue: #4dd8ff;
+        --yellow: #ffd166;
+        --red: #ff5a5f;
+        --green: #9bdb7d;
+        --purple: #c084fc;
+        --orange: #ff9f1c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        color: var(--text);
+        background: var(--bg);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      #game {
+        position: fixed;
+        inset: 0;
+      }
+
+      .hud {
+        position: fixed;
+        inset: 16px 16px auto 16px;
+        z-index: 4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .pill,
+      .panel {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(12px);
+      }
+
+      .pill {
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .panel {
+        position: fixed;
+        z-index: 4;
+        right: 16px;
+        top: 74px;
+        width: min(320px, calc(100vw - 32px));
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .panel h1,
+      .panel h2,
+      .panel p {
+        margin: 0;
+      }
+
+      .panel h1 {
+        font-size: 28px;
+        line-height: 0.95;
+      }
+
+      .panel h2 {
+        margin-top: 14px;
+        font-size: 14px;
+      }
+
+      .panel p,
+      .collection li,
+      .tool-row {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .tool-row {
+        display: grid;
+        grid-template-columns: 54px 1fr;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      kbd {
+        display: inline-grid;
+        place-items: center;
+        min-width: 42px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 8px;
+        padding: 3px 7px;
+        color: #050607;
+        background: var(--text);
+        font-weight: 900;
+      }
+
+      .collection {
+        display: grid;
+        gap: 7px;
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .collection li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        padding-top: 7px;
+      }
+
+      .collection strong {
+        color: var(--text);
+      }
+
+      .mine-panel {
+        position: fixed;
+        z-index: 5;
+        left: 50%;
+        bottom: 30px;
+        width: min(480px, calc(100vw - 32px));
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(9, 12, 18, 0.88);
+        box-shadow: 0 22px 58px rgba(0, 0, 0, 0.36);
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .reticle {
+        position: fixed;
+        z-index: 5;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        border: 1px solid rgba(238, 243, 247, 0.76);
+        border-radius: 999px;
+        box-shadow: 0 0 14px rgba(77, 216, 255, 0.46);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .reticle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255, 209, 102, 0.92);
+        transform: translate(-50%, -50%);
+      }
+
+      .minimap {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 5;
+        width: 148px;
+        height: 148px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background:
+          linear-gradient(rgba(238, 243, 247, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(238, 243, 247, 0.08) 1px, transparent 1px),
+          rgba(9, 12, 18, 0.76);
+        background-size: 37px 37px;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(12px);
+        pointer-events: none;
+      }
+
+      .mini-dot {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        transform: translate(-50%, -50%);
+      }
+
+      .mini-player {
+        left: 50%;
+        top: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 18px var(--blue);
+      }
+
+      .mini-rare {
+        background: var(--purple);
+        box-shadow: 0 0 18px var(--purple);
+      }
+
+      .mini-landmark {
+        background: var(--yellow);
+      }
+
+      .mine-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .bar {
+        height: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(238, 243, 247, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .bar span {
+        display: block;
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--blue), var(--purple), var(--yellow));
+      }
+
+      .crit-row {
+        display: grid;
+        grid-template-columns: 72px 1fr 60px;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .crit-track {
+        position: relative;
+        height: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(238, 243, 247, 0.18);
+        border-radius: 999px;
+        background:
+          linear-gradient(90deg, transparent 0 36%, rgba(255, 209, 102, 0.34) 36% 64%, transparent 64% 100%),
+          rgba(255, 255, 255, 0.08);
+      }
+
+      .crit-track span {
+        position: absolute;
+        inset: -2px auto -2px 0;
+        width: 4px;
+        border-radius: 999px;
+        background: var(--yellow);
+        box-shadow: 0 0 14px rgba(255, 209, 102, 0.95);
+      }
+
+      .overlay {
+        position: fixed;
+        z-index: 8;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle, rgba(5, 6, 7, 0.48), rgba(5, 6, 7, 0.86));
+      }
+
+      .overlay[hidden],
+      .mine-panel[hidden] {
+        display: none;
+      }
+
+      .modal {
+        width: min(560px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 24px;
+        background: rgba(12, 15, 23, 0.94);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        text-align: center;
+      }
+
+      .modal h2 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 7vw, 58px);
+        line-height: 0.9;
+      }
+
+      .modal p {
+        margin: 0 auto;
+        max-width: 44rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      button {
+        margin-top: 16px;
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 17px;
+        color: #050607;
+        background: var(--text);
+        font: inherit;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      @media (max-width: 760px) {
+        .panel {
+          top: auto;
+          right: 10px;
+          bottom: 10px;
+          max-height: 38vh;
+          overflow: auto;
+        }
+
+        .mine-panel {
+          bottom: calc(38vh + 22px);
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="game" aria-label="3D playable neural plaque washing prototype"></div>
+    <div class="hud">
+      <div class="pill" id="statusPill">Plaques cleared 0/24</div>
+      <div class="pill" id="biomePill">Biome: Central Plain</div>
+      <div class="pill" id="depthPill">Layer: Surface</div>
+      <div class="pill" id="signalPill">Signal: none</div>
+      <div class="pill" id="comboPill">Combo x0</div>
+      <div class="pill" id="pointsPill">Bias points 0</div>
+      <div class="pill" id="rarePill">Rare: none</div>
+      <div class="pill" id="abilityPill">Abilities: none</div>
+    </div>
+    <div class="reticle" aria-hidden="true"></div>
+    <aside class="panel" aria-label="Controls and collected biases">
+      <h1>X: Neural Wash Atlas</h1>
+      <p>Explore the atlas, find protein plaques, and wash them into your collection.</p>
+      <h2>Controls</h2>
+      <div class="tool-row"><kbd>WASD</kbd><span>Move the thought probe</span></div>
+      <div class="tool-row"><kbd>Drag</kbd><span>Aim close shoulder view</span></div>
+      <div class="tool-row"><kbd>Shift</kbd><span>Sprint</span></div>
+      <div class="tool-row"><kbd>Space</kbd><span>Jump / hop</span></div>
+      <div class="tool-row"><kbd>F</kbd><span>Dash forward</span></div>
+      <div class="tool-row"><kbd>C</kbd><span>Slide into a fast turn</span></div>
+      <div class="tool-row"><kbd>Click</kbd><span>Pulse the neural spray gun</span></div>
+      <div class="tool-row"><kbd>1</kbd><span>Build signal pylon - 2 points</span></div>
+      <div class="tool-row"><kbd>2</kbd><span>Build synapse bridge - 3 points</span></div>
+      <div class="tool-row"><kbd>3</kbd><span>Build dimension lift - 5 points</span></div>
+      <div class="tool-row"><kbd>4</kbd><span>Build rare scanner - 4 points</span></div>
+      <div class="tool-row"><kbd>5</kbd><span>Build cache shrine - 3 points</span></div>
+      <div class="tool-row"><kbd>Q / E</kbd><span>Use a nearby dimension lift</span></div>
+      <h2>Collected atlas</h2>
+      <ul class="collection" id="collectionList"></ul>
+      <h2>Structures</h2>
+      <ul class="collection" id="structureList"></ul>
+      <h2>Active abilities</h2>
+      <ul class="collection" id="abilityList"></ul>
+    </aside>
+    <div class="mine-panel" id="minePanel" hidden>
+      <div class="mine-title">
+        <span id="mineTarget">Protein plaque</span>
+        <span id="mineHint">Pulse the neural spray gun</span>
+      </div>
+      <div class="bar"><span id="mineBar"></span></div>
+      <div class="crit-row">
+        <span>Pressure</span>
+        <div class="crit-track"><span id="critNeedle"></span></div>
+        <span id="critLabel">Spray</span>
+      </div>
+    </div>
+    <div class="minimap" id="minimap">
+      <span class="mini-dot mini-player"></span>
+    </div>
+    <div class="overlay" id="startOverlay">
+      <div class="modal">
+        <h2>X: Neural Wash Atlas</h2>
+        <p>Explore a layered cognitive atlas, wash away amyloid-beta, tau, and other plaque-like protein clusters, and turn cleared biases into abilities that change how you move, detect, and collect.</p>
+        <button type="button" id="startButton">Enter 3D atlas</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "three";
+
+      const root = document.getElementById("game");
+      const statusPill = document.getElementById("statusPill");
+      const biomePill = document.getElementById("biomePill");
+      const depthPill = document.getElementById("depthPill");
+      const signalPill = document.getElementById("signalPill");
+      const comboPill = document.getElementById("comboPill");
+      const pointsPill = document.getElementById("pointsPill");
+      const rarePill = document.getElementById("rarePill");
+      const abilityPill = document.getElementById("abilityPill");
+      const collectionList = document.getElementById("collectionList");
+      const structureList = document.getElementById("structureList");
+      const abilityList = document.getElementById("abilityList");
+      const minePanel = document.getElementById("minePanel");
+      const mineTarget = document.getElementById("mineTarget");
+      const mineHint = document.getElementById("mineHint");
+      const mineBar = document.getElementById("mineBar");
+      const critNeedle = document.getElementById("critNeedle");
+      const critLabel = document.getElementById("critLabel");
+      const startOverlay = document.getElementById("startOverlay");
+      const startButton = document.getElementById("startButton");
+      const minimap = document.getElementById("minimap");
+
+      const layerData = [
+        { id: -1, name: "Underlayer", y: -13, unlockAt: 2, color: 0x4b2a6b },
+        { id: 0, name: "Surface", y: 0, unlockAt: 0, color: 0x2c5163 },
+        { id: 1, name: "Upper Atlas", y: 16, unlockAt: 4, color: 0x5a6b2a },
+      ];
+
+      const biasData = [
+        { id: "confirmation", name: "Confirmation Bias", biome: "Memory Forest", color: 0x4dd8ff, durability: 5, layer: 0, position: [-92, -72], lesson: "Collected: seek one strong counter-signal before trusting the pattern.", ability: "Counter-signal scan: signal range increases." },
+        { id: "availability", name: "Availability Heuristic", biome: "Salience Canyon", color: 0xffd166, durability: 4, layer: 0, position: [72, -72], lesson: "Collected: compare vivid examples against base rates.", ability: "Base-rate pulse: nearest target is easier to detect." },
+        { id: "bandwagon", name: "Bandwagon Effect", biome: "Social Village", color: 0xff9f1c, durability: 3, layer: 0, position: [132, 4], lesson: "Collected: ask whether the crowd has evidence or just momentum.", ability: "Social gravity: shards magnet in from farther away." },
+        { id: "planning", name: "Planning Fallacy", biome: "Planning Plains", color: 0x9bdb7d, durability: 6, layer: 0, position: [-4, 112], lesson: "Collected: use the outside view and past completion times.", ability: "Route planning: sprint speed increases." },
+        { id: "anchoring", name: "Anchoring Bias", biome: "Pattern Mines", color: 0x38bdf8, durability: 5, layer: 0, position: [-140, 34], lesson: "Collected: reset the first number before judging the next one.", ability: "Anchor breaker: spray range increases." },
+        { id: "halo", name: "Halo Effect", biome: "Social Village", color: 0xf97316, durability: 4, layer: 0, position: [152, 62], lesson: "Collected: separate one strong trait from the total picture.", ability: "Clear outline: distant plaque clusters glow brighter." },
+        { id: "framing", name: "Framing Effect", biome: "Risk Canyon", color: 0xfb7185, durability: 5, layer: 0, position: [86, -18], lesson: "Collected: restate the choice in the opposite frame.", ability: "Reframe lens: spray stream lasts longer after each pulse." },
+        { id: "recency", name: "Recency Bias", biome: "Memory Forest", color: 0x60a5fa, durability: 4, layer: 0, position: [-128, -112], lesson: "Collected: check whether the latest input is actually the strongest evidence.", ability: "Fresh trail: recent signals stay visible longer." },
+        { id: "endowment", name: "Endowment Effect", biome: "Valuation Mines", color: 0xc084fc, durability: 7, layer: -1, position: [-84, 68], lesson: "Collected: price the choice as if you did not already own it.", ability: "Value rinse: each pulse breaks loose extra protein fragments." },
+        { id: "loss", name: "Loss Aversion", biome: "Risk Canyon", color: 0xff5a5f, durability: 8, layer: -1, position: [66, 78], lesson: "Collected: separate the size of the loss from the fear response.", ability: "Risk buffer: spray pulses do more damage." },
+        { id: "sunk-cost", name: "Sunk Cost Fallacy", biome: "Valuation Mines", color: 0xa855f7, durability: 8, layer: -1, position: [-128, 118], lesson: "Collected: ignore spent effort when choosing the next action.", ability: "Cut-loss charge: faster shard pull." },
+        { id: "status-quo", name: "Status Quo Bias", biome: "Identity Citadel", color: 0x818cf8, durability: 7, layer: -1, position: [-22, 146], lesson: "Collected: make the default compete against a real alternative.", ability: "Default override: unlocks deeper gates earlier." },
+        { id: "negativity", name: "Negativity Bias", biome: "Emotion Marsh", color: 0xef4444, durability: 6, layer: -1, position: [122, 126], lesson: "Collected: weigh negative evidence without letting it take the whole board.", ability: "Threat filter: lowers nearby plaque durability by one pulse." },
+        { id: "survivorship", name: "Survivorship Bias", biome: "Pattern Mines", color: 0x22d3ee, durability: 7, layer: -1, position: [-164, -22], lesson: "Collected: look for the missing failures, not only the visible winners.", ability: "Missing-data ping: hidden layer signals stretch farther." },
+        { id: "dunning", name: "Dunning-Kruger Effect", biome: "Identity Citadel", color: 0xfacc15, durability: 9, layer: -1, position: [18, -136], lesson: "Collected: test confidence against outside feedback.", ability: "Humility meter: rare crystals show durability sooner." },
+        { id: "optimism", name: "Optimism Bias", biome: "Planning Plains", color: 0x84cc16, durability: 5, layer: -1, position: [152, -112], lesson: "Collected: add a realistic failure path to the plan.", ability: "Contingency boost: sprint costs less control." },
+        { id: "spotlight", name: "Spotlight Effect", biome: "Social Village", color: 0xf59e0b, durability: 5, layer: 1, position: [104, 96], lesson: "Collected: people notice you less than it feels like they do.", ability: "Quiet mode: crystals remain mineable while moving." },
+        { id: "authority", name: "Authority Bias", biome: "Identity Citadel", color: 0xe879f9, durability: 6, layer: 1, position: [24, 156], lesson: "Collected: separate expertise from status.", ability: "Credential check: high-durability crystals reveal weak points." },
+        { id: "hindsight", name: "Hindsight Bias", biome: "Memory Forest", color: 0x93c5fd, durability: 6, layer: 1, position: [-116, -152], lesson: "Collected: preserve what was knowable before the outcome.", ability: "Timeline echo: cleared regions stay mapped." },
+        { id: "illusory", name: "Illusory Correlation", biome: "Pattern Mines", color: 0x06b6d4, durability: 7, layer: 1, position: [-146, -62], lesson: "Collected: count misses as carefully as hits.", ability: "Pattern breaker: signal false positives drop." },
+        { id: "ingroup", name: "In-group Bias", biome: "Social Village", color: 0xfb923c, durability: 6, layer: 1, position: [158, -38], lesson: "Collected: check whether belonging is shaping your judgment.", ability: "Perspective swap: social crystals take bonus damage." },
+        { id: "reactance", name: "Reactance", biome: "Emotion Marsh", color: 0xf43f5e, durability: 7, layer: 1, position: [86, -146], lesson: "Collected: notice when resistance is about control instead of merit.", ability: "Control release: layer shifting becomes instant." },
+        { id: "ambiguity", name: "Ambiguity Effect", biome: "Risk Canyon", color: 0xfdba74, durability: 5, layer: 1, position: [18, -84], lesson: "Collected: name the unknowns instead of avoiding the option.", ability: "Unknown map: unlock hints across all layers." },
+        { id: "blindspot", name: "Bias Blind Spot", biome: "Identity Citadel", color: 0xf8fafc, durability: 10, layer: 1, position: [-68, 142], lesson: "Collected: assume you have bias too, then investigate where.", ability: "Meta lens: all remaining crystals become easier to mine." },
+      ].map((bias) => ({
+        ...bias,
+        position: new THREE.Vector3(bias.position[0], layerData.find((layer) => layer.id === bias.layer).y, bias.position[1]),
+      }));
+      const worldBiases = [...biasData];
+
+      const state = {
+        running: false,
+        keys: new Set(),
+        yaw: 0,
+        pitch: -0.08,
+        layer: 0,
+        velocity: new THREE.Vector3(),
+        verticalVelocity: 0,
+        grounded: true,
+        dashCooldown: 0,
+        dashTime: 0,
+        slideTime: 0,
+        layerCooldown: 0,
+        dragCamera: false,
+        collected: new Set(),
+        resolving: new Set(),
+        mineTarget: null,
+        lastMineTarget: null,
+        mineProgress: 0,
+        minePulse: 0,
+        beamFlash: 0,
+        combo: 0,
+        comboTimer: 0,
+        lastHitGrade: "Spray",
+        swingTime: 0,
+        swingCooldown: 0,
+        shake: 0,
+        biasPoints: 0,
+        structures: [],
+        buildCooldown: 0,
+        buildMessage: "",
+        buildMessageTimer: 0,
+        chunksGenerated: 0,
+        rareItems: [],
+        landmarks: [],
+        obstacles: [],
+        collisionBumpTimer: 0,
+        tripTimer: 0,
+        scoutTimer: 0,
+        rareCollected: 0,
+        audio: null,
+      };
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050607);
+      scene.fog = new THREE.FogExp2(0x050607, 0.007);
+
+      const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 500);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      root.appendChild(renderer.domElement);
+
+      const clock = new THREE.Clock();
+      const hemi = new THREE.HemisphereLight(0xbfdfff, 0x0a0b0d, 1.8);
+      scene.add(hemi);
+      const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+      sun.position.set(25, 38, 18);
+      scene.add(sun);
+
+      const terrain = new THREE.Group();
+      scene.add(terrain);
+      const chunkGroup = new THREE.Group();
+      scene.add(chunkGroup);
+      const generatedChunks = new Map();
+      const queuedChunks = new Set();
+      const chunkQueue = [];
+      const generatedCrystals = [];
+      const CHUNK_SIZE = 96;
+      const CHUNK_RADIUS = 1;
+      const PLAYER_RADIUS = 1.35;
+      const PLAYER_STEP_HEIGHT = 2.25;
+      const biomePalette = [
+        { name: "Memory Forest", color: 0x263f2f },
+        { name: "Salience Canyon", color: 0x462629 },
+        { name: "Social Village", color: 0x4a351c },
+        { name: "Planning Plains", color: 0x20384a },
+        { name: "Pattern Mines", color: 0x193b48 },
+        { name: "Valuation Mines", color: 0x32284a },
+        { name: "Risk Canyon", color: 0x4a2025 },
+        { name: "Identity Citadel", color: 0x2f2b61 },
+        { name: "Emotion Marsh", color: 0x4a252e },
+      ];
+      const chunkFloorGeo = new THREE.PlaneGeometry(CHUNK_SIZE - 1.5, CHUNK_SIZE - 1.5, 1, 1);
+      const ridgeGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
+      const mushroomStemGeo = new THREE.CylinderGeometry(0.24, 0.34, 1.4, 12);
+      const mushroomCapGeo = new THREE.SphereGeometry(0.78, 16, 8);
+      const boostPadGeo = new THREE.CylinderGeometry(4.2, 4.2, 0.18, 32);
+      const towerGeo = new THREE.CylinderGeometry(1.5, 2.4, 13, 7);
+      const archGeo = new THREE.TorusGeometry(4.2, 0.28, 8, 32, Math.PI);
+      const obstaclePillarGeo = new THREE.CylinderGeometry(1, 1, 1, 10);
+      const obstacleWallGeo = new THREE.BoxGeometry(1, 1, 1);
+      const hazardGeo = new THREE.CylinderGeometry(1, 1, 0.12, 28);
+      const platformGeo = new THREE.BoxGeometry(1, 0.35, 1);
+      const chunkMaterials = new Map();
+      const ridgeMaterials = new Map();
+      const mushroomStemMat = new THREE.MeshStandardMaterial({ color: 0xeef3f7, roughness: 0.72, metalness: 0.02 });
+      const mushroomCapMat = new THREE.MeshStandardMaterial({ color: 0xc084fc, emissive: 0x5b21b6, emissiveIntensity: 0.9, roughness: 0.36 });
+      const boostPadMat = new THREE.MeshBasicMaterial({ color: 0x9bdb7d, transparent: true, opacity: 0.56 });
+      const landmarkMat = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0x4d3000, emissiveIntensity: 0.5, roughness: 0.5 });
+      const obstacleMats = {
+        block: new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.84, metalness: 0.08 }),
+        hazard: new THREE.MeshBasicMaterial({ color: 0xff5a5f, transparent: true, opacity: 0.52 }),
+        platform: new THREE.MeshStandardMaterial({ color: 0x4dd8ff, emissive: 0x123544, emissiveIntensity: 0.25, roughness: 0.44 }),
+      };
+
+      function cachedChunkMaterial(color, opacity = 0.38) {
+        const key = `${color}:${opacity}`;
+        if (!chunkMaterials.has(key)) {
+          chunkMaterials.set(
+            key,
+            new THREE.MeshStandardMaterial({
+              color,
+              roughness: 0.95,
+              metalness: 0.02,
+              transparent: true,
+              opacity,
+            })
+          );
+        }
+        return chunkMaterials.get(key);
+      }
+
+      function cachedRidgeMaterial(color) {
+        if (!ridgeMaterials.has(color)) {
+          ridgeMaterials.set(
+            color,
+            new THREE.MeshStandardMaterial({
+              color,
+              roughness: 0.88,
+              metalness: 0.05,
+              transparent: true,
+              opacity: 0.54,
+            })
+          );
+        }
+        return ridgeMaterials.get(color);
+      }
+
+      function layerById(id) {
+        return layerData.find((layer) => layer.id === id) || layerData[1];
+      }
+
+      function layerName(id) {
+        return layerById(id).name;
+      }
+
+      function hashSeed(x, z, layer = 0, salt = 0) {
+        let h = 2166136261;
+        [x, z, layer, salt].forEach((value) => {
+          h ^= value + 0x9e3779b9 + (h << 6) + (h >> 2);
+          h = Math.imul(h, 16777619);
+        });
+        return h >>> 0;
+      }
+
+      function seededRandom(seed) {
+        let value = seed >>> 0;
+        return () => {
+          value += 0x6d2b79f5;
+          let t = value;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function generatedChunkKey(cx, cz, layerId) {
+        return `${layerId}:${cx}:${cz}`;
+      }
+
+      function chunkCoords(position) {
+        return {
+          x: Math.floor(position.x / CHUNK_SIZE),
+          z: Math.floor(position.z / CHUNK_SIZE),
+        };
+      }
+
+      function makeBiome(name, layerId, x, z, w, h, color) {
+        const mat = new THREE.MeshStandardMaterial({
+          color,
+          roughness: 0.92,
+          metalness: 0.04,
+          transparent: true,
+          opacity: 0.42,
+        });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h, 8, 8), mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(x, layerById(layerId).y - 0.04, z);
+        mesh.userData.biome = name;
+        mesh.userData.layer = layerId;
+        terrain.add(mesh);
+        return mesh;
+      }
+
+      [
+        ["Memory Forest", 0, -106, -92, 116, 118, 0x263f2f],
+        ["Salience Canyon", 0, 70, -64, 118, 98, 0x462629],
+        ["Social Village", 0, 136, 36, 92, 116, 0x4a351c],
+        ["Planning Plains", 0, 6, 108, 142, 106, 0x20384a],
+        ["Pattern Mines", 0, -138, 26, 104, 100, 0x193b48],
+        ["Valuation Mines", -1, -100, 92, 132, 128, 0x32284a],
+        ["Risk Canyon", -1, 90, 98, 126, 126, 0x4a2025],
+        ["Identity Citadel", -1, -6, -136, 130, 100, 0x2f2b61],
+        ["Emotion Marsh", -1, 144, -104, 98, 112, 0x4a252e],
+        ["Pattern Mines", -1, -150, -30, 104, 120, 0x183f4a],
+        ["Memory Forest", 1, -112, -142, 130, 102, 0x254564],
+        ["Social Village", 1, 126, 34, 112, 124, 0x60411f],
+        ["Identity Citadel", 1, -24, 146, 140, 98, 0x3a3678],
+        ["Risk Canyon", 1, 46, -118, 128, 114, 0x573035],
+        ["Pattern Mines", 1, -130, -52, 106, 110, 0x164150],
+      ].forEach((args) => makeBiome(...args));
+
+      layerData.forEach((layer) => {
+        const grid = new THREE.GridHelper(380, 76, layer.color, 0x1a222b);
+        grid.position.y = layer.y + 0.01;
+        scene.add(grid);
+      });
+
+      const portalGroup = new THREE.Group();
+      scene.add(portalGroup);
+      function makePortal(layerId, x, z, color) {
+        const layer = layerById(layerId);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(7.5, 0.13, 8, 96),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.72 })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, layer.y + 0.18, z);
+        ring.userData.layer = layerId;
+        portalGroup.add(ring);
+      }
+      makePortal(0, 0, 0, 0x4dd8ff);
+      makePortal(-1, 0, 0, 0xc084fc);
+      makePortal(1, 0, 0, 0x9bdb7d);
+
+      const player = new THREE.Group();
+      player.position.set(0, 1.1, 0);
+      scene.add(player);
+
+      const probeMat = new THREE.MeshStandardMaterial({
+        color: 0x4dd8ff,
+        emissive: 0x17566b,
+        roughness: 0.35,
+        metalness: 0.2,
+      });
+      const probe = new THREE.Mesh(new THREE.OctahedronGeometry(1.35, 0), probeMat);
+      probe.rotation.y = Math.PI / 4;
+      player.add(probe);
+
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(2.1, 0.045, 8, 72),
+        new THREE.MeshBasicMaterial({ color: 0x4dd8ff, transparent: true, opacity: 0.58 })
+      );
+      halo.rotation.x = Math.PI / 2;
+      player.add(halo);
+
+      const tool = new THREE.Group();
+      tool.position.set(1.08, 1.25, 0.76);
+      tool.rotation.set(-0.06, 0.14, -0.18);
+      tool.scale.setScalar(1.12);
+      player.add(tool);
+      const toolHandle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.24, 0.9, 0.24),
+        new THREE.MeshStandardMaterial({ color: 0xd7dde5, roughness: 0.38, metalness: 0.65 })
+      );
+      toolHandle.position.set(-0.48, -0.38, 0);
+      toolHandle.rotation.z = -0.45;
+      tool.add(toolHandle);
+      const toolHead = new THREE.Mesh(
+        new THREE.BoxGeometry(1.16, 0.36, 0.42),
+        new THREE.MeshStandardMaterial({
+          color: 0x4dd8ff,
+          emissive: 0x155c73,
+          emissiveIntensity: 0.9,
+          roughness: 0.22,
+          metalness: 0.35,
+        })
+      );
+      toolHead.position.x = 0.28;
+      tool.add(toolHead);
+      const toolTank = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.23, 0.23, 0.72, 18),
+        new THREE.MeshStandardMaterial({
+          color: 0x9ff1ff,
+          emissive: 0x1b7084,
+          emissiveIntensity: 0.7,
+          roughness: 0.18,
+          metalness: 0.18,
+          transparent: true,
+          opacity: 0.82,
+        })
+      );
+      toolTank.rotation.z = Math.PI / 2;
+      toolTank.position.set(-0.2, 0.34, 0);
+      tool.add(toolTank);
+      const toolTip = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.17, 0.54, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffd166 })
+      );
+      toolTip.position.x = 1.08;
+      toolTip.rotation.z = -Math.PI / 2;
+      tool.add(toolTip);
+
+      const effectsGroup = new THREE.Group();
+      scene.add(effectsGroup);
+      const miningEffects = [];
+      const collectingShards = [];
+      const shardGeo = new THREE.TetrahedronGeometry(0.36, 0);
+      const chipGeo = new THREE.SphereGeometry(0.14, 8, 6);
+      const shockwaveGeo = new THREE.TorusGeometry(1, 0.045, 8, 72);
+      const beamGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+      const beamMaterial = new THREE.LineBasicMaterial({
+        color: 0x9ff1ff,
+        transparent: true,
+        opacity: 0,
+      });
+      const miningBeam = new THREE.Line(beamGeometry, beamMaterial);
+      scene.add(miningBeam);
+
+      const structureGroup = new THREE.Group();
+      scene.add(structureGroup);
+
+      const crystalGroup = new THREE.Group();
+      scene.add(crystalGroup);
+      const plaqueGeo = new THREE.IcosahedronGeometry(2.4, 0);
+      const plaqueRingGeo = new THREE.TorusGeometry(5.1, 0.06, 8, 96);
+      const plaqueMaterials = new Map();
+
+      function cachedPlaqueMaterial(color) {
+        if (!plaqueMaterials.has(color)) {
+          plaqueMaterials.set(
+            color,
+            new THREE.MeshStandardMaterial({
+              color,
+              emissive: color,
+              emissiveIntensity: 0.48,
+              roughness: 0.28,
+              metalness: 0.12,
+            })
+          );
+        }
+        return plaqueMaterials.get(color);
+      }
+
+      function crystalFor(bias) {
+        const group = new THREE.Group();
+        group.position.copy(bias.position);
+        const crystal = new THREE.Mesh(plaqueGeo, cachedPlaqueMaterial(bias.color));
+        crystal.position.y = 2.7;
+        crystal.scale.y = 1.35;
+        group.add(crystal);
+
+        const ring = new THREE.Mesh(
+          plaqueRingGeo,
+          new THREE.MeshBasicMaterial({ color: bias.color, transparent: true, opacity: 0.56 })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.08;
+        group.add(ring);
+
+        const light = bias.generated
+          ? { intensity: 0, position: { y: 4.2 } }
+          : new THREE.PointLight(bias.color, 2.1, 26);
+        if (!bias.generated) {
+          light.position.y = 4.2;
+          group.add(light);
+        }
+        group.userData.bias = bias;
+        group.userData.crystal = crystal;
+        group.userData.ring = ring;
+        group.userData.light = light;
+        group.userData.baseScale = new THREE.Vector3(1, 1, 1);
+        group.userData.damage = 0;
+        group.userData.collider = {
+          type: "crystal",
+          kind: "block",
+          radius: 3.25,
+          height: 5.4,
+          label: bias.name,
+        };
+        crystalGroup.add(group);
+        return group;
+      }
+
+      const crystals = biasData.map(crystalFor);
+
+      function makeMushroom(x, y, z, key) {
+        const group = new THREE.Group();
+        const stem = new THREE.Mesh(mushroomStemGeo, mushroomStemMat);
+        stem.position.y = 0.72;
+        group.add(stem);
+        const cap = new THREE.Mesh(mushroomCapGeo, mushroomCapMat);
+        cap.scale.set(1.18, 0.42, 1.18);
+        cap.position.y = 1.52;
+        group.add(cap);
+        const glow = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.035, 8, 40), new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.72 }));
+        glow.rotation.x = Math.PI / 2;
+        glow.position.y = 0.08;
+        group.add(glow);
+        group.position.set(x, y, z);
+        group.userData.key = key;
+        return group;
+      }
+
+      function makeLandmark(type, x, y, z, color = 0xffd166) {
+        const group = new THREE.Group();
+        if (type === "boost") {
+          const pad = new THREE.Mesh(boostPadGeo, boostPadMat);
+          pad.position.y = y + 0.08;
+          group.add(pad);
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(5.2, 0.08, 8, 72), new THREE.MeshBasicMaterial({ color: 0x9bdb7d, transparent: true, opacity: 0.7 }));
+          ring.rotation.x = Math.PI / 2;
+          ring.position.y = y + 0.22;
+          group.add(ring);
+        } else if (type === "arch") {
+          const arch = new THREE.Mesh(archGeo, landmarkMat);
+          arch.position.y = y + 4.2;
+          arch.rotation.z = Math.PI;
+          group.add(arch);
+        } else {
+          const tower = new THREE.Mesh(towerGeo, landmarkMat);
+          tower.position.y = y + 6.5;
+          group.add(tower);
+          const beacon = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 10), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.86 }));
+          beacon.position.y = y + 14;
+          group.add(beacon);
+        }
+        group.position.set(x, 0, z);
+        if (type === "arch") {
+          group.userData.collider = { type: "landmark", kind: "block", radius: 3.2, height: 7.8, label: "arch spine" };
+        } else if (type === "tower") {
+          group.userData.collider = { type: "landmark", kind: "block", radius: 2.8, height: 13.4, label: "signal tower" };
+        }
+        return group;
+      }
+
+      function obstacleProfileForBiome(biomeName, rand) {
+        if (biomeName === "Memory Forest") return { type: "block", count: 4, label: "memory trunks", radius: 3.1, height: 7.5 };
+        if (biomeName === "Risk Canyon") return { type: "hazard", count: 3, label: "risk fissures", radius: 5.8, height: 0.15 };
+        if (biomeName === "Pattern Mines") return { type: "block", count: 5, label: "pattern columns", radius: 2.5, height: 5.8 };
+        if (biomeName === "Planning Plains") return { type: "platform", count: 4, label: "planning steps", radius: 5.4, height: 2.1 + rand() * 2.4 };
+        if (biomeName === "Emotion Marsh") return { type: "hazard", count: 4, label: "sticky pools", radius: 6.4, height: 0.12 };
+        if (biomeName === "Social Village") return { type: "wall", count: 3, label: "social gates", radius: 5.2, height: 4.2 };
+        if (biomeName === "Identity Citadel") return { type: "wall", count: 4, label: "identity walls", radius: 5.8, height: 5.6 };
+        if (biomeName === "Valuation Mines") return { type: "platform", count: 3, label: "valuation ledges", radius: 5.2, height: 2.8 + rand() * 2.8 };
+        return { type: "hazard", count: 3, label: "salience sparks", radius: 4.8, height: 0.12 };
+      }
+
+      function makeObstacle(profile, x, y, z, rand, color) {
+        const group = new THREE.Group();
+        let mesh;
+        const obstacle = {
+          type: profile.type,
+          label: profile.label,
+          layer: state.layer,
+          position: new THREE.Vector3(x, y, z),
+          radius: profile.radius,
+          height: profile.height,
+          mesh: group,
+        };
+        if (profile.type === "hazard") {
+          mesh = new THREE.Mesh(hazardGeo, obstacleMats.hazard);
+          mesh.scale.set(profile.radius, 1, profile.radius);
+          mesh.position.y = y + 0.08;
+          obstacle.effect = profile.label.includes("sticky") ? "slow" : "knock";
+        } else if (profile.type === "platform") {
+          mesh = new THREE.Mesh(platformGeo, obstacleMats.platform);
+          mesh.scale.set(6 + rand() * 4, 1, 5 + rand() * 4);
+          mesh.position.y = y + profile.height;
+          obstacle.kind = "platform";
+          obstacle.halfX = mesh.scale.x / 2;
+          obstacle.halfZ = mesh.scale.z / 2;
+          obstacle.topY = y + profile.height + 0.24;
+          obstacle.rotation = 0;
+        } else if (profile.type === "wall") {
+          mesh = new THREE.Mesh(obstacleWallGeo, obstacleMats.block);
+          mesh.scale.set(2.2 + rand() * 2.2, profile.height, 9 + rand() * 7);
+          mesh.position.y = y + profile.height / 2;
+          mesh.rotation.y = rand() * Math.PI;
+          obstacle.kind = "block";
+          obstacle.shape = "rect";
+          obstacle.halfX = mesh.scale.x / 2;
+          obstacle.halfZ = mesh.scale.z / 2;
+          obstacle.rotation = mesh.rotation.y;
+        } else {
+          mesh = new THREE.Mesh(obstaclePillarGeo, obstacleMats.block);
+          mesh.scale.set(profile.radius * 0.7, profile.height, profile.radius * 0.7);
+          mesh.position.y = y + profile.height / 2;
+          obstacle.kind = "block";
+        }
+        mesh.material = mesh.material.clone ? mesh.material.clone() : mesh.material;
+        if (mesh.material.color && profile.type !== "hazard") mesh.material.color.setHex(color);
+        group.add(mesh);
+        group.position.set(x, 0, z);
+        return obstacle;
+      }
+
+      function addBiomeObstacles(chunk, biome, cx, cz, layer, rand) {
+        const profile = obstacleProfileForBiome(biome.name, rand);
+        if (cx === 0 && cz === 0) return;
+        for (let i = 0; i < profile.count; i += 1) {
+          const ox = cx * CHUNK_SIZE + 14 + rand() * (CHUNK_SIZE - 28);
+          const oz = cz * CHUNK_SIZE + 14 + rand() * (CHUNK_SIZE - 28);
+          const obstacle = makeObstacle(profile, ox, layer.y, oz, rand, biome.color);
+          obstacle.layer = layer.id;
+          chunk.add(obstacle.mesh);
+          state.obstacles.push(obstacle);
+        }
+      }
+
+      function generateChunk(cx, cz, layerId) {
+        const key = generatedChunkKey(cx, cz, layerId);
+        if (generatedChunks.has(key)) return;
+        queuedChunks.delete(key);
+        const rand = seededRandom(hashSeed(cx, cz, layerId, 7));
+        const layer = layerById(layerId);
+        const biome = biomePalette[Math.floor(rand() * biomePalette.length)];
+        const chunk = new THREE.Group();
+        chunk.userData.key = key;
+        const centerX = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
+        const centerZ = cz * CHUNK_SIZE + CHUNK_SIZE / 2;
+
+        const floor = new THREE.Mesh(
+          chunkFloorGeo,
+          cachedChunkMaterial(biome.color, 0.38)
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(centerX, layer.y - 0.055, centerZ);
+        floor.userData.biome = biome.name;
+        floor.userData.layer = layerId;
+        chunk.add(floor);
+
+        const ridgeCount = 1 + Math.floor(rand() * 2);
+        for (let i = 0; i < ridgeCount; i += 1) {
+          const ridgeHeight = 3 + rand() * 7;
+          const ridge = new THREE.Mesh(ridgeGeo, cachedRidgeMaterial(biome.color));
+          ridge.scale.set(1.4 + rand() * 2.4, ridgeHeight, 2.2 + rand() * 3.8);
+          ridge.position.set(cx * CHUNK_SIZE + rand() * CHUNK_SIZE, layer.y + ridgeHeight / 2 - 0.1, cz * CHUNK_SIZE + rand() * CHUNK_SIZE);
+          ridge.rotation.y = rand() * Math.PI;
+          chunk.add(ridge);
+          state.obstacles.push({
+            type: "ridge",
+            kind: "block",
+            shape: "rect",
+            label: "terrain ridge",
+            layer: layerId,
+            position: new THREE.Vector3(ridge.position.x, layer.y, ridge.position.z),
+            halfX: ridge.scale.x * 1.15,
+            halfZ: ridge.scale.z * 1.8,
+            height: ridgeHeight,
+            radius: Math.max(ridge.scale.x, ridge.scale.z) * 2,
+            rotation: ridge.rotation.y,
+            mesh: ridge,
+          });
+        }
+
+        addBiomeObstacles(chunk, biome, cx, cz, layer, rand);
+
+        chunkGroup.add(chunk);
+        generatedChunks.set(key, chunk);
+        state.chunksGenerated = generatedChunks.size;
+
+        if (!(cx === 0 && cz === 0) && rand() > 0.58) {
+          const type = rand() > 0.68 ? "tower" : rand() > 0.42 ? "arch" : "boost";
+          const lx = cx * CHUNK_SIZE + 18 + rand() * (CHUNK_SIZE - 36);
+          const lz = cz * CHUNK_SIZE + 18 + rand() * (CHUNK_SIZE - 36);
+          const landmark = makeLandmark(type, lx, layer.y, lz, biome.color);
+          chunk.add(landmark);
+          state.landmarks.push({ type, layer: layerId, position: new THREE.Vector3(lx, layer.y, lz), mesh: landmark });
+        }
+
+        if (!(cx === 0 && cz === 0) && rand() > 0.91) {
+          const mx = cx * CHUNK_SIZE + 18 + rand() * (CHUNK_SIZE - 36);
+          const mz = cz * CHUNK_SIZE + 18 + rand() * (CHUNK_SIZE - 36);
+          const mushroom = makeMushroom(mx, layer.y, mz, `${key}:mushroom`);
+          chunk.add(mushroom);
+          state.rareItems.push({ type: "mushroom", layer: layerId, position: new THREE.Vector3(mx, layer.y, mz), mesh: mushroom, collected: false });
+        }
+
+        if (cx === 0 && cz === 0) return;
+        const crystalCount = rand() > 0.62 ? 2 : 1;
+        for (let i = 0; i < crystalCount; i += 1) {
+          const template = biasData[Math.floor(rand() * biasData.length)];
+          const bias = {
+            ...template,
+            id: `${template.id}-${key}-${i}`,
+            name: template.name,
+            biome: biome.name,
+            layer: layerId,
+            generated: true,
+            durability: Math.max(3, template.durability + Math.floor(rand() * 5) - 1),
+            position: new THREE.Vector3(cx * CHUNK_SIZE + 14 + rand() * (CHUNK_SIZE - 28), layer.y, cz * CHUNK_SIZE + 14 + rand() * (CHUNK_SIZE - 28)),
+            lesson: `Collected: ${template.name} pattern found in ${biome.name}. ${template.lesson.replace("Collected: ", "")}`,
+            ability: "",
+          };
+          worldBiases.push(bias);
+          const crystal = crystalFor(bias);
+          generatedCrystals.push(crystal);
+          crystals.push(crystal);
+        }
+      }
+
+      function updateWorldChunks() {
+        const current = chunkCoords(player.position);
+        for (let x = current.x - CHUNK_RADIUS; x <= current.x + CHUNK_RADIUS; x += 1) {
+          for (let z = current.z - CHUNK_RADIUS; z <= current.z + CHUNK_RADIUS; z += 1) {
+            const key = generatedChunkKey(x, z, state.layer);
+            if (generatedChunks.has(key) || queuedChunks.has(key)) continue;
+            queuedChunks.add(key);
+            chunkQueue.push({ x, z, layer: state.layer, distance: Math.abs(x - current.x) + Math.abs(z - current.z) });
+          }
+        }
+        chunkQueue.sort((a, b) => a.distance - b.distance);
+      }
+
+      function processChunkQueue(maxChunks = 1) {
+        let built = 0;
+        while (chunkQueue.length && built < maxChunks) {
+          const next = chunkQueue.shift();
+          if (!next) break;
+          generateChunk(next.x, next.z, next.layer);
+          built += 1;
+        }
+      }
+
+      const stars = new THREE.Points(
+        new THREE.BufferGeometry().setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(
+            Array.from({ length: 420 }, () => [(Math.random() - 0.5) * 260, Math.random() * 70 + 12, (Math.random() - 0.5) * 220]).flat(),
+            3
+          )
+        ),
+        new THREE.PointsMaterial({ color: 0x9aa7b5, size: 0.18, transparent: true, opacity: 0.55 })
+      );
+      scene.add(stars);
+
+      function nearestCrystal() {
+        let best = null;
+        let bestDistance = Infinity;
+        const rangeBoost = abilityActive("anchoring") ? 3 : 0;
+        crystals.forEach((crystal) => {
+          if (crystal.userData.bias.generated && !crystal.visible) return;
+          const bias = crystal.userData.bias;
+          if (state.collected.has(bias.id)) return;
+          if (state.resolving.has(bias.id)) return;
+          if (bias.layer !== state.layer && !abilityActive("ambiguity")) return;
+          const distance = player.position.distanceTo(crystal.position);
+          if (bias.layer !== state.layer && distance > 28 + rangeBoost) return;
+          if (distance < bestDistance) {
+            best = crystal;
+            bestDistance = distance;
+          }
+        });
+        return best ? { crystal: best, distance: bestDistance } : null;
+      }
+
+      function updateGeneratedVisibility() {
+        const maxVisibleDistance = 190;
+        crystals.forEach((crystal) => {
+          const bias = crystal.userData.bias;
+          if (!bias.generated || state.collected.has(bias.id) || state.resolving.has(bias.id)) return;
+          const sameLayer = bias.layer === state.layer;
+          const distance = player.position.distanceTo(crystal.position);
+          crystal.visible = sameLayer && distance < maxVisibleDistance;
+        });
+      }
+
+      function nearestRareItem() {
+        let best = null;
+        let bestDistance = Infinity;
+        state.rareItems.forEach((item) => {
+          if (item.collected || item.layer !== state.layer) return;
+          const distance = player.position.distanceTo(item.position);
+          if (distance < bestDistance) {
+            best = item;
+            bestDistance = distance;
+          }
+        });
+        return best ? { item: best, distance: bestDistance } : null;
+      }
+
+      function directionTo(position) {
+        const dx = position.x - player.position.x;
+        const dz = position.z - player.position.z;
+        const angle = Math.atan2(dx, dz);
+        const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+        const index = Math.round((((angle / Math.PI) * 4) + 8) % 8);
+        return dirs[index];
+      }
+
+      function updateRareItems(dt) {
+        state.tripTimer = Math.max(0, state.tripTimer - dt);
+        state.scoutTimer = Math.max(0, state.scoutTimer - dt);
+        root.style.filter = state.tripTimer > 0
+          ? `hue-rotate(${Math.sin(performance.now() * 0.01) * 70}deg) saturate(1.8) contrast(1.12)`
+          : "";
+        state.rareItems.forEach((item) => {
+          if (item.collected || item.layer !== state.layer) return;
+          item.mesh.rotation.y += dt * 1.8;
+          item.mesh.scale.setScalar(1 + Math.sin(performance.now() * 0.006) * 0.08);
+          if (player.position.distanceTo(item.position) < 4) {
+            item.collected = true;
+            item.mesh.visible = false;
+            state.rareCollected += 1;
+            state.tripTimer = 4.8;
+            state.scoutTimer = 8.5;
+            setBuildMessage("Rare mushroom: world view unlocked", 3);
+            state.shake = Math.max(state.shake, 0.46);
+          }
+        });
+      }
+
+      function updateMinimap() {
+        minimap.querySelectorAll(".mini-rare,.mini-landmark").forEach((dot) => dot.remove());
+        const scale = 148 / 220;
+        const addDot = (className, position) => {
+          const dx = (position.x - player.position.x) * scale;
+          const dz = (position.z - player.position.z) * scale;
+          if (Math.abs(dx) > 70 || Math.abs(dz) > 70) return;
+          const dot = document.createElement("span");
+          dot.className = `mini-dot ${className}`;
+          dot.style.left = `${74 + dx}px`;
+          dot.style.top = `${74 + dz}px`;
+          minimap.appendChild(dot);
+        };
+        state.landmarks
+          .filter((item) => item.layer === state.layer)
+          .slice(-18)
+          .forEach((item) => addDot("mini-landmark", item.position));
+        state.rareItems
+          .filter((item) => !item.collected && item.layer === state.layer)
+          .slice(-10)
+          .forEach((item) => addDot("mini-rare", item.position));
+      }
+
+      function colliderBroadDistance(collider) {
+        return Math.hypot(player.position.x - collider.position.x, player.position.z - collider.position.z);
+      }
+
+      function activeWorldColliders(radius = 24) {
+        const colliders = [];
+        state.obstacles.forEach((obstacle) => {
+          if (obstacle.layer !== state.layer) return;
+          colliders.push(obstacle);
+        });
+        crystals.forEach((crystal) => {
+          const bias = crystal.userData.bias;
+          if (!crystal.visible || state.collected.has(bias.id) || state.resolving.has(bias.id) || bias.layer !== state.layer) return;
+          colliders.push({
+            ...crystal.userData.collider,
+            layer: bias.layer,
+            position: crystal.position,
+            source: crystal,
+          });
+        });
+        state.structures.forEach((structure) => {
+          if (!structure.collider) return;
+          if (!structure.allLayers && structure.layer !== state.layer) return;
+          colliders.push({
+            ...structure.collider,
+            layer: structure.layer,
+            allLayers: structure.allLayers,
+            position: structure.position,
+            source: structure.group,
+          });
+        });
+        state.landmarks.forEach((landmark) => {
+          const collider = landmark.mesh.userData.collider;
+          if (!collider || landmark.layer !== state.layer) return;
+          colliders.push({
+            ...collider,
+            layer: landmark.layer,
+            position: landmark.position,
+            source: landmark.mesh,
+          });
+        });
+        return colliders.filter((collider) => colliderBroadDistance(collider) < radius + (collider.radius || 3));
+      }
+
+      function rectPenetration(collider, padding = PLAYER_RADIUS) {
+        const dx = player.position.x - collider.position.x;
+        const dz = player.position.z - collider.position.z;
+        const angle = -(collider.rotation || 0);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const localX = dx * cos - dz * sin;
+        const localZ = dx * sin + dz * cos;
+        const overlapX = (collider.halfX || 1) + padding - Math.abs(localX);
+        const overlapZ = (collider.halfZ || 1) + padding - Math.abs(localZ);
+        if (overlapX <= 0 || overlapZ <= 0) return null;
+        const pushLocal = new THREE.Vector3();
+        if (overlapX < overlapZ) {
+          pushLocal.x = Math.sign(localX || 1) * (overlapX + 0.04);
+        } else {
+          pushLocal.z = Math.sign(localZ || 1) * (overlapZ + 0.04);
+        }
+        const worldAngle = collider.rotation || 0;
+        const wCos = Math.cos(worldAngle);
+        const wSin = Math.sin(worldAngle);
+        return new THREE.Vector3(
+          pushLocal.x * wCos - pushLocal.z * wSin,
+          0,
+          pushLocal.x * wSin + pushLocal.z * wCos
+        );
+      }
+
+      function circlePenetration(collider, padding = PLAYER_RADIUS) {
+        const dx = player.position.x - collider.position.x;
+        const dz = player.position.z - collider.position.z;
+        const distance = Math.max(0.001, Math.hypot(dx, dz));
+        const overlap = (collider.radius || 2.5) + padding - distance;
+        if (overlap <= 0) return null;
+        return new THREE.Vector3((dx / distance) * (overlap + 0.04), 0, (dz / distance) * (overlap + 0.04));
+      }
+
+      function applyCollisionPush(push, collider) {
+        player.position.add(push);
+        const pushNormal = push.clone().setY(0);
+        if (pushNormal.lengthSq() > 0.0001) {
+          pushNormal.normalize();
+          const intoWall = state.velocity.dot(pushNormal);
+          if (intoWall < 0) state.velocity.addScaledVector(pushNormal, -intoWall * 1.18);
+          state.velocity.multiplyScalar(0.92);
+        }
+        if (state.collisionBumpTimer <= 0) {
+          state.shake = Math.max(state.shake, 0.08);
+          setBuildMessage(collider.label || "Blocked", 0.48);
+          state.collisionBumpTimer = 0.16;
+        }
+      }
+
+      function resolveWorldCollisions(previousPosition) {
+        let surfaceY = layerById(state.layer).y + 1.1;
+        activeWorldColliders(24).forEach((collider) => {
+          if (collider.kind === "platform") {
+            const push = collider.shape === "rect" ? rectPenetration(collider, PLAYER_RADIUS) : circlePenetration(collider, PLAYER_RADIUS);
+            const closeToTop = previousPosition.y >= collider.topY - PLAYER_STEP_HEIGHT && player.position.y <= collider.topY + 1.8;
+            const insidePlatform = Boolean(push);
+            if (insidePlatform && closeToTop && state.verticalVelocity <= 0) {
+              surfaceY = Math.max(surfaceY, collider.topY);
+              if (state.grounded) setBuildMessage(collider.label || "Parkour step", 0.5);
+            } else if (insidePlatform && !closeToTop && player.position.y < collider.topY + 0.8) {
+              applyCollisionPush(push, collider);
+            }
+            return;
+          }
+          if (collider.type === "hazard") {
+            const push = circlePenetration(collider, 0);
+            if (push && collider.effect === "slow") {
+              state.velocity.multiplyScalar(0.68);
+              setBuildMessage("Sticky marsh", 0.55);
+            } else if (push) {
+              const knock = push.clone().setY(0).normalize();
+              state.velocity.addScaledVector(knock, 11);
+              state.shake = Math.max(state.shake, 0.18);
+              setBuildMessage("Risk fissure", 0.55);
+            }
+            return;
+          }
+          if (collider.kind === "block" || collider.type === "block" || collider.type === "wall" || collider.type === "crystal") {
+            const topY = collider.position.y + (collider.height || 4);
+            if (player.position.y > topY + 0.7) return;
+            const push = collider.shape === "rect" ? rectPenetration(collider, PLAYER_RADIUS) : circlePenetration(collider, PLAYER_RADIUS);
+            if (push) {
+              applyCollisionPush(push, collider);
+              if (collider.type === "crystal") {
+                const body = collider.source?.userData?.crystal;
+                if (body) body.scale.multiplyScalar(1.025);
+              }
+            }
+          }
+        });
+        return surfaceY;
+      }
+
+      function biomeForPosition(position) {
+        let biome = "Central Plain";
+        terrain.children.forEach((mesh) => {
+          if (mesh.userData.layer !== state.layer) return;
+          if (!mesh.geometry?.parameters?.width || !mesh.geometry?.parameters?.height) return;
+          const halfW = mesh.geometry.parameters.width / 2;
+          const halfH = mesh.geometry.parameters.height / 2;
+          if (
+            position.x >= mesh.position.x - halfW &&
+            position.x <= mesh.position.x + halfW &&
+            position.z >= mesh.position.z - halfH &&
+            position.z <= mesh.position.z + halfH
+          ) {
+            biome = mesh.userData.biome;
+          }
+        });
+        if (biome !== "Central Plain") return biome;
+        const current = chunkCoords(position);
+        const chunk = generatedChunks.get(generatedChunkKey(current.x, current.z, state.layer));
+        const floor = chunk?.children.find((mesh) => mesh.userData.biome);
+        return floor?.userData.biome || biome;
+      }
+
+      function abilityActive(id) {
+        return state.collected.has(id);
+      }
+
+      function abilityCount() {
+        return biasData.filter((bias) => bias.ability && state.collected.has(bias.id)).length;
+      }
+
+      function structureLabel(type) {
+        if (type === "pylon") return "Signal pylon";
+        if (type === "bridge") return "Synapse bridge";
+        if (type === "scanner") return "Rare scanner";
+        if (type === "cache") return "Cache shrine";
+        return "Dimension lift";
+      }
+
+      function structureCost(type) {
+        if (type === "pylon") return 2;
+        if (type === "bridge") return 3;
+        if (type === "scanner") return 4;
+        if (type === "cache") return 3;
+        return 5;
+      }
+
+      function setBuildMessage(message, ttl = 1.8) {
+        state.buildMessage = message;
+        state.buildMessageTimer = ttl;
+      }
+
+      function layerDistance2D(position, structure) {
+        return Math.hypot(position.x - structure.position.x, position.z - structure.position.z);
+      }
+
+      function nearbyStructure(type, radius = 9) {
+        return state.structures.find((structure) => {
+          if (structure.type !== type) return false;
+          if (!structure.allLayers && structure.layer !== state.layer) return false;
+          return layerDistance2D(player.position, structure) <= radius;
+        });
+      }
+
+      function pointRewardForBias(bias) {
+        const cacheBonus = nearbyStructure("cache", 18) ? 1 : 0;
+        return Math.max(2, Math.ceil(bias.durability / 2)) + cacheBonus;
+      }
+
+      function updateStructures() {
+        if (!state.structures.length) {
+          structureList.innerHTML = "<li><span>No structures built yet</span><strong>0</strong></li>";
+          return;
+        }
+        structureList.innerHTML = state.structures
+          .slice(-7)
+          .map((structure) => {
+            const layerText = structure.allLayers ? "all layers" : layerName(structure.layer);
+            return `<li><span><strong>${structureLabel(structure.type)}</strong><br>${layerText}</span><strong>${structure.cost}</strong></li>`;
+          })
+          .join("");
+      }
+
+      function makeStructureMaterial(color, opacity = 1) {
+        return new THREE.MeshStandardMaterial({
+          color,
+          emissive: color,
+          emissiveIntensity: 0.45,
+          roughness: 0.34,
+          metalness: 0.24,
+          transparent: opacity < 1,
+          opacity,
+        });
+      }
+
+      function makePylonMesh(baseY) {
+        const group = new THREE.Group();
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.48, 5.2, 18), makeStructureMaterial(0x4dd8ff, 0.88));
+        mast.position.y = baseY + 2.6;
+        group.add(mast);
+        const core = new THREE.Mesh(new THREE.SphereGeometry(0.95, 20, 14), makeStructureMaterial(0xffd166, 0.92));
+        core.position.y = baseY + 5.55;
+        group.add(core);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(2.25, 0.06, 8, 72), new THREE.MeshBasicMaterial({ color: 0x4dd8ff, transparent: true, opacity: 0.72 }));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = baseY + 5.55;
+        group.add(ring);
+        const light = new THREE.PointLight(0x4dd8ff, 1.8, 34);
+        light.position.y = baseY + 5.55;
+        group.add(light);
+        return group;
+      }
+
+      function makeBridgeMesh(baseY, yaw) {
+        const group = new THREE.Group();
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.42, 4.2), makeStructureMaterial(0x9bdb7d, 0.76));
+        deck.position.y = baseY + 0.36;
+        deck.rotation.y = yaw;
+        group.add(deck);
+        [-4.6, 4.6].forEach((x) => {
+          [-1.7, 1.7].forEach((z) => {
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.8, 12), makeStructureMaterial(0xeef3f7, 0.72));
+            post.position.set(x, baseY + 1.05, z);
+            post.rotation.y = yaw;
+            group.add(post);
+          });
+        });
+        return group;
+      }
+
+      function makeLiftMesh(x, z) {
+        const group = new THREE.Group();
+        layerData.forEach((layer) => {
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(4.1, 0.13, 10, 96), new THREE.MeshBasicMaterial({ color: layer.color, transparent: true, opacity: 0.86 }));
+          ring.position.set(0, layer.y + 0.5, 0);
+          ring.rotation.x = Math.PI / 2;
+          group.add(ring);
+          const pad = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.4, 0.28, 40), makeStructureMaterial(layer.color, 0.34));
+          pad.position.set(0, layer.y + 0.12, 0);
+          group.add(pad);
+        });
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 31, 18), makeStructureMaterial(0xc084fc, 0.42));
+        shaft.position.y = 1.5;
+        group.add(shaft);
+        const light = new THREE.PointLight(0xc084fc, 2.6, 42);
+        light.position.set(0, layerById(state.layer).y + 3, 0);
+        group.add(light);
+        group.position.set(x, 0, z);
+        return group;
+      }
+
+      function makeScannerMesh(baseY) {
+        const group = new THREE.Group();
+        const dish = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.14, 10, 64), new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.82 }));
+        dish.position.y = baseY + 3.2;
+        dish.rotation.x = Math.PI / 2.6;
+        group.add(dish);
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 3.2, 14), makeStructureMaterial(0xc084fc, 0.76));
+        mast.position.y = baseY + 1.65;
+        group.add(mast);
+        return group;
+      }
+
+      function makeCacheMesh(baseY) {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.2, 3.2), makeStructureMaterial(0xffd166, 0.82));
+        base.position.y = baseY + 0.7;
+        group.add(base);
+        const lid = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.7, 0.8, 5), makeStructureMaterial(0x9bdb7d, 0.7));
+        lid.position.y = baseY + 1.8;
+        group.add(lid);
+        return group;
+      }
+
+      function buildStructure(type) {
+        if (!state.running || state.buildCooldown > 0) return;
+        const cost = structureCost(type);
+        if (state.biasPoints < cost) {
+          setBuildMessage(`${structureLabel(type)} needs ${cost} bias points`);
+          state.buildCooldown = 0.22;
+          return;
+        }
+        const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw));
+        const place = player.position.clone().addScaledVector(forward, 5.8);
+        place.x = THREE.MathUtils.clamp(place.x, -180, 180);
+        place.z = THREE.MathUtils.clamp(place.z, -166, 166);
+        const baseY = layerById(state.layer).y;
+        const blocked = activeWorldColliders(18).some((collider) => {
+          if (collider.kind === "platform" || collider.type === "hazard") return false;
+          const dx = place.x - collider.position.x;
+          const dz = place.z - collider.position.z;
+          return Math.hypot(dx, dz) < (collider.radius || 2.5) + 3.2;
+        });
+        if (blocked) {
+          setBuildMessage("Placement blocked");
+          state.buildCooldown = 0.22;
+          return;
+        }
+        let mesh;
+        if (type === "pylon") mesh = makePylonMesh(baseY);
+        if (type === "bridge") mesh = makeBridgeMesh(baseY, state.yaw);
+        if (type === "lift") mesh = makeLiftMesh(place.x, place.z);
+        if (type === "scanner") mesh = makeScannerMesh(baseY);
+        if (type === "cache") mesh = makeCacheMesh(baseY);
+        if (type !== "lift") mesh.position.set(place.x, 0, place.z);
+        structureGroup.add(mesh);
+        state.biasPoints -= cost;
+        state.buildCooldown = 0.42;
+        const structure = {
+          id: `${type}-${Date.now()}-${state.structures.length}`,
+          type,
+          cost,
+          layer: state.layer,
+          allLayers: type === "lift",
+          position: new THREE.Vector3(place.x, baseY, place.z),
+          group: mesh,
+        };
+        if (type === "bridge") {
+          structure.collider = {
+            type: "structure",
+            kind: "platform",
+            shape: "rect",
+            label: "synapse bridge",
+            halfX: 5.25,
+            halfZ: 2.1,
+            rotation: state.yaw,
+            topY: baseY + 0.66,
+            height: 0.85,
+            radius: 6.1,
+          };
+        } else if (type !== "lift") {
+          structure.collider = {
+            type: "structure",
+            kind: "block",
+            label: structureLabel(type),
+            radius: type === "pylon" ? 1.55 : type === "scanner" ? 2.35 : 2.45,
+            height: type === "pylon" ? 6.4 : type === "scanner" ? 3.8 : 2.5,
+          };
+        }
+        state.structures.push(structure);
+        setBuildMessage(`${structureLabel(type)} built`);
+        if (type === "scanner") state.scoutTimer = Math.max(state.scoutTimer, 5.5);
+        updateStructures();
+        updateAbilities();
+        spawnShockwave({ position: new THREE.Vector3(place.x, baseY, place.z), userData: { bias: { color: type === "lift" ? 0xc084fc : type === "bridge" ? 0x9bdb7d : 0x4dd8ff } } });
+      }
+
+      function effectiveDurability(bias) {
+        let durability = bias.durability;
+        if (abilityActive("loss")) durability -= 1;
+        if (abilityActive("negativity") && player.position.distanceTo(new THREE.Vector3(bias.position.x, player.position.y, bias.position.z)) < 36) durability -= 1;
+        if (abilityActive("blindspot")) durability -= 2;
+        if (abilityActive("ingroup") && bias.biome === "Social Village") durability -= 2;
+        return Math.max(2, durability);
+      }
+
+      function miningRange() {
+        return 8.5 + (abilityActive("anchoring") ? 3 : 0);
+      }
+
+      function signalRange() {
+        const pylonBoost = nearbyStructure("pylon", 34) ? 24 : 0;
+        return 42 + pylonBoost + (abilityActive("confirmation") ? 18 : 0) + (abilityActive("availability") ? 22 : 0) + (abilityActive("survivorship") ? 12 : 0);
+      }
+
+      function magnetStrength() {
+        return 3.2 + (abilityActive("bandwagon") ? 1.7 : 0) + (abilityActive("sunk-cost") ? 1.2 : 0);
+      }
+
+      function toolPower() {
+        return 1 + Math.min(3, Math.floor(state.combo / 4)) + (abilityActive("loss") ? 1 : 0) + (abilityActive("blindspot") ? 1 : 0);
+      }
+
+      function timingNeedle() {
+        return (Math.sin(performance.now() * 0.0062) + 1) / 2;
+      }
+
+      function hitProfile() {
+        const needle = timingNeedle();
+        const distance = Math.abs(needle - 0.5);
+        if (distance < 0.075) return { grade: "Deep Clean", hits: 3, chips: 12, shake: 0.4, tone: 740 };
+        if (distance < 0.18) return { grade: "Pressure Flush", hits: 2, chips: 8, shake: 0.26, tone: 540 };
+        return { grade: "Spray", hits: 1, chips: 5, shake: 0.12, tone: 320 };
+      }
+
+      function ensureAudio() {
+        if (state.audio) return state.audio;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+        state.audio = new AudioContext();
+        return state.audio;
+      }
+
+      function playHitTone(profile) {
+        const audio = ensureAudio();
+        if (!audio) return;
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.type = profile.grade === "Deep Clean" ? "triangle" : "sine";
+        osc.frequency.setValueAtTime(profile.tone, audio.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(profile.tone * 0.62, audio.currentTime + 0.11);
+        gain.gain.setValueAtTime(profile.grade === "Spray" ? 0.035 : 0.06, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.12);
+        osc.connect(gain).connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + 0.13);
+      }
+
+      function makeTextSprite(text, color) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 96;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "900 30px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "rgba(5,6,7,0.88)";
+        ctx.strokeText(text, 128, 54);
+        ctx.fillStyle = color;
+        ctx.fillText(text, 128, 54);
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(5.4, 2.1, 1);
+        return sprite;
+      }
+
+      function spawnHitText(group, text, color = "#ffd166") {
+        const sprite = makeTextSprite(text, color);
+        sprite.position.copy(crystalCorePosition(group));
+        sprite.position.y += 2.2;
+        effectsGroup.add(sprite);
+        miningEffects.push({
+          mesh: sprite,
+          text: true,
+          ttl: 0.72,
+          life: 0,
+          velocity: new THREE.Vector3(0, 3.4, 0),
+          spin: new THREE.Vector3(),
+        });
+      }
+
+      function updateLayerUnlocks() {
+        const unlocked = layerData
+          .filter((layer) => state.collected.size >= layer.unlockAt || (abilityActive("status-quo") && state.collected.size >= Math.max(0, layer.unlockAt - 1)))
+          .map((layer) => layer.id);
+        return unlocked;
+      }
+
+      function updateAbilities() {
+        updateLayerUnlocks();
+        const abilities = biasData.filter((bias) => bias.ability && state.collected.has(bias.id));
+        if (!abilities.length) {
+          abilityList.innerHTML = "<li><span>No active abilities yet</span><strong>0</strong></li>";
+        } else {
+          abilityList.innerHTML = abilities
+            .slice(-6)
+            .map((bias) => `<li><span><strong>${bias.name}</strong><br>${bias.ability}</span><strong>on</strong></li>`)
+            .join("");
+        }
+        const liftText = state.structures.some((structure) => structure.type === "lift") ? "lift online" : "lift needed";
+        abilityPill.textContent = `Abilities: ${abilities.length} - ${liftText}`;
+      }
+
+      function updateCollection() {
+        if (!state.collected.size) {
+          collectionList.innerHTML = "<li><span>No plaque clusters cleared yet</span><strong>0</strong></li>";
+          updateAbilities();
+          return;
+        }
+        collectionList.innerHTML = worldBiases
+          .filter((bias) => state.collected.has(bias.id))
+          .slice(-7)
+          .map((bias) => `<li><span><strong>${bias.name}</strong><br>${bias.lesson}</span><strong>${layerName(bias.layer)}</strong></li>`)
+          .join("");
+        updateAbilities();
+      }
+
+      function startGame() {
+        state.running = true;
+        state.collected.clear();
+        state.resolving.clear();
+        state.layer = 0;
+        state.yaw = 0;
+        state.pitch = -0.08;
+        state.velocity.set(0, 0, 0);
+        state.verticalVelocity = 0;
+        state.grounded = true;
+        state.dashCooldown = 0;
+        state.dashTime = 0;
+        state.slideTime = 0;
+        state.layerCooldown = 0;
+        state.mineTarget = null;
+        state.lastMineTarget = null;
+        state.mineProgress = 0;
+        state.minePulse = 0;
+        state.beamFlash = 0;
+        state.combo = 0;
+        state.comboTimer = 0;
+        state.lastHitGrade = "Spray";
+        state.swingTime = 0;
+        state.swingCooldown = 0;
+        state.shake = 0;
+        state.biasPoints = 0;
+        state.structures.splice(0).forEach((structure) => structureGroup.remove(structure.group));
+        state.buildCooldown = 0;
+        state.buildMessage = "";
+        state.buildMessageTimer = 0;
+        state.chunksGenerated = 0;
+        state.rareItems.splice(0);
+        state.landmarks.splice(0);
+        state.obstacles.splice(0);
+        state.collisionBumpTimer = 0;
+        state.tripTimer = 0;
+        state.scoutTimer = 0;
+        state.rareCollected = 0;
+        root.style.filter = "";
+        player.position.set(0, layerById(state.layer).y + 1.1, 0);
+        generatedCrystals.splice(0).forEach((crystal) => {
+          crystalGroup.remove(crystal);
+          const index = crystals.indexOf(crystal);
+          if (index >= 0) crystals.splice(index, 1);
+        });
+        worldBiases.splice(biasData.length);
+        generatedChunks.forEach((chunk) => chunkGroup.remove(chunk));
+        generatedChunks.clear();
+        queuedChunks.clear();
+        chunkQueue.splice(0);
+        miningEffects.splice(0).forEach((effect) => effectsGroup.remove(effect.mesh));
+        collectingShards.splice(0).forEach((shard) => effectsGroup.remove(shard.mesh));
+        miningBeam.material.opacity = 0;
+        crystals.forEach((crystal) => {
+          crystal.visible = true;
+          crystal.userData.damage = 0;
+          crystal.userData.crystal.visible = true;
+          crystal.userData.ring.visible = true;
+          crystal.userData.crystal.scale.set(1, 1.35, 1);
+          crystal.userData.ring.scale.setScalar(1);
+          crystal.userData.light.intensity = 2.1;
+        });
+        startOverlay.hidden = true;
+        updateWorldChunks();
+        updateStructures();
+        updateCollection();
+      }
+
+      function finishGame() {
+        state.running = false;
+        startOverlay.hidden = false;
+        startOverlay.querySelector("h2").textContent = "Bias lode mapped";
+        startOverlay.querySelector("p").textContent = "You mapped the core bias loop. The atlas can now expand into quests, bosses, tools, and region progression.";
+        startOverlay.querySelector("button").textContent = "Run again";
+      }
+
+      function shiftLayer(direction, forceSurface = false) {
+        updateLayerUnlocks();
+        if (forceSurface) {
+          state.layer = 0;
+        } else {
+          const ordered = layerData.map((layer) => layer.id);
+          const currentIndex = ordered.indexOf(state.layer);
+          const nextIndex = THREE.MathUtils.clamp(currentIndex + direction, 0, ordered.length - 1);
+          state.layer = ordered[nextIndex] ?? 0;
+        }
+        player.position.y = layerById(state.layer).y + 1.1;
+        state.verticalVelocity = 0;
+        state.grounded = true;
+        state.mineTarget = null;
+        state.lastMineTarget = null;
+        state.mineProgress = 0;
+        spawnShockwave({
+          position: player.position.clone().setY(layerById(state.layer).y),
+          userData: { bias: { color: layerById(state.layer).color } },
+        });
+      }
+
+      function crystalCorePosition(group) {
+        return group.position.clone().add(new THREE.Vector3(0, 2.9, 0));
+      }
+
+      function coloredMaterial(color, opacity = 1) {
+        return new THREE.MeshStandardMaterial({
+          color,
+          emissive: color,
+          emissiveIntensity: 0.82,
+          roughness: 0.18,
+          metalness: 0.18,
+          transparent: opacity < 1,
+          opacity,
+        });
+      }
+
+      function randomUnitVector() {
+        return new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.8 + 0.2, Math.random() - 0.5).normalize();
+      }
+
+      function spawnMineChip(group, power = 1) {
+        const bias = group.userData.bias;
+        const mesh = new THREE.Mesh(chipGeo, coloredMaterial(bias.color, 0.86));
+        mesh.position.copy(crystalCorePosition(group));
+        mesh.position.add(randomUnitVector().multiplyScalar(1.2 + Math.random() * 1.2));
+        mesh.scale.setScalar(0.7 + Math.random() * 0.85);
+        effectsGroup.add(mesh);
+        miningEffects.push({
+          mesh,
+          ttl: 0.52 + Math.random() * 0.24,
+          life: 0,
+          velocity: randomUnitVector().multiplyScalar((5 + Math.random() * 6) * power),
+          spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8),
+        });
+      }
+
+      function spawnCollectibleBurst(group) {
+        const bias = group.userData.bias;
+        const origin = crystalCorePosition(group);
+        const count = 14;
+        for (let i = 0; i < count; i += 1) {
+          const mesh = new THREE.Mesh(shardGeo, coloredMaterial(bias.color, 0.96));
+          mesh.position.copy(origin);
+          mesh.scale.setScalar(0.65 + Math.random() * 1.05);
+          effectsGroup.add(mesh);
+          collectingShards.push({
+            bias,
+            mesh,
+            age: 0,
+            delay: 0.18 + Math.random() * 0.32,
+            collected: false,
+            velocity: randomUnitVector().multiplyScalar(10 + Math.random() * 11),
+            spin: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10),
+          });
+        }
+      }
+
+      function spawnShockwave(group) {
+        const bias = group.userData.bias;
+        const mesh = new THREE.Mesh(
+          shockwaveGeo,
+          new THREE.MeshBasicMaterial({ color: bias.color, transparent: true, opacity: 0.9 })
+        );
+        mesh.position.copy(group.position);
+        mesh.position.y = group.position.y + 0.28;
+        mesh.rotation.x = Math.PI / 2;
+        effectsGroup.add(mesh);
+        miningEffects.push({
+          mesh,
+          shockwave: true,
+          ttl: 0.7,
+          life: 0,
+          velocity: new THREE.Vector3(),
+          spin: new THREE.Vector3(),
+        });
+      }
+
+      function resolveCollectedShard(shard) {
+        shard.collected = true;
+        effectsGroup.remove(shard.mesh);
+        const stillFlying = collectingShards.some((item) => item !== shard && item.bias.id === shard.bias.id && !item.collected);
+        if (!stillFlying && state.resolving.has(shard.bias.id)) {
+          state.resolving.delete(shard.bias.id);
+          state.collected.add(shard.bias.id);
+          const points = pointRewardForBias(shard.bias);
+          state.biasPoints += points;
+          setBuildMessage(`+${points} bias points`);
+          updateCollection();
+        }
+      }
+
+      function updateEffects(dt) {
+        for (let i = miningEffects.length - 1; i >= 0; i -= 1) {
+          const effect = miningEffects[i];
+          effect.life += dt;
+          if (effect.shockwave) {
+            const ratio = effect.life / effect.ttl;
+            effect.mesh.scale.setScalar(1 + ratio * 10);
+            effect.mesh.material.opacity = Math.max(0, 0.9 * (1 - ratio));
+            if (effect.life >= effect.ttl) {
+              effectsGroup.remove(effect.mesh);
+              miningEffects.splice(i, 1);
+            }
+            continue;
+          }
+          if (effect.text) {
+            const fade = 1 - effect.life / effect.ttl;
+            effect.mesh.position.addScaledVector(effect.velocity, dt);
+            effect.mesh.material.opacity = Math.max(0, fade);
+            effect.mesh.scale.setScalar(1 + effect.life * 0.65);
+            if (effect.life >= effect.ttl) {
+              effectsGroup.remove(effect.mesh);
+              effect.mesh.material.map?.dispose?.();
+              effect.mesh.material.dispose?.();
+              miningEffects.splice(i, 1);
+            }
+            continue;
+          }
+          effect.velocity.y -= dt * 13;
+          effect.mesh.position.addScaledVector(effect.velocity, dt);
+          effect.mesh.rotation.x += effect.spin.x * dt;
+          effect.mesh.rotation.y += effect.spin.y * dt;
+          effect.mesh.rotation.z += effect.spin.z * dt;
+          const fade = 1 - effect.life / effect.ttl;
+          effect.mesh.scale.setScalar(Math.max(0.01, fade));
+          effect.mesh.material.opacity = Math.max(0, fade * 0.86);
+          if (effect.life >= effect.ttl) {
+            effectsGroup.remove(effect.mesh);
+            miningEffects.splice(i, 1);
+          }
+        }
+
+        for (let i = collectingShards.length - 1; i >= 0; i -= 1) {
+          const shard = collectingShards[i];
+          if (shard.collected) {
+            collectingShards.splice(i, 1);
+            continue;
+          }
+          shard.age += dt;
+          shard.mesh.rotation.x += shard.spin.x * dt;
+          shard.mesh.rotation.y += shard.spin.y * dt;
+          shard.mesh.rotation.z += shard.spin.z * dt;
+          if (shard.age < shard.delay) {
+            shard.velocity.y -= dt * 5.5;
+            shard.mesh.position.addScaledVector(shard.velocity, dt);
+            continue;
+          }
+          const target = player.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+          const pull = target.sub(shard.mesh.position);
+          shard.velocity.lerp(pull.multiplyScalar(magnetStrength()), 0.095 + (abilityActive("bandwagon") ? 0.025 : 0));
+          shard.mesh.position.addScaledVector(shard.velocity, dt);
+          shard.mesh.scale.setScalar(Math.max(0.16, shard.mesh.scale.x * 0.988));
+          if (shard.mesh.position.distanceTo(player.position) < 2.25 || shard.age > 3.2) {
+            resolveCollectedShard(shard);
+          }
+        }
+      }
+
+      function updateMiningBeam(active, target, dt = 0) {
+        state.beamFlash = Math.max(0, state.beamFlash - dt);
+        if (!active || !target) {
+          miningBeam.material.opacity = THREE.MathUtils.lerp(miningBeam.material.opacity, 0, 0.24);
+          return;
+        }
+        const start = player.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+        const end = crystalCorePosition(target);
+        const positions = miningBeam.geometry.attributes.position;
+        positions.setXYZ(0, start.x, start.y, start.z);
+        positions.setXYZ(1, end.x, end.y, end.z);
+        positions.needsUpdate = true;
+        miningBeam.material.color.setHex(target.userData.bias.color);
+        miningBeam.material.opacity = 0.18 + state.beamFlash * 2.9 + Math.sin(performance.now() * 0.025) * 0.08;
+      }
+
+      function pulseSprayGun(group) {
+        if (!group || !state.running) return;
+        if (state.swingCooldown > 0) return;
+        const bias = group.userData.bias;
+        if (state.collected.has(bias.id) || state.resolving.has(bias.id)) return;
+        const nearest = nearestCrystal();
+        if (!nearest || nearest.crystal !== group || nearest.distance >= miningRange()) return;
+
+        const profile = hitProfile();
+        const hitDamage = profile.hits + toolPower() - 1;
+        state.mineTarget = group;
+        state.lastMineTarget = group;
+        const durability = effectiveDurability(bias);
+        state.mineProgress = Math.min(1, (group.userData.damage || 0) + hitDamage / durability);
+        state.minePulse += 1.2;
+        state.beamFlash = profile.grade === "Spray" ? 0.22 : 0.38;
+        state.swingTime = 0.22;
+        state.swingCooldown = profile.grade === "Deep Clean" ? 0.1 : 0.18;
+        state.shake = Math.max(state.shake, profile.shake);
+        state.lastHitGrade = profile.grade;
+        state.combo = Math.min(99, state.combo + (profile.grade === "Deep Clean" ? 3 : profile.grade === "Pressure Flush" ? 2 : 1));
+        state.comboTimer = 1.55;
+        group.userData.damage = state.mineProgress;
+        group.userData.crystal.rotation.y += 0.74;
+        group.userData.crystal.rotation.x += 0.38;
+        const chipCount = profile.chips + Math.round(state.mineProgress * 6) + (abilityActive("endowment") ? 3 : 0);
+        for (let i = 0; i < chipCount; i += 1) spawnMineChip(group, 0.9 + state.mineProgress * 0.8 + profile.hits * 0.18);
+        spawnHitText(group, `${profile.grade} x${state.combo}`, profile.grade === "Spray" ? "#eef3f7" : "#9ff1ff");
+        playHitTone(profile);
+
+        if (state.mineProgress >= 1) {
+          state.resolving.add(bias.id);
+          spawnShockwave(group);
+          spawnCollectibleBurst(group);
+          for (let i = 0; i < 18; i += 1) spawnMineChip(group, 1.8);
+          group.visible = false;
+          state.mineProgress = 0;
+          state.lastMineTarget = null;
+          minePanel.hidden = true;
+        }
+      }
+
+      function updateMining(dt) {
+        const nearest = nearestCrystal();
+        state.mineTarget = nearest && nearest.distance < miningRange() ? nearest.crystal : null;
+        if (!state.mineTarget) {
+          state.lastMineTarget = null;
+          minePanel.hidden = true;
+          updateMiningBeam(false, null, dt);
+          critLabel.textContent = "Find";
+          return;
+        }
+
+        const bias = state.mineTarget.userData.bias;
+        if (state.lastMineTarget !== state.mineTarget) {
+          state.mineProgress = Math.max(0, state.mineTarget.userData.damage || 0);
+          state.lastMineTarget = state.mineTarget;
+        }
+        minePanel.hidden = false;
+        mineTarget.textContent = bias.name;
+        const durability = effectiveDurability(bias);
+        const hitsDone = Math.round((state.mineTarget.userData.damage || 0) * durability);
+        const hitsLeft = Math.max(1, durability - hitsDone);
+        mineHint.textContent = `Wash protein plaque - ${hitsLeft} pulse${hitsLeft === 1 ? "" : "s"} left`;
+        state.mineProgress = state.mineTarget.userData.damage || 0;
+        updateMiningBeam(state.beamFlash > 0, state.mineTarget, dt);
+
+        state.mineTarget.userData.damage = state.mineProgress;
+        const damage = Math.min(0.98, state.mineProgress);
+        const pulse = Math.sin(performance.now() * 0.014 + state.minePulse) * 0.08 * (0.45 + damage);
+        const bodyScale = Math.max(0.16, 1 - damage * 0.62 + pulse);
+        state.mineTarget.userData.crystal.scale.set(bodyScale, bodyScale * 1.35, bodyScale);
+        state.mineTarget.userData.ring.scale.setScalar(1 + damage * 0.55);
+        state.mineTarget.userData.ring.material.opacity = Math.max(0.12, 0.56 - damage * 0.34);
+        state.mineTarget.userData.light.intensity = 2.1 + damage * 4 + Math.sin(state.minePulse) * 0.9;
+
+        mineBar.style.width = `${Math.min(100, state.mineProgress * 100)}%`;
+      }
+
+      function updateHud(dt) {
+        const nearest = nearestCrystal();
+        state.comboTimer = Math.max(0, state.comboTimer - dt);
+        state.buildCooldown = Math.max(0, state.buildCooldown - dt);
+        state.buildMessageTimer = Math.max(0, state.buildMessageTimer - dt);
+        if (state.comboTimer <= 0) state.combo = 0;
+        statusPill.textContent = `Plaques cleared ${state.collected.size} / mapped ${worldBiases.length}`;
+        biomePill.textContent = `Biome: ${biomeForPosition(player.position)} - chunks ${state.chunksGenerated}`;
+        depthPill.textContent = `Layer: ${layerName(state.layer)}`;
+        comboPill.textContent = state.combo ? `Combo x${state.combo} - ${state.lastHitGrade}` : "Combo x0";
+        pointsPill.textContent = `Bias points ${state.biasPoints}`;
+        const rare = nearestRareItem();
+        if (state.scoutTimer > 0 && rare) {
+          rarePill.textContent = `Rare: ${Math.round(rare.distance)}m ${directionTo(rare.item.position)}`;
+        } else if (state.scoutTimer > 0) {
+          rarePill.textContent = "Rare: scanning";
+        } else {
+          rarePill.textContent = state.rareCollected ? `Rare: ${state.rareCollected} found` : "Rare: none";
+        }
+        const lift = nearbyStructure("lift", 8.8);
+        if (nearest && nearest.distance < signalRange()) {
+          const signal = Math.max(0, Math.round(100 - (nearest.distance / signalRange()) * 100));
+          const durabilityText = abilityActive("dunning") || nearest.distance < 18 ? ` - ${effectiveDurability(nearest.crystal.userData.bias)} pulses` : "";
+          signalPill.textContent = `Signal: ${signal}% ${nearest.crystal.userData.bias.name}${durabilityText}`;
+        } else if (state.buildMessageTimer > 0) {
+          signalPill.textContent = state.buildMessage;
+        } else if (lift) {
+          signalPill.textContent = "Signal: dimension lift ready";
+        } else {
+          signalPill.textContent = "Signal: none";
+        }
+      }
+
+      function updateWeapon(dt) {
+        state.swingCooldown = Math.max(0, state.swingCooldown - dt);
+        state.swingTime = Math.max(0, state.swingTime - dt);
+        state.shake = Math.max(0, state.shake - dt * 1.8);
+        const pulseRatio = state.swingTime > 0 ? state.swingTime / 0.22 : 0;
+        const pulse = Math.sin((1 - pulseRatio) * Math.PI);
+        tool.position.set(1.08 - pulse * 0.18, 1.25 + pulse * 0.04, 0.76);
+        tool.rotation.set(-0.06 - pulse * 0.1 + state.pitch * 0.2, 0.14 + pulse * 0.08, -0.18 - pulse * 0.2);
+        toolHead.material.emissiveIntensity = 0.9 + pulse * 2.2 + (state.combo ? Math.min(1.6, state.combo * 0.08) : 0);
+        const needle = timingNeedle();
+        critNeedle.style.left = `${needle * 100}%`;
+        const profile = hitProfile();
+        critLabel.textContent = profile.grade;
+      }
+
+      function updateMovement(dt) {
+        state.layerCooldown = Math.max(0, state.layerCooldown - dt);
+        state.dashCooldown = Math.max(0, state.dashCooldown - dt);
+        state.dashTime = Math.max(0, state.dashTime - dt);
+        state.slideTime = Math.max(0, state.slideTime - dt);
+        state.collisionBumpTimer = Math.max(0, state.collisionBumpTimer - dt);
+        if (state.keys.has("arrowleft")) state.yaw -= dt * 2.2;
+        if (state.keys.has("arrowright")) state.yaw += dt * 2.2;
+        if (state.layerCooldown <= 0 && state.keys.has("q")) {
+          if (nearbyStructure("lift", 8.8)) {
+            shiftLayer(-1);
+          } else {
+            setBuildMessage("Build or stand near a dimension lift");
+          }
+          state.layerCooldown = abilityActive("reactance") ? 0.08 : 0.38;
+        }
+        if (state.layerCooldown <= 0 && state.keys.has("e")) {
+          if (nearbyStructure("lift", 8.8)) {
+            shiftLayer(1);
+          } else {
+            setBuildMessage("Build or stand near a dimension lift");
+          }
+          state.layerCooldown = abilityActive("reactance") ? 0.08 : 0.38;
+        }
+        const bridgeBoost = nearbyStructure("bridge", 7) ? 2.5 : 0;
+        const walkSpeed = 22 + bridgeBoost + (abilityActive("planning") ? 3.5 : 0);
+        const sprintSpeed = 34 + bridgeBoost + (abilityActive("planning") ? 6 : 0) + (abilityActive("optimism") ? 2 : 0);
+        const maxSpeed = state.keys.has("shift") ? sprintSpeed : walkSpeed;
+        const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw));
+        const right = new THREE.Vector3(-Math.cos(state.yaw), 0, Math.sin(state.yaw));
+        const desired = new THREE.Vector3();
+        if (state.keys.has("w")) desired.add(forward);
+        if (state.keys.has("s")) desired.sub(forward);
+        if (state.keys.has("d")) desired.add(right);
+        if (state.keys.has("a")) desired.sub(right);
+        const hasInput = desired.lengthSq() > 0;
+        if (hasInput) desired.normalize();
+
+        if (state.keys.has("f") && state.dashCooldown <= 0) {
+          const dashDirection = hasInput ? desired.clone() : forward.clone();
+          state.velocity.addScaledVector(dashDirection, 28);
+          state.dashCooldown = 0.62;
+          state.dashTime = 0.18;
+          state.shake = Math.max(state.shake, 0.28);
+          setBuildMessage("Dash");
+          state.keys.delete("f");
+        }
+
+        if ((state.keys.has("c") || state.keys.has("control")) && state.grounded && state.slideTime <= 0) {
+          const slideDirection = state.velocity.lengthSq() > 1 ? state.velocity.clone().setY(0).normalize() : forward.clone();
+          state.velocity.addScaledVector(slideDirection, 17);
+          state.slideTime = 0.42;
+          state.shake = Math.max(state.shake, 0.18);
+          setBuildMessage("Slide");
+          state.keys.delete("c");
+          state.keys.delete("control");
+        }
+
+        const previousPosition = player.position.clone();
+        let groundY = layerById(state.layer).y + 1.1;
+        if ((state.keys.has(" ") || state.keys.has("space")) && state.grounded) {
+          state.verticalVelocity = 16.5;
+          state.grounded = false;
+          state.shake = Math.max(state.shake, 0.12);
+          state.keys.delete(" ");
+          state.keys.delete("space");
+        }
+
+        const boost = state.landmarks.find((item) => item.type === "boost" && item.layer === state.layer && player.position.distanceTo(item.position) < 5.2);
+        if (boost && state.grounded && state.dashCooldown <= 0.18) {
+          state.velocity.addScaledVector(forward, 26);
+          state.verticalVelocity = Math.max(state.verticalVelocity, 12);
+          state.grounded = false;
+          state.dashCooldown = 0.38;
+          state.shake = Math.max(state.shake, 0.24);
+          setBuildMessage("Boost pad");
+        }
+
+        const accel = state.grounded ? 88 : 48;
+        if (hasInput) {
+          const targetVelocity = desired.multiplyScalar(maxSpeed + (state.slideTime > 0 ? 8 : 0));
+          state.velocity.x = THREE.MathUtils.damp(state.velocity.x, targetVelocity.x, accel * 0.04, dt);
+          state.velocity.z = THREE.MathUtils.damp(state.velocity.z, targetVelocity.z, accel * 0.04, dt);
+        } else {
+          const friction = state.grounded ? (state.slideTime > 0 ? 1.7 : 6.8) : 1.4;
+          state.velocity.x = THREE.MathUtils.damp(state.velocity.x, 0, friction, dt);
+          state.velocity.z = THREE.MathUtils.damp(state.velocity.z, 0, friction, dt);
+        }
+
+        const horizontalSpeed = Math.hypot(state.velocity.x, state.velocity.z);
+        const speedCap = sprintSpeed + (state.dashTime > 0 ? 28 : 0) + (state.slideTime > 0 ? 18 : 0);
+        if (horizontalSpeed > speedCap) {
+          state.velocity.x = (state.velocity.x / horizontalSpeed) * speedCap;
+          state.velocity.z = (state.velocity.z / horizontalSpeed) * speedCap;
+        }
+
+        state.verticalVelocity -= 42 * dt;
+        player.position.x += state.velocity.x * dt;
+        player.position.z += state.velocity.z * dt;
+        player.position.y += state.verticalVelocity * dt;
+        groundY = resolveWorldCollisions(previousPosition);
+        if (player.position.y <= groundY) {
+          player.position.y = groundY;
+          state.verticalVelocity = 0;
+          state.grounded = true;
+        }
+        if (horizontalSpeed > 2.2) {
+          const facing = Math.atan2(state.velocity.x, state.velocity.z);
+          probe.rotation.y = THREE.MathUtils.damp(probe.rotation.y, facing + Math.PI / 4, 10, dt);
+        } else {
+          probe.rotation.y += dt * 1.8;
+        }
+        const squash = state.slideTime > 0 ? 0.78 : state.grounded ? 1 : 1.08;
+        probe.scale.set(1 + (1 - squash) * 0.22, squash, 1 + (1 - squash) * 0.22);
+        halo.rotation.z += dt * (1.2 + horizontalSpeed * 0.03);
+      }
+
+      function updateCamera() {
+        const speed = Math.hypot(state.velocity.x, state.velocity.z);
+        const scout = state.scoutTimer > 0;
+        player.rotation.y = state.yaw;
+        const forward = new THREE.Vector3(Math.sin(state.yaw), 0, Math.cos(state.yaw));
+        const right = new THREE.Vector3(-Math.cos(state.yaw), 0, Math.sin(state.yaw));
+        const lookTarget = player.position
+          .clone()
+          .add(new THREE.Vector3(0, scout ? 0 : 2.85 + Math.sin(state.pitch) * 5.5, 0))
+          .addScaledVector(forward, scout ? 0 : 8.5 + Math.max(0, speed) * 0.04);
+        const cameraDistance = scout ? 72 : 5.9 + Math.min(1.2, speed * 0.025);
+        const cameraHeight = scout ? 64 : 3.85 + Math.min(0.7, speed * 0.018) - Math.sin(state.pitch) * 1.45;
+        const shoulder = scout ? 0 : 1.55;
+        const offset = forward
+          .clone()
+          .multiplyScalar(-cameraDistance)
+          .addScaledVector(right, shoulder)
+          .add(new THREE.Vector3(0, cameraHeight, 0));
+        camera.position.lerp(player.position.clone().add(offset), scout ? 0.13 : 0.32);
+        if (state.shake > 0) {
+          camera.position.x += (Math.random() - 0.5) * state.shake;
+          camera.position.y += (Math.random() - 0.5) * state.shake * 0.45;
+          camera.position.z += (Math.random() - 0.5) * state.shake;
+        }
+        camera.lookAt(lookTarget);
+      }
+
+      function animate() {
+        const dt = Math.min(0.04, clock.getDelta());
+        if (state.running) {
+          updateMovement(dt);
+          updateWorldChunks();
+          processChunkQueue(1);
+          updateGeneratedVisibility();
+          updateRareItems(dt);
+          updateMining(dt);
+          updateHud(dt);
+          updateWeapon(dt);
+          updateMinimap();
+        }
+        crystals.forEach((crystal, index) => {
+          if (!crystal.visible) return;
+          crystal.userData.crystal.rotation.y += dt * (0.5 + index * 0.04);
+          crystal.userData.ring.rotation.z += dt * 0.35;
+          crystal.userData.crystal.position.y = 2.7 + Math.sin(performance.now() * 0.0016 + index) * 0.28;
+        });
+        updateEffects(dt);
+        stars.rotation.y += dt * 0.008;
+        updateCamera();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if (["w", "a", "s", "d", "q", "e", "f", "c", " ", "space", "shift", "control", "arrowleft", "arrowright", "1", "2", "3", "4", "5"].includes(key)) event.preventDefault();
+        if (!event.repeat && key === "1") buildStructure("pylon");
+        if (!event.repeat && key === "2") buildStructure("bridge");
+        if (!event.repeat && key === "3") buildStructure("lift");
+        if (!event.repeat && key === "4") buildStructure("scanner");
+        if (!event.repeat && key === "5") buildStructure("cache");
+        state.keys.add(key);
+      });
+
+      window.addEventListener("keyup", (event) => {
+        state.keys.delete(event.key.toLowerCase());
+      });
+
+      root.addEventListener("pointerdown", (event) => {
+        if (!state.running) return;
+        if (event.button === 0 && state.mineTarget) pulseSprayGun(state.mineTarget);
+        state.dragCamera = true;
+      });
+
+      window.addEventListener("pointerup", () => {
+        state.dragCamera = false;
+      });
+
+      root.addEventListener("pointermove", (event) => {
+        if (!state.dragCamera || !state.running) return;
+        state.yaw -= event.movementX * 0.006;
+        state.pitch = THREE.MathUtils.clamp(state.pitch - event.movementY * 0.0048, -0.58, 0.44);
+      });
+
+      root.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+      });
+
+      startButton.addEventListener("click", startGame);
+      updateStructures();
+      updateCollection();
+      animate();
+    </script>
+  </body>
+</html>

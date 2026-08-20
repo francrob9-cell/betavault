@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interactive Cognitive Bias Codex</title>
+    <style>
+      :root {
+        --ink: #16202a;
+        --muted: #65717e;
+        --line: #d9e0e7;
+        --paper: #f6f4ef;
+        --panel: #ffffff;
+        --dark: #111418;
+        --dark-panel: rgba(27, 30, 36, 0.94);
+        --dark-line: rgba(255, 255, 255, 0.13);
+        --dark-text: #eef3f7;
+        --dark-muted: #aab4bf;
+        --blue: #0b70a8;
+        --teal: #098878;
+        --green: #558f21;
+        --gray: #73777c;
+        --amber: #c7782c;
+        --shadow: 0 20px 45px rgba(22, 32, 42, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--dark-text);
+        background:
+          radial-gradient(circle at 76% 12%, rgba(71, 83, 191, 0.22), transparent 30rem),
+          radial-gradient(circle at top left, rgba(9, 136, 120, 0.16), transparent 34rem),
+          linear-gradient(135deg, #0d1014, #171a20 58%, #101216);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+        gap: 10px;
+        min-height: 100vh;
+        padding: 10px;
+        perspective: 1800px;
+      }
+
+      .side,
+      .viewer {
+        border: 1px solid var(--dark-line);
+        border-radius: 8px;
+        background: var(--dark-panel);
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
+      }
+
+      .side {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        overflow: hidden;
+        transform: translateZ(28px);
+      }
+
+      .brand {
+        padding: 16px;
+        border-bottom: 1px solid var(--dark-line);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(22px, 4vw, 34px);
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+      }
+
+      .brand p {
+        margin: 10px 0 0;
+        color: var(--dark-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border-bottom: 1px solid var(--dark-line);
+      }
+
+      .search-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      input[type="search"],
+      select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--dark-line);
+        border-radius: 8px;
+        padding: 9px 10px;
+        color: var(--dark-text);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      input[type="search"]::placeholder {
+        color: rgba(238, 243, 247, 0.52);
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid var(--dark-line);
+        border-radius: 8px;
+        padding: 8px 11px;
+        color: var(--dark-text);
+        background: rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      button:hover,
+      button.active {
+        border-color: var(--ink);
+        color: #fff;
+        background: rgba(85, 96, 226, 0.74);
+      }
+
+      .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .filter-row button {
+        min-height: 30px;
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: 11px;
+      }
+
+      .filter-row button[data-filter="information"] {
+        color: var(--teal);
+      }
+
+      .filter-row button[data-filter="meaning"] {
+        color: var(--blue);
+      }
+
+      .filter-row button[data-filter="action"] {
+        color: var(--green);
+      }
+
+      .filter-row button[data-filter="memory"] {
+        color: var(--gray);
+      }
+
+      .filter-row button.active {
+        color: #fff;
+      }
+
+      .result-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--dark-muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .agent-results {
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .prompt-state {
+        display: grid;
+        gap: 10px;
+        padding: 4px 2px;
+      }
+
+      .prompt-state strong {
+        font-size: 15px;
+        line-height: 1.2;
+      }
+
+      .prompt-state p {
+        margin: 0;
+        color: var(--dark-muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .example-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .example-chips button {
+        min-height: 30px;
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: var(--dark-muted);
+        font-size: 11px;
+      }
+
+      .recommendation-card {
+        display: grid;
+        gap: 8px;
+        width: 100%;
+        margin: 0 0 10px;
+        border: 1px solid var(--dark-line);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: left;
+        color: var(--dark-text);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+        transform: translateZ(0);
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      }
+
+      .recommendation-card:hover,
+      .recommendation-card.selected {
+        border-color: rgba(238, 243, 247, 0.7);
+        box-shadow: 0 18px 32px rgba(0, 0, 0, 0.24);
+        transform: translateY(-2px) translateZ(18px);
+      }
+
+      .recommendation-card strong {
+        font-size: 15px;
+        line-height: 1.2;
+      }
+
+      .recommendation-card span,
+      .recommendation-card p {
+        margin: 0;
+        color: var(--dark-muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .match-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .score-pill {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 5px 8px;
+        color: #fff;
+        background: var(--amber);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .detail {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border-top: 1px solid var(--dark-line);
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow: 0 -14px 28px rgba(0, 0, 0, 0.18);
+      }
+
+      .detail-label {
+        color: var(--dark-muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .detail h2 {
+        margin: 2px 0 0;
+        font-size: 18px;
+        line-height: 1.15;
+      }
+
+      .detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .detail-actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        border-radius: 8px;
+        padding: 8px 11px;
+        color: #fff;
+        background: var(--blue);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .viewer {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+        overflow: hidden;
+        transform-style: preserve-3d;
+      }
+
+      .viewer::before {
+        content: "";
+        position: absolute;
+        inset: 62px 28px 22px;
+        z-index: 0;
+        border-radius: 28px;
+        background: radial-gradient(ellipse at center, rgba(22, 32, 42, 0.24), transparent 68%);
+        filter: blur(18px);
+        transform: translateY(24px) translateZ(-80px) rotateX(68deg);
+        pointer-events: none;
+      }
+
+      .viewer-toolbar {
+        position: relative;
+        z-index: 4;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--dark-line);
+        background: rgba(12, 14, 18, 0.76);
+      }
+
+      .viewer-toolbar strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .zoom-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--dark-muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .zoom-control input {
+        width: 170px;
+      }
+
+      .codex-stage {
+        position: relative;
+        z-index: 1;
+        overflow: auto;
+        touch-action: none;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+          radial-gradient(circle at center, rgba(64, 73, 93, 0.68), #050607 74%);
+        background-size: 42px 42px, 42px 42px, auto;
+        transform-style: preserve-3d;
+        transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+        transition: transform 180ms ease;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.76),
+          0 38px 70px rgba(22, 32, 42, 0.18);
+      }
+
+      .codex-stage::before {
+        content: "";
+        position: sticky;
+        left: 0;
+        top: 0;
+        z-index: 4;
+        display: block;
+        width: 100%;
+        height: 0;
+        box-shadow: 0 18px 45px rgba(22, 32, 42, 0.16);
+        pointer-events: none;
+      }
+
+      .codex-object {
+        display: block;
+        width: 1900px;
+        height: 1500px;
+        transform-origin: top left;
+        transition: transform 80ms ease;
+        filter: drop-shadow(0 26px 32px rgba(22, 32, 42, 0.18));
+      }
+
+      .bias-tooltip {
+        position: absolute;
+        z-index: 8;
+        display: none;
+        max-width: min(340px, calc(100% - 32px));
+        border: 1px solid rgba(22, 32, 42, 0.18);
+        border-radius: 10px;
+        padding: 12px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 28px 55px rgba(22, 32, 42, 0.22);
+        pointer-events: none;
+        transform: translateZ(70px);
+      }
+
+      .bias-tooltip.visible {
+        display: grid;
+        gap: 6px;
+      }
+
+      .bias-tooltip strong {
+        font-size: 15px;
+        line-height: 1.2;
+      }
+
+      .bias-tooltip span,
+      .bias-tooltip p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .viewer-tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .coordinate-readout {
+        position: absolute;
+        z-index: 6;
+        top: 76px;
+        left: 14px;
+        display: inline-flex;
+        gap: 10px;
+        border: 1px solid var(--dark-line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        color: var(--dark-muted);
+        background: rgba(12, 14, 18, 0.78);
+        font-size: 12px;
+        font-weight: 900;
+        pointer-events: none;
+      }
+
+      .context-strip {
+        position: absolute;
+        z-index: 6;
+        left: 50%;
+        bottom: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: calc(100% - 32px);
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .context-strip span {
+        border: 1px solid var(--dark-line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        color: var(--dark-text);
+        background: rgba(12, 14, 18, 0.78);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .brain-atlas {
+        position: absolute;
+        z-index: 5;
+        top: 50%;
+        left: 50%;
+        width: min(560px, 58vw);
+        min-width: 320px;
+        color: var(--dark-text);
+        background: transparent;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .brain-atlas header {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+      }
+
+      .brain-atlas strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+
+      .brain-atlas small,
+      .brain-network-list {
+        color: var(--dark-muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .brain-atlas svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        opacity: 0.92;
+        pointer-events: none;
+      }
+
+      .brain-network-art {
+        mix-blend-mode: screen;
+      }
+
+      .brain-outline {
+        fill: rgba(238, 243, 247, 0.035);
+        stroke: rgba(238, 243, 247, 0.36);
+        stroke-width: 1.6;
+      }
+
+      .brain-fold {
+        fill: none;
+        stroke: rgba(238, 243, 247, 0.16);
+        stroke-width: 1.4;
+      }
+
+      .network-region {
+        opacity: 0.08;
+        filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+        transition: opacity 180ms ease, filter 180ms ease, stroke-width 180ms ease;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .network-region.active {
+        opacity: 0.88;
+        stroke: rgba(255, 255, 255, 0.84);
+        stroke-width: 2;
+        filter: drop-shadow(0 0 16px currentColor);
+      }
+
+      .network-region.selected {
+        opacity: 1;
+        stroke: #fff;
+        stroke-width: 3;
+        filter: drop-shadow(0 0 22px currentColor);
+      }
+
+      .network-label {
+        fill: rgba(238, 243, 247, 0.62);
+        font-size: 10px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      .brain-network-list {
+        display: flex;
+        flex-wrap: wrap;
+        position: absolute;
+        left: 50%;
+        bottom: -36px;
+        justify-content: center;
+        gap: 6px;
+        width: min(520px, 80vw);
+        transform: translateX(-50%);
+      }
+
+      .brain-network-list span {
+        display: none;
+      }
+
+      .brain-network-list button {
+        border: 1px solid var(--dark-line);
+        border-radius: 999px;
+        padding: 5px 7px;
+        color: var(--dark-text);
+        background: rgba(12, 14, 18, 0.74);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 900;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .brain-network-list button.active {
+        border-color: rgba(255, 255, 255, 0.72);
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .brain-network-list button.selected {
+        color: #050607;
+        background: rgba(238, 243, 247, 0.92);
+      }
+
+      .brain-network-explainer {
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 46px);
+        width: min(440px, 78vw);
+        border: 1px solid var(--dark-line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--dark-text);
+        background: rgba(12, 14, 18, 0.86);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .brain-network-explainer strong {
+        margin-bottom: 4px;
+      }
+
+      .brain-network-explainer p {
+        margin: 0;
+        color: var(--dark-muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .loading {
+        position: absolute;
+        inset: 20px auto auto 20px;
+        border-radius: 999px;
+        padding: 9px 12px;
+        color: var(--muted);
+        background: #fff;
+        box-shadow: var(--shadow);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto minmax(70vh, 1fr);
+        }
+
+        .side {
+          max-height: none;
+          transform: none;
+        }
+
+        .agent-results {
+          max-height: 320px;
+        }
+
+        .brain-atlas {
+          width: min(440px, 80vw);
+          min-width: 260px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .app {
+          padding: 10px;
+        }
+
+        .viewer-toolbar,
+        .search-row {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .viewer-toolbar {
+          display: grid;
+        }
+
+        .viewer-tools,
+        .zoom-control {
+          justify-content: flex-start;
+        }
+
+        .coordinate-readout {
+          top: 126px;
+        }
+
+        .context-strip {
+          left: 10px;
+          right: 10px;
+          transform: none;
+        }
+
+        .brain-atlas {
+          top: 48%;
+          width: min(340px, 84vw);
+        }
+
+        .brain-network-list {
+          bottom: -54px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <aside class="side" aria-label="Bias explorer controls">
+        <section class="brand">
+          <h1>Cognitive Bias Codex</h1>
+          <p>Describe what you are feeling.</p>
+        </section>
+
+        <section class="controls">
+          <div class="search-row">
+            <input id="searchInput" type="search" placeholder="Example: I see patterns everywhere" autocomplete="off" />
+            <button id="clearSearch" type="button">Clear</button>
+          </div>
+          <div class="filter-row" aria-label="Bias category filters">
+            <button class="active" type="button" data-filter="all">All</button>
+            <button type="button" data-filter="information">Too much info</button>
+            <button type="button" data-filter="meaning">Meaning</button>
+            <button type="button" data-filter="action">Act fast</button>
+            <button type="button" data-filter="memory">Remember</button>
+          </div>
+          <div class="result-meta">
+            <span id="resultCount">Bias finder ready</span>
+            <span id="selectedCategory">No bias selected</span>
+          </div>
+        </section>
+
+        <section class="agent-results" id="agentResults" aria-label="Likely bias recommendations"></section>
+
+        <section class="detail" aria-label="Selected bias details">
+          <div>
+            <div class="detail-label">Selected bias</div>
+            <h2 id="detailTitle">Click a bias or describe what you are experiencing</h2>
+          </div>
+          <div>
+            <div class="detail-label">What it means</div>
+            <div id="detailGroup">The finder will suggest likely matches and the map will highlight them.</div>
+          </div>
+          <div class="detail-actions">
+            <a id="detailLink" href="#" target="_blank" rel="noreferrer" hidden>Open reference</a>
+            <button id="centerSelected" type="button" disabled>Center on map</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="viewer" aria-label="Interactive cognitive bias map">
+        <div class="viewer-toolbar">
+          <div>
+            <strong>Bias reference space</strong>
+            <span class="result-meta">Hover, click, zoom, or use the finder to locate likely bias regions.</span>
+          </div>
+          <div class="viewer-tools">
+            <button id="fitView" type="button">Fit</button>
+            <button id="resetView" type="button">Reset</button>
+            <label class="zoom-control" for="zoomRange">
+              Zoom
+              <input id="zoomRange" type="range" min="35" max="260" value="66" />
+              <span id="zoomValue">66%</span>
+            </label>
+          </div>
+        </div>
+        <div class="codex-stage" id="codexStage">
+          <div class="coordinate-readout" id="mapReadout">x 0 | y 0 | z 66%</div>
+          <div class="loading" id="loadingState">Loading codex...</div>
+          <div class="bias-tooltip" id="biasTooltip" aria-hidden="true"></div>
+          <aside class="brain-atlas" aria-label="Conceptual associated neural systems">
+            <header>
+              <div>
+                <strong>Conceptual brain network</strong>
+                <small>Associated systems, not definitive locations.</small>
+              </div>
+            </header>
+            <svg class="brain-network-art" viewBox="0 0 320 190" role="img" aria-labelledby="brainTitle brainDesc">
+              <title id="brainTitle">Conceptual brain network overlay</title>
+              <desc id="brainDesc">Stylized brain regions light up when a cognitive bias is selected.</desc>
+              <path class="brain-outline" d="M58 102c-18-4-27-20-20-38 8-20 30-22 42-17 10-20 36-30 60-19 13-14 42-13 58 3 28-4 56 14 62 40 23 6 31 30 19 49-10 17-30 20-46 16-16 26-53 29-78 15-21 19-55 14-70-9-18 2-34-12-27-40z" />
+              <path class="brain-fold" d="M83 58c20 7 31 20 28 39M122 37c15 19 14 41 3 64M161 32c-5 28 7 47 27 58M208 39c-19 16-24 35-14 57M245 76c-26 3-46 15-58 36M93 129c31-14 60-10 85 10M154 143c10-24 30-36 57-39" />
+              <ellipse class="network-region" data-network="control" cx="81" cy="86" rx="38" ry="31" fill="#4dd8ff" role="button" tabindex="0" aria-label="Explain executive control" />
+              <ellipse class="network-region" data-network="attention" cx="153" cy="70" rx="47" ry="34" fill="#ffd166" role="button" tabindex="0" aria-label="Explain attention and perception" />
+              <ellipse class="network-region" data-network="salience" cx="207" cy="91" rx="41" ry="29" fill="#ff5a5f" role="button" tabindex="0" aria-label="Explain salience and threat detection" />
+              <ellipse class="network-region" data-network="memory" cx="164" cy="130" rx="43" ry="25" fill="#9bdb7d" role="button" tabindex="0" aria-label="Explain memory and pattern completion" />
+              <ellipse class="network-region" data-network="valuation" cx="220" cy="130" rx="34" ry="24" fill="#c084fc" role="button" tabindex="0" aria-label="Explain reward and valuation" />
+              <ellipse class="network-region" data-network="social" cx="117" cy="126" rx="31" ry="22" fill="#ff9f1c" role="button" tabindex="0" aria-label="Explain self and social meaning" />
+              <text class="network-label" x="81" y="89">Control</text>
+              <text class="network-label" x="153" y="73">Attention</text>
+              <text class="network-label" x="207" y="94">Salience</text>
+              <text class="network-label" x="164" y="133">Memory</text>
+              <text class="network-label" x="220" y="133">Value</text>
+              <text class="network-label" x="117" y="129">Social</text>
+            </svg>
+            <div class="brain-network-list" id="brainNetworkList" aria-label="Conceptual network legend"></div>
+            <div class="brain-network-explainer" id="brainNetworkExplainer" aria-live="polite">
+              <strong>Conceptual network guide</strong>
+              <p>Select a bias or click a network to see why that system may be involved.</p>
+            </div>
+          </aside>
+          <object class="codex-object" id="codexObject" data="cognitive-bias-codex.svg" type="image/svg+xml" aria-label="The Cognitive Bias Codex diagram"></object>
+          <div class="context-strip" aria-hidden="true">
+            <span>Atlas: Cognitive Bias Codex</span>
+            <span id="activeSpace">Reference space: all biases</span>
+            <span id="activeRegion">Region: none selected</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        biases: [],
+        query: "",
+        filter: "all",
+        selectedId: null,
+        activeNetworks: [],
+        selectedNetwork: null,
+        svgDoc: null,
+      };
+
+      const groupMap = {
+        information: { label: "Too Much Information", color: "#098" },
+        meaning: { label: "Not Enough Meaning", color: "#07A" },
+        action: { label: "Need To Act Fast", color: "#490" },
+        memory: { label: "What Should We Remember?", color: "#888" },
+      };
+
+      const fallbackGroup = { label: "Codex entry", color: "#555" };
+
+      const biasDescriptions = {
+        "Apophenia": "Seeing meaningful patterns or connections in random or unrelated information.",
+        "Clustering illusion": "Mistaking random clusters or streaks for a meaningful pattern.",
+        "Confirmation bias": "Favoring information that supports what you already believe while discounting contrary evidence.",
+        "Anchoring": "Relying too heavily on the first number, claim, or impression you encounter.",
+        "Availability heuristic": "Judging something as more common or likely because examples come easily to mind.",
+        "Attentional bias": "Your focus is pulled toward emotionally charged or familiar information, making other evidence fade out.",
+        "Negativity bias": "Giving more weight to bad news, threats, or criticism than to neutral or positive information.",
+        "Optimism bias": "Expecting better outcomes for yourself than the evidence may justify.",
+        "Planning fallacy": "Underestimating how long work will take, even when similar work took longer before.",
+        "Sunk cost fallacy": "Continuing because of what you already invested rather than what still makes sense.",
+        "Loss aversion": "Feeling losses more strongly than equivalent gains, which can distort risk decisions.",
+        "Status quo bias": "Preferring the current state because change feels costly or uncertain.",
+        "Bandwagon effect": "Treating an idea as more credible because many people seem to believe it.",
+        "Authority bias": "Overweighting the opinion of someone in authority or with perceived expertise.",
+        "Dunning-Kruger effect": "Overestimating ability or understanding when you lack enough expertise to see what you are missing.",
+        "Impostor syndrome": "Discounting your competence and fearing you will be exposed as less capable than others think.",
+        "Hindsight bias": "Feeling an outcome was obvious after it happened, even if it was uncertain beforehand.",
+        "Outcome bias": "Judging a decision by its result instead of the quality of the information available at the time.",
+        "Survivorship bias": "Focusing only on examples that made it through a process while ignoring failures that disappeared.",
+        "Fundamental attribution error": "Explaining others' behavior by character while underweighting their situation.",
+        "Self-serving bias": "Crediting yourself for success while blaming outside factors for failures.",
+        "Recency bias": "Overweighting the latest information because it is fresh.",
+        "Peak-end rule": "Remembering an experience mostly by its most intense moment and how it ended.",
+        "Mere-exposure effect": "Preferring something simply because it is familiar.",
+        "Endowment effect": "Valuing something more highly because you own it or feel it belongs to you.",
+        "Choice-supportive bias": "Remembering your own choice as better than it was and downplaying its downsides.",
+        "Halo effect": "Letting one positive trait, brand, or impression make the whole thing seem better.",
+        "Affect heuristic": "Letting a quick feeling of liking or dislike stand in for careful evaluation.",
+      };
+
+      const intentPatterns = [
+        { terms: ["pattern", "patterns", "coincidence", "coincidences", "meaning", "signs", "connected", "connections", "everywhere"], biases: ["Apophenia", "Clustering illusion", "Confirmation bias"] },
+        { terms: ["first", "initial", "stuck", "number", "price", "estimate", "anchor"], biases: ["Anchoring"] },
+        { terms: ["already believe", "prove", "supports", "evidence", "ignore", "disagree", "agree"], biases: ["Confirmation bias", "Congruence bias"] },
+        { terms: ["recent", "latest", "just happened", "fresh", "yesterday", "news"], biases: ["Recency bias", "Availability heuristic"] },
+        { terms: ["everyone", "popular", "trend", "crowd", "others", "consensus"], biases: ["Bandwagon effect", "Social proof"] },
+        { terms: ["expert", "boss", "leader", "authority", "credential", "famous"], biases: ["Authority bias"] },
+        { terms: ["loss", "lose", "risk", "afraid", "give up", "worse"], biases: ["Loss aversion", "Negativity bias"] },
+        { terms: ["time", "deadline", "estimate", "schedule", "late", "planning"], biases: ["Planning fallacy", "Optimism bias"] },
+        { terms: ["invested", "spent", "too far", "quit", "continue", "waste"], biases: ["Sunk cost fallacy", "Escalation of commitment"] },
+        { terms: ["change", "same", "default", "current", "leave it", "switch"], biases: ["Status quo bias", "Default effect"] },
+        { terms: ["obvious", "knew it", "after", "predict", "should have known"], biases: ["Hindsight bias", "Outcome bias"] },
+        { terms: ["success", "winner", "survived", "examples", "case study"], biases: ["Survivorship bias"] },
+        { terms: ["fault", "lazy", "personality", "character", "situation", "excuse"], biases: ["Fundamental attribution error"] },
+        { terms: ["memory", "remember", "ending", "worst part", "best part", "peak"], biases: ["Peak-end rule", "Recency bias"] },
+        { terms: ["bad", "negative", "criticism", "threat", "worst", "doom", "anxious"], biases: ["Negativity bias", "Availability heuristic"] },
+        { terms: ["sure", "confident", "simple", "easy", "know enough", "beginner"], biases: ["Dunning-Kruger effect", "Overconfidence effect"] },
+        { terms: ["lucky", "fraud", "qualified", "deserve", "impostor", "imposter"], biases: ["Impostor syndrome", "Self-serving bias"] },
+        { terms: ["because i", "my fault", "their fault", "lazy", "careless", "intentional"], biases: ["Fundamental attribution error", "Self-serving bias"] },
+        { terms: ["familiar", "heard before", "seen before", "recognize", "brand"], biases: ["Mere-exposure effect", "Availability heuristic"] },
+        { terms: ["prefer", "preference", "like", "favorite", "taste", "style", "vibe", "feels better"], biases: ["Mere-exposure effect", "Affect heuristic", "Halo effect"] },
+        { terms: ["brand", "logo", "expensive", "premium", "reputation", "looks better"], biases: ["Halo effect", "Mere-exposure effect", "Authority bias"] },
+        { terms: ["my kind", "identity", "me", "personality", "values", "type of person"], biases: ["In-group bias", "Choice-supportive bias", "Self-serving bias"] },
+        { terms: ["own", "owned", "already have", "value", "value it", "mine", "my choice", "picked it", "bought"], biases: ["Endowment effect", "Choice-supportive bias", "Sunk cost fallacy"] },
+        { terms: ["comfortable", "comfort", "habit", "used to", "routine", "always use"], biases: ["Status quo bias", "Mere-exposure effect", "Default effect"] },
+        { terms: ["free", "sale", "discount", "deal", "limited", "scarce"], biases: ["Scarcity heuristic", "Anchoring", "Loss aversion"] },
+        { terms: ["only remember", "last", "ended", "final", "recent"], biases: ["Peak-end rule", "Recency bias"] },
+        { terms: ["my team", "our side", "us", "them", "outsider"], biases: ["In-group bias", "Out-group homogeneity bias"] },
+        { terms: ["data", "graph", "dashboard", "metric", "numbers", "correlation"], biases: ["Clustering illusion", "Confirmation bias", "Base rate fallacy"] },
+      ];
+
+      const networkLabels = {
+        salience: "Salience / threat detection",
+        memory: "Memory / pattern completion",
+        control: "Executive control",
+        valuation: "Reward / valuation",
+        attention: "Attention / perception",
+        social: "Self / social meaning",
+      };
+
+      const networkShortLabels = {
+        attention: "Attention",
+        memory: "Memory",
+        salience: "Salience",
+        valuation: "Valuation",
+        control: "Control",
+        social: "Social",
+      };
+
+      const networkDescriptions = {
+        attention: "Attention and perception systems help decide what gets noticed first. They may be involved when a bias comes from focusing on vivid, familiar, recent, or visually convincing information.",
+        memory: "Memory systems help retrieve past examples and complete patterns. They may be involved when a bias leans on what is easy to remember, how an event ended, or whether random details feel connected.",
+        salience: "Salience and threat-detection systems flag what feels urgent or emotionally important. They may be involved when fear, criticism, loss, scarcity, or danger gets extra weight.",
+        valuation: "Reward and valuation systems help assign worth, preference, and expected payoff. They may be involved when ownership, liking, status, price, or potential loss changes how valuable something feels.",
+        control: "Executive control systems support planning, inhibition, comparison, and deliberate correction. They may be involved when a bias comes from rushing, anchoring, overconfidence, or difficulty overriding a default.",
+        social: "Self and social-meaning systems help interpret identity, belonging, reputation, and intent. They may be involved when a bias depends on groups, authority, personality judgments, or choices that feel tied to who you are.",
+      };
+
+      const defaultNetworksByGroup = {
+        information: ["attention", "salience"],
+        meaning: ["memory", "social"],
+        action: ["control", "valuation"],
+        memory: ["memory", "control"],
+        other: ["control"],
+      };
+
+      const networkRules = [
+        { terms: ["loss", "negativity", "availability", "threat", "risk", "scarcity", "anxious"], networks: ["salience", "valuation"] },
+        { terms: ["confirmation", "apophenia", "clustering", "pattern", "meaning", "hindsight", "correlation"], networks: ["memory", "attention", "social"] },
+        { terms: ["anchoring", "planning", "overconfidence", "dunning", "status quo", "default"], networks: ["control", "attention"] },
+        { terms: ["endowment", "choice-supportive", "halo", "affect", "mere-exposure", "brand", "preference"], networks: ["valuation", "social", "memory"] },
+        { terms: ["attribution", "in-group", "out-group", "authority", "bandwagon", "social proof"], networks: ["social", "salience"] },
+        { terms: ["recency", "peak-end", "memory", "remember"], networks: ["memory", "attention"] },
+      ];
+
+      const searchInput = document.getElementById("searchInput");
+      const agentResults = document.getElementById("agentResults");
+      const resultCount = document.getElementById("resultCount");
+      const selectedCategory = document.getElementById("selectedCategory");
+      const detailTitle = document.getElementById("detailTitle");
+      const detailGroup = document.getElementById("detailGroup");
+      const detailLink = document.getElementById("detailLink");
+      const centerSelected = document.getElementById("centerSelected");
+      const stage = document.getElementById("codexStage");
+      const codexObject = document.getElementById("codexObject");
+      const loadingState = document.getElementById("loadingState");
+      const biasTooltip = document.getElementById("biasTooltip");
+      const zoomRange = document.getElementById("zoomRange");
+      const zoomValue = document.getElementById("zoomValue");
+      const mapReadout = document.getElementById("mapReadout");
+      const activeSpace = document.getElementById("activeSpace");
+      const activeRegion = document.getElementById("activeRegion");
+      const brainNetworkList = document.getElementById("brainNetworkList");
+      const brainNetworkExplainer = document.getElementById("brainNetworkExplainer");
+
+      function normalize(value) {
+        return value.toLowerCase().replace(/\s+/g, " ").trim();
+      }
+
+      function words(value) {
+        return normalize(value).split(/[^a-z0-9]+/).filter((word) => word.length > 2);
+      }
+
+      function descriptionFor(bias) {
+        if (biasDescriptions[bias.name]) return biasDescriptions[bias.name];
+        return `A cognitive shortcut or blind spot related to ${bias.name.toLowerCase()}. Use the reference link for the full source definition.`;
+      }
+
+      function scoreBias(bias, queryWords) {
+        if (!queryWords.length) return 0;
+        let score = 0;
+        queryWords.forEach((word) => {
+          if (bias.haystack.includes(word)) score += 4;
+          if (descriptionFor(bias).toLowerCase().includes(word)) score += 2;
+        });
+        intentPatterns.forEach((pattern) => {
+          const hits = pattern.terms.filter((term) => state.query.includes(term)).length;
+          if (!hits) return;
+          if (pattern.biases.includes(bias.name)) score += 18 + hits * 4;
+          if (pattern.biases.some((name) => bias.name.toLowerCase().includes(name.toLowerCase().split(" ")[0]))) score += 4;
+        });
+        return score;
+      }
+
+      function recommendedBiases() {
+        const filterable = state.biases.filter((bias) => state.filter === "all" || bias.group === state.filter);
+        const queryWords = words(state.query);
+        if (!state.query) return [];
+        return filterable
+          .map((bias) => ({ ...bias, score: scoreBias(bias, queryWords) }))
+          .filter((bias) => bias.score > 0)
+          .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+          .slice(0, 3);
+      }
+
+      function networksForBias(bias) {
+        const haystack = `${bias.name} ${bias.haystack} ${descriptionFor(bias)}`.toLowerCase();
+        const networks = new Set(defaultNetworksByGroup[bias.group] || defaultNetworksByGroup.other);
+        networkRules.forEach((rule) => {
+          if (rule.terms.some((term) => haystack.includes(term))) {
+            rule.networks.forEach((network) => networks.add(network));
+          }
+        });
+        return [...networks].slice(0, 4);
+      }
+
+      function updateBrainNetworks(networks = []) {
+        state.activeNetworks = networks;
+        if (state.selectedNetwork && !networkLabels[state.selectedNetwork]) state.selectedNetwork = null;
+        document.querySelectorAll("[data-network]").forEach((node) => {
+          node.classList.toggle("active", networks.includes(node.dataset.network));
+          node.classList.toggle("selected", state.selectedNetwork === node.dataset.network);
+        });
+        renderNetworkLegend();
+        renderNetworkExplainer(state.selectedNetwork || networks[0]);
+      }
+
+      function renderNetworkLegend() {
+        const orderedNetworks = ["attention", "memory", "salience", "valuation", "control", "social"];
+        brainNetworkList.innerHTML = orderedNetworks
+          .map((network) => `
+            <button
+              class="${state.activeNetworks.includes(network) ? "active" : ""} ${state.selectedNetwork === network ? "selected" : ""}"
+              type="button"
+              data-network-control="${network}"
+              aria-pressed="${state.selectedNetwork === network ? "true" : "false"}"
+            >${networkShortLabels[network]}</button>
+          `)
+          .join("");
+        brainNetworkList.querySelectorAll("[data-network-control]").forEach((button) => {
+          button.addEventListener("click", () => selectNetwork(button.dataset.networkControl));
+        });
+      }
+
+      function renderNetworkExplainer(network) {
+        if (!network) {
+          brainNetworkExplainer.innerHTML = `
+            <strong>Conceptual network guide</strong>
+            <p>Select a bias or click a network to see why that system may be involved.</p>
+          `;
+          return;
+        }
+        brainNetworkExplainer.innerHTML = `
+          <strong>${networkLabels[network]}</strong>
+          <p>${networkDescriptions[network]}</p>
+        `;
+      }
+
+      function selectNetwork(network) {
+        state.selectedNetwork = state.selectedNetwork === network ? null : network;
+        document.querySelectorAll("[data-network]").forEach((node) => {
+          node.classList.toggle("selected", state.selectedNetwork === node.dataset.network);
+        });
+        renderNetworkLegend();
+        renderNetworkExplainer(state.selectedNetwork || state.activeNetworks[0]);
+      }
+
+      function getEnglishText(anchor) {
+        const textNodes = [...anchor.querySelectorAll("text")].filter((node) => !node.hasAttribute("systemLanguage"));
+        return textNodes.map((node) => node.textContent.replace(/\s+/g, " ").trim()).filter(Boolean).join(" ");
+      }
+
+      function getHref(anchor) {
+        return anchor.getAttribute("href") || anchor.getAttributeNS("http://www.w3.org/1999/xlink", "href") || "#";
+      }
+
+      function groupForAnchor(anchor) {
+        let node = anchor.parentElement;
+        while (node) {
+          const style = node.getAttribute("style") || "";
+          if (style.includes("fill:#098")) return "information";
+          if (style.includes("fill:#07A")) return "meaning";
+          if (style.includes("fill:#490")) return "action";
+          if (style.includes("fill:#888")) return "memory";
+          node = node.parentElement;
+        }
+        return "other";
+      }
+
+      function injectSvgStyles(svgDoc) {
+        const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
+        style.textContent = `
+          a.codex-match text, a.codex-match circle { fill: #111 !important; }
+          a.codex-match path { stroke: #111 !important; stroke-width: 2.4px !important; }
+          a.codex-dim { opacity: 0.22; }
+          a.codex-selected text, a.codex-selected circle { fill: #b6463b !important; }
+          a.codex-selected path { stroke: #b6463b !important; stroke-width: 3.5px !important; }
+        `;
+        svgDoc.documentElement.appendChild(style);
+      }
+
+      function parseSvg() {
+        state.svgDoc = codexObject.contentDocument;
+        if (!state.svgDoc) return;
+        injectSvgStyles(state.svgDoc);
+        state.svgDoc.addEventListener("wheel", handleZoomWheel, { passive: false });
+
+        const anchors = [...state.svgDoc.querySelectorAll("a")];
+        state.biases = anchors
+          .map((anchor, index) => {
+            const name = getEnglishText(anchor);
+            if (!name) return null;
+            const id = `bias-${index}`;
+            anchor.dataset.biasId = id;
+            anchor.setAttribute("role", "button");
+            anchor.setAttribute("aria-label", name);
+            anchor.addEventListener("click", (event) => {
+              event.preventDefault();
+              showTooltip(id, event);
+              selectBias(id, true);
+            });
+            anchor.addEventListener("mouseenter", (event) => {
+              previewBias(id);
+              showTooltip(id, event);
+            });
+            anchor.addEventListener("mousemove", (event) => positionTooltip(event));
+            anchor.addEventListener("mouseleave", hideTooltip);
+            return {
+              id,
+              name,
+              haystack: normalize(name),
+              href: getHref(anchor),
+              group: groupForAnchor(anchor),
+              anchor,
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        loadingState.hidden = true;
+        render();
+      }
+
+      function setSvgClasses(matchesList) {
+        const matches = new Set(matchesList.map((bias) => bias.id));
+        const shouldDim = state.query || state.filter !== "all";
+        state.biases.forEach((bias) => {
+          bias.anchor.classList.toggle("codex-match", matches.has(bias.id));
+          bias.anchor.classList.toggle("codex-dim", shouldDim && !matches.has(bias.id));
+          bias.anchor.classList.toggle("codex-selected", state.selectedId === bias.id);
+        });
+      }
+
+      function render() {
+        const matches = recommendedBiases();
+        resultCount.textContent = state.query ? `${matches.length} likely matches` : "Describe a situation";
+        setSvgClasses(matches);
+        if (!state.query) {
+          agentResults.innerHTML = `
+            <div class="prompt-state">
+              <strong>What are you noticing?</strong>
+              <p>Pick a common thinking trap or type your own situation in plain English.</p>
+              <div class="example-chips" aria-label="Example prompts">
+                <button type="button" data-example="I see patterns everywhere">I see patterns everywhere</button>
+                <button type="button" data-example="I keep trusting the first estimate">I trust the first estimate</button>
+                <button type="button" data-example="Everyone else seems convinced">Everyone seems convinced</button>
+                <button type="button" data-example="We spent too much to quit now">Too much spent to quit</button>
+                <button type="button" data-example="I only notice evidence that proves I am right">Only evidence that proves me right</button>
+                <button type="button" data-example="The bad feedback feels louder than everything else">Bad feedback feels louder</button>
+                <button type="button" data-example="I assume the expert must be right">The expert must be right</button>
+                <button type="button" data-example="I think this will take less time than it usually does">This will be quick</button>
+                <button type="button" data-example="I remember the ending more than the whole experience">The ending colors everything</button>
+                <button type="button" data-example="The familiar option feels safer">Familiar feels safer</button>
+                <button type="button" data-example="I blame their personality instead of the situation">It is just their personality</button>
+                <button type="button" data-example="The dashboard makes a random pattern look meaningful">The chart looks meaningful</button>
+                <button type="button" data-example="I prefer it because it feels more like me">It feels more like me</button>
+                <button type="button" data-example="I like the brand so I assume it is better">I like the brand</button>
+                <button type="button" data-example="I already own it so I value it more">I already own it</button>
+                <button type="button" data-example="I keep choosing the familiar option because it feels comfortable">Familiar feels comfortable</button>
+                <button type="button" data-example="I picked it, so now I notice all the reasons it was a good choice">I picked it, so it seems better</button>
+              </div>
+            </div>
+          `;
+          agentResults.querySelectorAll("[data-example]").forEach((button) => {
+            button.addEventListener("click", () => {
+              searchInput.value = button.dataset.example;
+              state.query = normalize(searchInput.value);
+              render();
+            });
+          });
+          return;
+        }
+
+        agentResults.innerHTML = matches.length ? matches
+          .map((bias) => {
+            const group = groupMap[bias.group] || fallbackGroup;
+            const confidence = bias.score ? `${Math.min(99, Math.round(42 + bias.score * 2))}%` : "Explore";
+            return `
+              <button class="recommendation-card ${state.selectedId === bias.id ? "selected" : ""}" type="button" data-bias-id="${bias.id}">
+                <div class="match-row">
+                  <strong>${bias.name}</strong>
+                  <span class="score-pill">${confidence}</span>
+                </div>
+                <p>${descriptionFor(bias)}</p>
+                <span>${group.label}</span>
+              </button>
+            `;
+          })
+          .join("") : `<div class="recommendation-card"><strong>No strong match yet</strong><p>Try describing the situation in plainer language, like "I keep trusting the first estimate" or "I do not want to quit because we spent so much."</p></div>`;
+
+        agentResults.querySelectorAll("[data-bias-id]").forEach((button) => {
+          button.addEventListener("click", () => selectBias(button.dataset.biasId, true));
+          button.addEventListener("mouseenter", () => previewBias(button.dataset.biasId));
+        });
+
+        if (state.query && matches.length && !state.selectedId) {
+          updateBrainNetworks(networksForBias(matches[0]));
+        } else if (!state.query && !state.selectedId) {
+          updateBrainNetworks([]);
+        }
+      }
+
+      function previewBias(id) {
+        if (!state.selectedId) {
+          updateDetail(id, false);
+        }
+      }
+
+      function updateDetail(id, selected) {
+        const bias = state.biases.find((candidate) => candidate.id === id);
+        if (!bias) return;
+        const group = groupMap[bias.group] || fallbackGroup;
+        detailTitle.textContent = bias.name;
+        detailGroup.textContent = descriptionFor(bias);
+        selectedCategory.textContent = selected ? group.label : "Previewing";
+        activeSpace.textContent = `Reference space: ${group.label}`;
+        activeRegion.textContent = `Region: ${bias.name}`;
+        detailLink.href = bias.href;
+        detailLink.hidden = bias.href === "#";
+        centerSelected.disabled = !selected;
+        updateBrainNetworks(networksForBias(bias));
+      }
+
+      function showTooltip(id, event) {
+        const bias = state.biases.find((candidate) => candidate.id === id);
+        if (!bias) return;
+        const group = groupMap[bias.group] || fallbackGroup;
+        biasTooltip.innerHTML = `<strong>${bias.name}</strong><p>${descriptionFor(bias)}</p><span>${group.label}</span>`;
+        biasTooltip.classList.add("visible");
+        positionTooltip(event);
+      }
+
+      function positionTooltip(event) {
+        const point = parentPoint(event);
+        const rect = stage.getBoundingClientRect();
+        const x = Math.min(stage.clientWidth - 360, Math.max(12, point.x - rect.left + 18 + stage.scrollLeft));
+        const y = Math.min(stage.scrollHeight - 150, Math.max(12, point.y - rect.top + 18 + stage.scrollTop));
+        biasTooltip.style.left = `${x}px`;
+        biasTooltip.style.top = `${y}px`;
+      }
+
+      function hideTooltip() {
+        biasTooltip.classList.remove("visible");
+      }
+
+      function selectBias(id, center) {
+        state.selectedId = id;
+        updateDetail(id, true);
+        render();
+        if (center) centerBias(id);
+      }
+
+      function centerBias(id) {
+        const bias = state.biases.find((candidate) => candidate.id === id);
+        if (!bias || !state.svgDoc) return;
+        const target = bias.anchor.querySelector("circle, text") || bias.anchor;
+        const box = target.getBoundingClientRect();
+        const stageBox = stage.getBoundingClientRect();
+        const zoom = Number(zoomRange.value) / 100;
+        const targetX = stage.scrollLeft + (box.left - stageBox.left) - stage.clientWidth / 2 + box.width / 2;
+        const targetY = stage.scrollTop + (box.top - stageBox.top) - stage.clientHeight / 2 + box.height / 2;
+        stage.scrollTo({ left: targetX / zoom, top: targetY / zoom, behavior: "smooth" });
+      }
+
+      function setZoom(value) {
+        const zoom = Math.max(Number(zoomRange.min), Math.min(Number(zoomRange.max), Number(value)));
+        zoomRange.value = zoom;
+        codexObject.style.transform = `scale(${zoom / 100})`;
+        codexObject.style.marginRight = `${1900 * (zoom / 100 - 1)}px`;
+        codexObject.style.marginBottom = `${1500 * (zoom / 100 - 1)}px`;
+        zoomValue.textContent = `${zoom}%`;
+        updateReadout();
+      }
+
+      function zoomAt(clientX, clientY, nextZoom) {
+        const previousZoom = Number(zoomRange.value) / 100;
+        const rect = stage.getBoundingClientRect();
+        const contentX = (stage.scrollLeft + clientX - rect.left) / previousZoom;
+        const contentY = (stage.scrollTop + clientY - rect.top) / previousZoom;
+        setZoom(nextZoom);
+        const updatedZoom = Number(zoomRange.value) / 100;
+        stage.scrollLeft = contentX * updatedZoom - (clientX - rect.left);
+        stage.scrollTop = contentY * updatedZoom - (clientY - rect.top);
+      }
+
+      function parentPoint(event) {
+        if (event.view && event.view !== window) {
+          const objectBox = codexObject.getBoundingClientRect();
+          return {
+            x: objectBox.left + event.clientX,
+            y: objectBox.top + event.clientY,
+          };
+        }
+        return { x: event.clientX, y: event.clientY };
+      }
+
+      function handleZoomWheel(event) {
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -8 : 8;
+        const point = parentPoint(event);
+        zoomAt(point.x, point.y, Number(zoomRange.value) + delta);
+      }
+
+      let pinchStartDistance = 0;
+      let pinchStartZoom = 0;
+
+      function touchDistance(touches) {
+        const [a, b] = touches;
+        return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      }
+
+      function setStageTilt(event) {
+        if (event.pointerType === "touch") return;
+        const rect = stage.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - 0.5;
+        const y = (event.clientY - rect.top) / rect.height - 0.5;
+        stage.style.setProperty("--tilt-y", `${x * 4.5}deg`);
+        stage.style.setProperty("--tilt-x", `${y * -3.5}deg`);
+        updateReadout(event);
+      }
+
+      function resetStageTilt() {
+        stage.style.setProperty("--tilt-y", "0deg");
+        stage.style.setProperty("--tilt-x", "0deg");
+      }
+
+      function updateReadout(event) {
+        const zoom = Number(zoomRange.value) / 100;
+        let x = Math.round(stage.scrollLeft / zoom);
+        let y = Math.round(stage.scrollTop / zoom);
+        if (event) {
+          const rect = stage.getBoundingClientRect();
+          x = Math.round((stage.scrollLeft + event.clientX - rect.left) / zoom);
+          y = Math.round((stage.scrollTop + event.clientY - rect.top) / zoom);
+        }
+        mapReadout.textContent = `x ${x} | y ${y} | z ${zoomRange.value}%`;
+      }
+
+      function fitView() {
+        const fit = Math.floor(Math.min((stage.clientWidth / 1900) * 100, (stage.clientHeight / 1500) * 100) * 0.96);
+        setZoom(Math.max(Number(zoomRange.min), Math.min(Number(zoomRange.max), fit)));
+        stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+      }
+
+      function resetView() {
+        setZoom(66);
+        stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+        resetStageTilt();
+      }
+
+      searchInput.addEventListener("input", () => {
+        state.query = normalize(searchInput.value);
+        render();
+      });
+
+      document.getElementById("clearSearch").addEventListener("click", () => {
+        searchInput.value = "";
+        state.query = "";
+        state.selectedId = null;
+        selectedCategory.textContent = "No bias selected";
+        detailTitle.textContent = "Click a bias or describe what you are experiencing";
+        detailGroup.textContent = "The finder will suggest likely matches and the map will highlight them.";
+        activeSpace.textContent = "Reference space: all biases";
+        activeRegion.textContent = "Region: none selected";
+        detailLink.hidden = true;
+        centerSelected.disabled = true;
+        state.selectedNetwork = null;
+        updateBrainNetworks([]);
+        render();
+      });
+
+      document.querySelectorAll(".network-region").forEach((region) => {
+        region.addEventListener("click", () => selectNetwork(region.dataset.network));
+        region.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectNetwork(region.dataset.network);
+          }
+        });
+      });
+
+      renderNetworkLegend();
+      renderNetworkExplainer(null);
+
+      document.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.filter = button.dataset.filter;
+          document.querySelectorAll("[data-filter]").forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+          render();
+        });
+      });
+
+      centerSelected.addEventListener("click", () => {
+        if (state.selectedId) centerBias(state.selectedId);
+      });
+
+      document.getElementById("fitView").addEventListener("click", fitView);
+      document.getElementById("resetView").addEventListener("click", resetView);
+      zoomRange.addEventListener("input", () => setZoom(zoomRange.value));
+      stage.addEventListener("pointermove", setStageTilt);
+      stage.addEventListener("pointerleave", resetStageTilt);
+      stage.addEventListener("scroll", () => updateReadout());
+      stage.addEventListener("wheel", handleZoomWheel, { passive: false });
+      codexObject.addEventListener("wheel", handleZoomWheel, { passive: false });
+      stage.addEventListener("touchstart", (event) => {
+        if (event.touches.length === 2) {
+          pinchStartDistance = touchDistance(event.touches);
+          pinchStartZoom = Number(zoomRange.value);
+        }
+      }, { passive: false });
+      stage.addEventListener("touchmove", (event) => {
+        if (event.touches.length !== 2 || !pinchStartDistance) return;
+        event.preventDefault();
+        const midpointX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+        const midpointY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+        zoomAt(midpointX, midpointY, pinchStartZoom * (touchDistance(event.touches) / pinchStartDistance));
+      }, { passive: false });
+      stage.addEventListener("touchend", (event) => {
+        if (event.touches.length < 2) pinchStartDistance = 0;
+      });
+      codexObject.addEventListener("load", parseSvg);
+      setZoom(zoomRange.value);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IT Roadmap Command Center</title>
+    <style>
+      :root {
+        --ink: #16202d;
+        --muted: #5b6470;
+        --blue: #175486;
+        --green: #23624f;
+        --orange: #c2762f;
+        --red: #b6463b;
+        --paper: #f7f4ee;
+        --line: #d9e0e8;
+        --soft: #eef4f8;
+        --shadow: 0 22px 70px rgba(16, 31, 51, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 18%, rgba(194, 118, 47, 0.16), transparent 25%),
+          radial-gradient(circle at 84% 10%, rgba(23, 84, 134, 0.16), transparent 28%),
+          var(--paper);
+        font-family: Ubuntu, Arial, sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1500px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 36px;
+      }
+
+      .topbar,
+      .intro,
+      .panel-header,
+      .timeline-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .topbar {
+        margin-bottom: 20px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .app-logo {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        align-items: end;
+        gap: 4px;
+        width: 52px;
+        height: 52px;
+        flex: 0 0 auto;
+        border: 1px solid rgba(23, 84, 134, 0.22);
+        border-radius: 12px;
+        padding: 9px;
+        background: #fff;
+        box-shadow: 0 12px 30px rgba(23, 84, 134, 0.13);
+      }
+
+      .app-logo::before {
+        position: absolute;
+        left: 9px;
+        right: 9px;
+        top: 24px;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--green), var(--orange), var(--red));
+        content: "";
+      }
+
+      .app-logo span {
+        position: relative;
+        z-index: 1;
+        display: block;
+        border-radius: 999px 999px 4px 4px;
+        background: var(--blue);
+      }
+
+      .app-logo span:nth-child(1) {
+        height: 18px;
+      }
+
+      .app-logo span:nth-child(2) {
+        height: 28px;
+        background: var(--green);
+      }
+
+      .app-logo span:nth-child(3) {
+        height: 22px;
+        background: var(--orange);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 5vw, 64px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .back-link,
+      .scenario-controls button,
+      .library-card button,
+      .move-button,
+      .reset-button {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 9px 13px;
+        color: var(--ink);
+        background: #fff;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .intro {
+        align-items: end;
+        margin-bottom: 16px;
+      }
+
+      .intro p {
+        max-width: 800px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .scenario-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .scenario-controls button.active {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .timeline-only-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 20;
+        display: none;
+      }
+
+      body.timeline-only .timeline-only-toggle {
+        display: inline-flex;
+      }
+
+      body.timeline-only .topbar,
+      body.timeline-only .intro,
+      body.timeline-only .dashboard > aside {
+        display: none;
+      }
+
+      body.timeline-only .shell {
+        width: min(100% - 20px, 1800px);
+        padding-top: 18px;
+      }
+
+      body.timeline-only .dashboard {
+        display: block;
+      }
+
+      body.timeline-only .roadmap-panel {
+        min-height: calc(100vh - 36px);
+      }
+
+      body.timeline-only .timeline {
+        min-height: calc(100vh - 150px);
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(270px, 300px);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-header {
+        border-bottom: 1px solid var(--line);
+        padding: 14px;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+
+      .panel-header span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .library-search {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .library-search label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .library-search input {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .category-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .category-filters button {
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: var(--muted);
+        background: #fff;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .category-filters button.active {
+        border-color: var(--ink);
+        color: #fff;
+        background: var(--ink);
+      }
+
+      .library-list {
+        display: grid;
+        gap: 12px;
+        max-height: 610px;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .theme-group {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .theme-group summary {
+        position: sticky;
+        top: -14px;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 40px;
+        padding: 10px 12px;
+        color: var(--ink);
+        background: #f7f4ec;
+        border-bottom: 1px solid var(--line);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .theme-group summary span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .theme-group-body {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .library-card {
+        position: relative;
+        display: grid;
+        gap: 7px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .library-card.applied {
+        border-color: rgba(35, 98, 79, 0.55);
+        background: #f3f8f5;
+      }
+
+      .library-card strong {
+        font-size: 14px;
+      }
+
+      .library-card-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .library-card-header strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.2;
+      }
+
+      .library-title-popover {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 8px;
+        z-index: 10;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(-6px);
+        transition: opacity 140ms ease, transform 140ms ease;
+        border: 1px solid rgba(3, 36, 69, 0.16);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #fff;
+        background: var(--ink);
+        box-shadow: 0 16px 30px rgba(3, 36, 69, 0.18);
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .library-card:hover .library-title-popover,
+      .library-card:focus-within .library-title-popover {
+        opacity: 1;
+        transform: translateY(-100%);
+      }
+
+      .library-card p,
+      .library-card small {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .library-card small {
+        color: var(--blue);
+        font-weight: 800;
+      }
+
+      .library-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .library-meta.compact span {
+        background: #eef1f3;
+        color: var(--ink);
+      }
+
+      .library-meta span,
+      .risk-pill {
+        border-radius: 999px;
+        padding: 5px 8px;
+        color: #fff;
+        background: var(--blue);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .library-meta span:nth-child(2) {
+        background: var(--orange);
+      }
+
+      .roadmap-panel {
+        min-width: 0;
+        overflow: hidden;
+        padding: 14px;
+      }
+
+      .timeline-toolbar {
+        align-items: start;
+        margin-bottom: 12px;
+      }
+
+      .timeline-toolbar strong {
+        display: block;
+      }
+
+      .timeline-toolbar span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .timeline {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(10, minmax(124px, 1fr));
+        grid-template-rows: 96px auto;
+        max-width: 100%;
+        min-height: 500px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        padding: 26px 0 12px;
+      }
+
+      .risk-segment {
+        grid-row: 1;
+        align-self: start;
+        height: 5px;
+        margin-top: 35px;
+        background: var(--green);
+      }
+
+      .risk-segment:first-child {
+        border-radius: 999px 0 0 999px;
+      }
+
+      .risk-segment:last-child {
+        border-radius: 0 999px 999px 0;
+      }
+
+      .risk-segment.medium {
+        background: var(--orange);
+      }
+
+      .risk-segment.high {
+        background: var(--red);
+      }
+
+      .month {
+        position: relative;
+        display: grid;
+        grid-row: 1;
+        align-content: start;
+        justify-items: center;
+        gap: 4px;
+        min-width: 120px;
+        padding: 0 7px;
+      }
+
+      .month.drag-over {
+        background: rgba(23, 84, 134, 0.08);
+      }
+
+      .month.stressed {
+        background: rgba(182, 70, 59, 0.06);
+      }
+
+      .month.stressed .month-header strong {
+        background: var(--red);
+      }
+
+      .month.selected .month-header strong {
+        outline: 3px solid rgba(23, 84, 134, 0.34);
+        outline-offset: 3px;
+      }
+
+      .month-header {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        text-align: center;
+      }
+
+      .month-header strong {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        color: #fff;
+        background: var(--blue);
+        box-shadow: 0 10px 22px rgba(23, 84, 134, 0.2);
+        font-size: 13px;
+      }
+
+      .month-header span {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .month-drop {
+        position: relative;
+        z-index: 1;
+        grid-row: 2;
+        min-height: 330px;
+        border-left: 1px dashed rgba(91, 100, 112, 0.24);
+      }
+
+      .month-drop.drag-over {
+        background: rgba(23, 84, 134, 0.08);
+      }
+
+      .bar-stage {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        grid-template-columns: repeat(10, minmax(124px, 1fr));
+        grid-auto-rows: 72px;
+        gap: 10px 0;
+        min-height: 330px;
+        padding-top: 8px;
+        pointer-events: none;
+      }
+
+      .roadmap-item {
+        position: relative;
+        display: grid;
+        align-content: center;
+        gap: 5px;
+        min-width: 0;
+        border: 1px solid rgba(23, 84, 134, 0.24);
+        border-radius: 8px;
+        margin: 0 7px;
+        padding: 10px 62px 10px 12px;
+        background: #eef5fa;
+        box-shadow: 0 8px 18px rgba(23, 84, 134, 0.08);
+        cursor: grab;
+        pointer-events: auto;
+      }
+
+      .roadmap-item:active {
+        cursor: grabbing;
+      }
+
+      .roadmap-item.selected {
+        outline: 3px solid rgba(23, 84, 134, 0.3);
+        outline-offset: 2px;
+      }
+
+      .roadmap-item.infrastructure {
+        background: #e9f1f8;
+        border-color: rgba(23, 84, 134, 0.32);
+      }
+
+      .roadmap-item.security {
+        background: #eff5f1;
+        border-color: rgba(35, 98, 79, 0.35);
+      }
+
+      .roadmap-item.reporting {
+        background: #f7f1e6;
+        border-color: rgba(194, 118, 47, 0.34);
+      }
+
+      .roadmap-item.adoption {
+        background: #f6eeee;
+        border-color: rgba(182, 70, 59, 0.28);
+      }
+
+      .roadmap-item.governance {
+        background: #f1f1f7;
+        border-color: rgba(85, 78, 125, 0.26);
+      }
+
+      .roadmap-item strong {
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+
+      .roadmap-item span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 1.35;
+        text-transform: uppercase;
+      }
+
+      .roadmap-controls {
+        position: absolute;
+        right: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .move-button {
+        min-height: 28px;
+        padding: 5px 8px;
+        font-size: 11px;
+      }
+
+      .month-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .impact-compact {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 24px;
+      }
+
+      .risk-pill {
+        display: inline-flex;
+        margin-top: 6px;
+      }
+
+      .risk-pill.low {
+        background: var(--green);
+      }
+
+      .risk-pill.medium {
+        background: var(--orange);
+      }
+
+      .risk-pill.high {
+        background: var(--red);
+      }
+
+      .impact-note {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .impact-note strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+      }
+
+      .impact-note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      #globalImpact {
+        min-height: 32px;
+        padding: 7px 10px;
+      }
+
+      @media (max-width: 1240px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .library-list {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          width: min(100% - 22px, 1500px);
+        }
+
+        .topbar,
+        .intro,
+        .timeline-toolbar {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .brand {
+          align-items: flex-start;
+        }
+
+        .scenario-controls {
+          justify-content: flex-start;
+        }
+
+        .timeline {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="reset-button timeline-only-toggle" type="button" id="exitTimelineOnly">Full view</button>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="app-logo" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h1>IT Roadmap Command Center</h1>
+        </div>
+        <a class="back-link" href="index.html#work">Back to portfolio</a>
+      </header>
+
+      <section class="intro" aria-label="Roadmap overview">
+        <div class="scenario-controls" aria-label="Scenario presets">
+          <button class="active" type="button" data-scenario="baseline">Baseline</button>
+          <button type="button" data-scenario="security">Security push</button>
+          <button type="button" data-scenario="analytics">Analytics push</button>
+          <button type="button" data-scenario="ai">AI readiness</button>
+          <button type="button" data-scenario="resilience">Resilience</button>
+          <button type="button" data-scenario="fast">Fast launch</button>
+        </div>
+      </section>
+
+      <main class="dashboard">
+        <aside class="panel">
+          <div class="panel-header">
+            <h2>Initiative Library</h2>
+            <span id="libraryCount">0 matches</span>
+          </div>
+          <div class="library-search">
+            <input id="initiativeSearch" type="search" placeholder="Try: agent governance, post-quantum, SaaS security, AI infrastructure" />
+            <div class="category-filters" aria-label="Initiative category filters">
+              <button class="active" type="button" data-category-filter="all">All</button>
+              <button type="button" data-category-filter="security">Security</button>
+              <button type="button" data-category-filter="infrastructure">Infrastructure</button>
+              <button type="button" data-category-filter="reporting">Reporting</button>
+              <button type="button" data-category-filter="automation">Automation</button>
+              <button type="button" data-category-filter="adoption">Adoption</button>
+              <button type="button" data-category-filter="governance">Governance</button>
+              <button type="button" data-category-filter="cloud">Cloud</button>
+              <button type="button" data-category-filter="resilience">Resilience</button>
+              <button type="button" data-category-filter="sustainability">Sustainability</button>
+            </div>
+          </div>
+          <div class="library-list" id="initiativeList"></div>
+        </aside>
+
+        <section class="panel roadmap-panel" aria-label="Interactive roadmap timeline">
+          <div class="timeline-toolbar">
+            <div>
+              <strong>FY27 Enterprise Modernization Roadmap</strong>
+              <span>Drag each bar to a new start month. Duration, risk, and type labels recalculate automatically.</span>
+            </div>
+            <div class="scenario-controls">
+              <button class="reset-button" type="button" id="timelineOnly">Timeline only</button>
+              <button class="reset-button" type="button" id="resetRoadmap">Reset baseline</button>
+            </div>
+          </div>
+          <div class="timeline" id="timeline"></div>
+        </section>
+
+        <aside class="panel" aria-label="Roadmap impact analysis">
+          <div class="panel-header">
+            <h2>Impact</h2>
+            <button class="reset-button" type="button" id="globalImpact">Global view</button>
+          </div>
+          <div class="impact-compact">
+            <div class="metric">
+              <span id="metricOneLabel">Launch</span>
+              <strong id="metricOneValue">Apr 30</strong>
+            </div>
+            <div class="metric">
+              <span id="metricTwoLabel">Schedule</span>
+              <strong id="metricTwoValue">On plan</strong>
+            </div>
+            <div class="metric">
+              <span id="metricThreeLabel">Cost</span>
+              <strong id="metricThreeValue">$0K</strong>
+            </div>
+            <div class="metric">
+              <span id="metricFourLabel">Risk</span>
+              <strong id="metricFourValue">Low</strong>
+              <em class="risk-pill low" id="riskBadge">Low</em>
+            </div>
+            <div class="impact-note">
+              <strong id="impactHeadline">Plan looks balanced</strong>
+              <p id="impactLine">Add or move initiatives to see the highest-impact change.</p>
+            </div>
+            <div class="impact-note">
+              <strong>Cost / equipment</strong>
+              <p id="costLine">No optional initiative cost selected.</p>
+            </div>
+            <div class="impact-note">
+              <strong id="selectedTitle">Selected initiative</strong>
+              <p id="selectedLine">Click a roadmap bar to inspect dependencies, type, and duration.</p>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const months = [
+        { id: "jul", label: "Jul", phase: "Discovery", index: 0 },
+        { id: "aug", label: "Aug", phase: "Discovery", index: 1 },
+        { id: "sep", label: "Sep", phase: "Procurement", index: 2 },
+        { id: "oct", label: "Oct", phase: "Infrastructure", index: 3 },
+        { id: "nov", label: "Nov", phase: "Infrastructure", index: 4 },
+        { id: "dec", label: "Dec", phase: "Security", index: 5 },
+        { id: "jan", label: "Jan", phase: "Pilot", index: 6 },
+        { id: "feb", label: "Feb", phase: "Pilot", index: 7 },
+        { id: "mar", label: "Mar", phase: "Training", index: 8 },
+        { id: "apr", label: "Apr", phase: "Launch", index: 9 },
+      ];
+
+      const initiatives = [
+        {
+          id: "sso",
+          name: "SSO + MFA rollout",
+          detail: "Centralize access, reduce account drift, and require multifactor authentication.",
+          search: "access security login password identity okta microsoft entra google sso mfa permissions audit",
+          defaultMonth: "dec",
+          idealMonth: "dec",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 42,
+          weeks: 2,
+          risk: 2,
+          equipment: "Identity licensing, admin training, test accounts",
+          personnel: "Security lead, IAM administrator, HRIS/app owners for role validation",
+          aiReplacement: "AI can draft access review summaries and flag stale accounts, but approval stays with system owners.",
+        },
+        {
+          id: "devices",
+          name: "Device refresh",
+          detail: "Replace aging laptops and standardize endpoint management before launch.",
+          search: "old laptops hardware device refresh endpoint computers equipment intune kandji mosyle",
+          defaultMonth: "oct",
+          idealMonth: "oct",
+          duration: 2,
+          type: "Infrastructure",
+          category: "infrastructure",
+          cost: 118,
+          weeks: 3,
+          risk: 1,
+          equipment: "45 laptops, docks, monitors, warranty coverage",
+          personnel: "Endpoint admin, service desk technician, procurement support, department schedulers",
+          aiReplacement: "AI can generate refresh waves, user notices, and inventory exception lists; hands-on deployment remains human.",
+        },
+        {
+          id: "network",
+          name: "Network upgrade",
+          detail: "Upgrade switching, Wi-Fi coverage, and segmented access for new systems.",
+          search: "wifi network switches firewall cabling vpn remote access bandwidth outage infrastructure",
+          defaultMonth: "nov",
+          idealMonth: "oct",
+          duration: 2,
+          type: "Infrastructure",
+          category: "infrastructure",
+          cost: 86,
+          weeks: 4,
+          risk: 3,
+          equipment: "Switches, access points, firewall rules, cabling",
+          personnel: "Network engineer, cabling vendor, security reviewer, after-hours support lead",
+          aiReplacement: "AI can review configs for policy drift and summarize outage plans, but network cutovers need engineers.",
+        },
+        {
+          id: "reporting",
+          name: "Executive reporting layer",
+          detail: "Build portfolio, finance, HR, and operational views for leadership decisions.",
+          search: "dashboard board executive reporting leadership status risk owners kpi metrics smartsheet jira",
+          defaultMonth: "jan",
+          idealMonth: "jan",
+          duration: 2,
+          type: "Reporting",
+          category: "reporting",
+          cost: 64,
+          weeks: -1,
+          risk: 1,
+          equipment: "BI workspace, dashboard licenses, data connectors",
+          personnel: "BI analyst, executive sponsor, finance/HR data owners, report reviewer",
+          aiReplacement: "AI can draft executive summaries and variance narratives from dashboard data for human review.",
+        },
+        {
+          id: "data",
+          name: "Data warehouse foundation",
+          detail: "Create stable source-of-truth feeds before advanced reporting and automation.",
+          search: "data warehouse source of truth integration api etl reporting database analytics governance",
+          defaultMonth: "sep",
+          idealMonth: "sep",
+          duration: 3,
+          type: "Data",
+          category: "reporting",
+          cost: 92,
+          weeks: 3,
+          risk: 2,
+          equipment: "Cloud storage, ETL tooling, governance setup",
+          personnel: "Data engineer, systems analyst, data steward, security/compliance reviewer",
+          aiReplacement: "AI can map field definitions and detect data quality issues, but source-of-truth decisions need stewards.",
+        },
+        {
+          id: "aihelp",
+          name: "AI service desk pilot",
+          detail: "Triage common support requests while keeping human review for risky issues.",
+          search: "ai help desk chatbot service desk support ticket triage knowledge base automation",
+          defaultMonth: "feb",
+          idealMonth: "feb",
+          duration: 1,
+          type: "Automation",
+          category: "automation",
+          cost: 36,
+          weeks: 1,
+          risk: 3,
+          equipment: "AI workspace, knowledge base cleanup, review controls",
+          personnel: "Service desk lead, knowledge manager, security reviewer, pilot user group",
+          aiReplacement: "AI can deflect routine tier-1 questions and draft ticket responses with escalation rules.",
+        },
+        {
+          id: "training",
+          name: "Adoption sprint",
+          detail: "Role-based training, office hours, quick guides, and manager readiness checks.",
+          search: "training adoption change management office hours communication readiness managers users",
+          defaultMonth: "mar",
+          idealMonth: "mar",
+          duration: 2,
+          type: "Adoption",
+          category: "adoption",
+          cost: 28,
+          weeks: -2,
+          risk: -1,
+          equipment: "Training lab, job aids, office-hour support",
+          personnel: "Change manager, trainer, department champions, manager sponsor group",
+          aiReplacement: "AI can personalize job aids, draft FAQs, and summarize feedback themes after office hours.",
+        },
+        {
+          id: "records",
+          name: "Records retention cleanup",
+          detail: "Map retention rules, remove stale shared-drive risk, and prepare audit evidence.",
+          search: "records retention document cleanup compliance audit files shared drive governance legal",
+          defaultMonth: "aug",
+          idealMonth: "aug",
+          duration: 1,
+          type: "Governance",
+          category: "governance",
+          cost: 24,
+          weeks: 1,
+          risk: 1,
+          equipment: "Retention policy inventory, archive storage, reviewer time",
+          personnel: "Records owner, compliance reviewer, department file custodians, legal advisor",
+          aiReplacement: "AI can classify files and suggest retention categories, but final disposition requires human approval.",
+        },
+        {
+          id: "vendor",
+          name: "Vendor contract review",
+          detail: "Review renewals, SLAs, data terms, support coverage, and implementation dependencies.",
+          search: "vendor contract sla renewal procurement license invoice supplier budget support",
+          defaultMonth: "sep",
+          idealMonth: "sep",
+          duration: 1,
+          type: "Governance",
+          category: "governance",
+          cost: 18,
+          weeks: -1,
+          risk: -1,
+          equipment: "Contract tracker, renewal calendar, SLA checklist",
+          personnel: "Procurement lead, contract owner, finance reviewer, legal/compliance support",
+          aiReplacement: "AI can extract renewal dates, summarize SLA gaps, and flag risky contract terms for review.",
+        },
+        {
+          id: "agentgovern",
+          name: "Agentic AI governance pilot",
+          detail: "Define where AI agents may act, what they can touch, how actions are logged, and when humans must approve.",
+          search: "agentic ai agents governance logs escalation policy approval automation controls business operators",
+          defaultMonth: "jan",
+          idealMonth: "jan",
+          duration: 2,
+          type: "Automation",
+          category: "automation",
+          cost: 54,
+          weeks: 2,
+          risk: 4,
+          equipment: "Agent platform trial, logging tools, sandbox access, policy registry",
+          personnel: "AI product owner, security architect, process owner, legal/compliance reviewer",
+          aiReplacement: "AI agents can execute low-risk support and operations tasks, but escalation, policy exceptions, and approvals remain human.",
+        },
+        {
+          id: "shadowai",
+          name: "Shadow AI discovery and controls",
+          detail: "Inventory unauthorized AI tools, classify risk, publish use rules, and route teams toward approved options.",
+          search: "shadow ai unauthorized chatgpt copilot policy data leakage approved tools acceptable use",
+          defaultMonth: "aug",
+          idealMonth: "aug",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 31,
+          weeks: 1,
+          risk: 3,
+          equipment: "SaaS discovery, browser controls, approved AI catalog, policy templates",
+          personnel: "Security lead, IT administrator, department champions, legal/privacy reviewer",
+          aiReplacement: "AI can classify risky prompts and recommend approved alternatives; enforcement and exceptions need human governance.",
+        },
+        {
+          id: "aivalue",
+          name: "AI value measurement framework",
+          detail: "Create a simple method to measure AI outcomes, cost, adoption, quality, and risk before scaling tools.",
+          search: "ai value measurement roi benefits metrics adoption quality p&l executive scorecard",
+          defaultMonth: "sep",
+          idealMonth: "sep",
+          duration: 2,
+          type: "Governance",
+          category: "governance",
+          cost: 22,
+          weeks: -1,
+          risk: -1,
+          equipment: "Scorecard template, baseline data, survey tooling, reporting workspace",
+          personnel: "Portfolio lead, finance analyst, process owners, executive sponsor",
+          aiReplacement: "AI can summarize productivity signals and user feedback, but benefit assumptions need finance and owner validation.",
+        },
+        {
+          id: "saassecurity",
+          name: "SaaS security hardening",
+          detail: "Review collaboration platforms, CRM, finance, and HR SaaS spaces for sharing, admin, and remote access exposure.",
+          search: "saas security hardening collaboration google microsoft crm finance hr sharing admin remote access",
+          defaultMonth: "nov",
+          idealMonth: "nov",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 48,
+          weeks: 2,
+          risk: 3,
+          equipment: "SaaS posture tool, admin audit logs, DLP rules, external sharing inventory",
+          personnel: "Security analyst, SaaS admins, data owners, business system owners",
+          aiReplacement: "AI can prioritize misconfigurations and sensitive sharing patterns; final remediation needs system owners.",
+        },
+        {
+          id: "dataclassification",
+          name: "AI-assisted data classification",
+          detail: "Use AI to pre-classify sensitive files and route high-value data to stronger controls.",
+          search: "data classification sensitive information dlp privacy files ai pre classify collaboration tools",
+          defaultMonth: "dec",
+          idealMonth: "dec",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 57,
+          weeks: 1,
+          risk: 2,
+          equipment: "DLP tooling, data labels, classifier model, review queue",
+          personnel: "Data protection lead, privacy reviewer, records owner, departmental data stewards",
+          aiReplacement: "AI can classify and triage large file sets; humans approve labels for sensitive, regulated, or disputed data.",
+        },
+        {
+          id: "hybridai",
+          name: "AI-ready hybrid cloud design",
+          detail: "Define which AI workloads belong in cloud, on-prem, or edge based on latency, cost, data sensitivity, and resilience.",
+          search: "ai ready infrastructure hybrid cloud edge gpu compute latency data sensitivity inference cost",
+          defaultMonth: "oct",
+          idealMonth: "oct",
+          duration: 3,
+          type: "Infrastructure",
+          category: "cloud",
+          cost: 124,
+          weeks: 4,
+          risk: 4,
+          equipment: "Cloud landing zone, edge node design, observability, workload placement model",
+          personnel: "Cloud architect, infrastructure lead, data architect, security architect, finance partner",
+          aiReplacement: "AI can model workload placement and cost scenarios, but architecture decisions require accountable technical owners.",
+        },
+        {
+          id: "observability",
+          name: "Platform observability upgrade",
+          detail: "Build monitoring across cloud, SaaS, network, endpoints, and AI services so leaders see reliability before failure.",
+          search: "observability monitoring logging reliability uptime cloud saas endpoint ai services alerting",
+          defaultMonth: "nov",
+          idealMonth: "nov",
+          duration: 2,
+          type: "Infrastructure",
+          category: "resilience",
+          cost: 76,
+          weeks: 2,
+          risk: 1,
+          equipment: "Monitoring platform, log ingestion, alert routing, service maps",
+          personnel: "Infrastructure engineer, service desk lead, application owners, incident manager",
+          aiReplacement: "AI can summarize incidents and detect anomalies; response ownership stays with IT operations.",
+        },
+        {
+          id: "resilience",
+          name: "Disconnected operations playbook",
+          detail: "Document what keeps running locally if cloud, region, network, or SaaS services are degraded.",
+          search: "resilience outage disaster recovery business continuity disconnected mode cloud region saas failover",
+          defaultMonth: "jan",
+          idealMonth: "jan",
+          duration: 2,
+          type: "Infrastructure",
+          category: "resilience",
+          cost: 34,
+          weeks: -1,
+          risk: -2,
+          equipment: "Continuity runbooks, failover checklist, local access kit, tabletop exercise",
+          personnel: "IT operations lead, department continuity owners, security lead, executive sponsor",
+          aiReplacement: "AI can draft runbooks and tabletop prompts, but incident authority and business priorities remain human.",
+        },
+        {
+          id: "pqc",
+          name: "Post-quantum crypto inventory",
+          detail: "Inventory cryptography across VPNs, TLS, signing, payments, integrations, vendors, and long-lived secrets.",
+          search: "post quantum cryptography pqc crypto inventory tls vpn certificates signing encryption harvest decrypt later",
+          defaultMonth: "feb",
+          idealMonth: "feb",
+          duration: 3,
+          type: "Security",
+          category: "security",
+          cost: 68,
+          weeks: 3,
+          risk: 3,
+          equipment: "Certificate inventory, crypto scanner, vendor questionnaire, migration backlog",
+          personnel: "Security architect, infrastructure lead, application owners, procurement/vendor manager",
+          aiReplacement: "AI can parse certificates, vendor responses, and code references; migration decisions need security architecture review.",
+        },
+        {
+          id: "esgdata",
+          name: "ESG data pipeline",
+          detail: "Stabilize ESG data ownership, lineage, definitions, and reporting flow so sustainability data behaves like finance data.",
+          search: "esg csr sustainability reporting carbon data pipeline lineage finance governance extra financial",
+          defaultMonth: "dec",
+          idealMonth: "dec",
+          duration: 3,
+          type: "Data",
+          category: "sustainability",
+          cost: 73,
+          weeks: 2,
+          risk: 2,
+          equipment: "ESG data model, reporting workspace, source connectors, data quality checks",
+          personnel: "CSR/ESG lead, finance analyst, data engineer, IT governance lead",
+          aiReplacement: "AI can reconcile ESG source data and draft variance notes, but definitions and disclosures need business approval.",
+        },
+        {
+          id: "greenit",
+          name: "Green IT cost and footprint review",
+          detail: "Measure device, cloud, and AI workload footprint while identifying cost reductions that also lower impact.",
+          search: "green it sustainable carbon cloud cost optimization ai workload footprint devices energy",
+          defaultMonth: "mar",
+          idealMonth: "mar",
+          duration: 2,
+          type: "Governance",
+          category: "sustainability",
+          cost: 29,
+          weeks: -1,
+          risk: -1,
+          equipment: "Cloud cost data, device lifecycle report, workload inventory, optimization dashboard",
+          personnel: "FinOps analyst, infrastructure lead, sustainability partner, procurement reviewer",
+          aiReplacement: "AI can identify waste patterns and summarize optimization actions; owners approve service-level tradeoffs.",
+        },
+        {
+          id: "vendorrisk",
+          name: "Strategic vendor dependence map",
+          detail: "Map spend concentration, critical workloads, lock-in exposure, exit options, and regional/vendor risk.",
+          search: "vendor dependence lock in strategic risk concentration regional cloud exit plan spend critical workloads",
+          defaultMonth: "oct",
+          idealMonth: "oct",
+          duration: 2,
+          type: "Governance",
+          category: "governance",
+          cost: 26,
+          weeks: -1,
+          risk: -1,
+          equipment: "Vendor spend report, contract extracts, workload map, exit-plan template",
+          personnel: "CIO/vCIO, procurement lead, finance partner, system owners, legal reviewer",
+          aiReplacement: "AI can summarize contracts and identify concentration patterns, but exit strategy is an executive risk decision.",
+        },
+        {
+          id: "regionaldata",
+          name: "Regional data residency review",
+          detail: "Identify sensitive data or workloads affected by regional rules, sovereign cloud options, and local provider constraints.",
+          search: "regionalized it data residency sovereign cloud geopatriation regulation local provider privacy",
+          defaultMonth: "jan",
+          idealMonth: "jan",
+          duration: 2,
+          type: "Governance",
+          category: "governance",
+          cost: 44,
+          weeks: 2,
+          risk: 2,
+          equipment: "Data residency inventory, cloud region map, regulatory checklist, vendor attestations",
+          personnel: "Privacy lead, cloud architect, legal counsel, application owners",
+          aiReplacement: "AI can compare data maps to policy rules, but jurisdictional decisions need legal and executive review.",
+        },
+        {
+          id: "lowcode",
+          name: "Low-code process factory",
+          detail: "Stand up a controlled citizen-assisted development model for small workflow apps with reusable governance.",
+          search: "low code citizen development workflow apps process automation rapid prototype business teams governance",
+          defaultMonth: "feb",
+          idealMonth: "feb",
+          duration: 3,
+          type: "Automation",
+          category: "automation",
+          cost: 61,
+          weeks: -1,
+          risk: 1,
+          equipment: "Low-code platform, app intake form, design standards, release checklist",
+          personnel: "Platform owner, business analysts, citizen developer champions, security reviewer",
+          aiReplacement: "AI can generate workflow drafts, forms, and test cases; governed builders approve and release production apps.",
+        },
+        {
+          id: "appportfolio",
+          name: "Application portfolio rationalization",
+          detail: "Inventory apps, owners, costs, usage, risk, and duplication to decide what to keep, retire, consolidate, or modernize.",
+          search: "application portfolio rationalization app inventory retire consolidate modernization cost owners usage risk",
+          defaultMonth: "jul",
+          idealMonth: "jul",
+          duration: 2,
+          type: "Governance",
+          category: "governance",
+          cost: 33,
+          weeks: -1,
+          risk: -1,
+          equipment: "App inventory, usage reports, owner survey, rationalization matrix",
+          personnel: "Portfolio manager, enterprise architect, finance analyst, department system owners",
+          aiReplacement: "AI can cluster duplicate tools and summarize survey responses; retirement decisions need business owners.",
+        },
+        {
+          id: "phishing",
+          name: "Phishing-resistant MFA upgrade",
+          detail: "Move high-risk users and admins toward phishing-resistant authentication and stronger recovery controls.",
+          search: "phishing resistant mfa passkeys fido2 yubikey admin accounts identity security authentication",
+          defaultMonth: "sep",
+          idealMonth: "sep",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 52,
+          weeks: 2,
+          risk: 2,
+          equipment: "Security keys, passkey rollout plan, recovery policy, admin account inventory",
+          personnel: "IAM administrator, security lead, executive assistants, high-risk user champions",
+          aiReplacement: "AI can identify high-risk accounts and draft rollout communications; enrollment support stays human.",
+        },
+        {
+          id: "aiusepolicy",
+          name: "AI acceptable-use policy",
+          detail: "Publish practical rules for approved AI use, sensitive data, human review, citations, and prohibited workflows.",
+          search: "ai acceptable use policy governance privacy data protection users rules copilot chatgpt human review",
+          defaultMonth: "jul",
+          idealMonth: "jul",
+          duration: 1,
+          type: "Governance",
+          category: "governance",
+          cost: 12,
+          weeks: -1,
+          risk: -2,
+          equipment: "Policy template, approved tool list, intake channel, training FAQ",
+          personnel: "IT leader, legal/privacy reviewer, HR/change partner, department representatives",
+          aiReplacement: "AI can draft policy language and role-based examples; final standards need legal and executive approval.",
+        },
+        {
+          id: "knowledgebase",
+          name: "AI-ready knowledge base",
+          detail: "Clean, tag, and govern support content so AI assistants can answer from trusted internal sources.",
+          search: "knowledge base ai ready support content documentation service desk articles governance search",
+          defaultMonth: "dec",
+          idealMonth: "dec",
+          duration: 2,
+          type: "Automation",
+          category: "automation",
+          cost: 38,
+          weeks: -1,
+          risk: 1,
+          equipment: "Knowledge platform cleanup, article templates, content owner matrix, analytics",
+          personnel: "Knowledge manager, service desk lead, app owners, change manager",
+          aiReplacement: "AI can draft, deduplicate, and summarize articles; owners approve policy, troubleshooting, and escalation content.",
+        },
+        {
+          id: "immutbackup",
+          name: "Immutable backup verification",
+          detail: "Prove that critical data can be recovered from isolated or immutable backups during a ransomware event.",
+          search: "backup disaster recovery ransomware immutable recovery testing restore data protection cyber resilience",
+          defaultMonth: "oct",
+          idealMonth: "oct",
+          duration: 2,
+          type: "Security",
+          category: "resilience",
+          cost: 64,
+          weeks: 1,
+          risk: -2,
+          equipment: "Immutable storage, recovery test environment, backup monitoring, runbook",
+          personnel: "Infrastructure lead, security analyst, system owners, recovery test coordinator",
+          aiReplacement: "AI can watch backup anomalies and draft recovery reports; restore testing and go/no-go calls stay human.",
+        },
+        {
+          id: "ztna",
+          name: "Zero-trust remote access",
+          detail: "Replace broad VPN access with app-specific access controls tied to identity, device posture, and risk.",
+          search: "zero trust ztna remote access vpn identity device posture conditional access security",
+          defaultMonth: "jan",
+          idealMonth: "jan",
+          duration: 3,
+          type: "Security",
+          category: "security",
+          cost: 97,
+          weeks: 3,
+          risk: 3,
+          equipment: "ZTNA platform, device posture checks, app access policies, pilot group",
+          personnel: "Security architect, network engineer, IAM admin, application owners, pilot users",
+          aiReplacement: "AI can recommend policy groups and detect anomalous access, but access policy ownership remains with IT and business owners.",
+        },
+        {
+          id: "finops",
+          name: "Cloud FinOps guardrails",
+          detail: "Create budget alerts, tagging, rightsizing, and workload ownership so cloud and AI spend does not drift.",
+          search: "finops cloud cost optimization ai compute gpu budget tagging rightsizing spend governance",
+          defaultMonth: "nov",
+          idealMonth: "nov",
+          duration: 2,
+          type: "Governance",
+          category: "cloud",
+          cost: 41,
+          weeks: -1,
+          risk: -1,
+          equipment: "Cloud cost dashboard, tag policy, budget alerts, rightsizing reports",
+          personnel: "FinOps analyst, cloud architect, finance partner, product/workload owners",
+          aiReplacement: "AI can find idle resources and model spend scenarios; budget tradeoffs need owner approval.",
+        },
+        {
+          id: "fusionteams",
+          name: "Fusion team operating model",
+          detail: "Create a repeatable way for IT, business owners, and analysts to co-build small automations safely.",
+          search: "fusion teams citizen development business it co creation operating model automation intake governance",
+          defaultMonth: "aug",
+          idealMonth: "aug",
+          duration: 2,
+          type: "Adoption",
+          category: "adoption",
+          cost: 21,
+          weeks: -1,
+          risk: -1,
+          equipment: "Intake rubric, delivery playbook, review board, reusable templates",
+          personnel: "Portfolio lead, business analysts, process owners, security reviewer, trainer",
+          aiReplacement: "AI can draft process maps, acceptance criteria, and test scripts; fusion teams own prioritization and release decisions.",
+        },
+        {
+          id: "edrbaseline",
+          name: "Endpoint detection baseline",
+          detail: "Confirm every managed device has EDR coverage, alert routing, patch posture, and response ownership.",
+          search: "edr endpoint detection response baseline patching cyber hygiene devices alerts managed security",
+          defaultMonth: "sep",
+          idealMonth: "sep",
+          duration: 2,
+          type: "Security",
+          category: "security",
+          cost: 46,
+          weeks: 1,
+          risk: -1,
+          equipment: "EDR licensing, endpoint inventory, alert rules, response runbook",
+          personnel: "Security analyst, endpoint admin, service desk lead, managed security provider",
+          aiReplacement: "AI can triage endpoint alerts and summarize likely causes; containment decisions stay with security responders.",
+        },
+        {
+          id: "aitraining",
+          name: "AI skills and adoption sprint",
+          detail: "Train teams on safe prompt habits, AI-assisted work, escalation limits, and practical use cases by role.",
+          search: "ai training adoption skills prompt literacy safe use role based enablement change management",
+          defaultMonth: "mar",
+          idealMonth: "mar",
+          duration: 2,
+          type: "Adoption",
+          category: "adoption",
+          cost: 25,
+          weeks: -1,
+          risk: -1,
+          equipment: "Training labs, prompt examples, approved use case catalog, feedback surveys",
+          personnel: "Change manager, AI champion group, department managers, security/privacy reviewer",
+          aiReplacement: "AI can personalize training examples and summarize adoption feedback; coaching and accountability remain human.",
+        },
+      ];
+
+      const scenarios = {
+        baseline: ["aiusepolicy", "sso", "devices", "reporting", "training"],
+        security: ["edrbaseline", "phishing", "sso", "shadowai", "saassecurity", "pqc", "training"],
+        analytics: ["data", "reporting", "aivalue", "esgdata", "aihelp", "knowledgebase", "training"],
+        ai: ["aiusepolicy", "aivalue", "agentgovern", "shadowai", "dataclassification", "hybridai", "aitraining"],
+        resilience: ["observability", "immutbackup", "resilience", "vendorrisk", "regionaldata", "network"],
+        fast: ["appportfolio", "vendor", "lowcode", "reporting", "fusionteams", "training"],
+      };
+
+      const categoryLabels = {
+        security: "Security and identity",
+        infrastructure: "Infrastructure and devices",
+        cloud: "Cloud and AI infrastructure",
+        resilience: "Resilience and recovery",
+        reporting: "Data and reporting",
+        automation: "AI and automation",
+        adoption: "Change and adoption",
+        governance: "Governance and portfolio",
+        sustainability: "Sustainability and ESG",
+      };
+
+      const categoryOrder = ["security", "automation", "cloud", "resilience", "infrastructure", "reporting", "governance", "adoption", "sustainability"];
+
+      const state = {
+        applied: new Map(),
+        query: "",
+        category: "all",
+        draggedId: null,
+        selectedId: null,
+        selectedMonth: null,
+      };
+
+      function formatCost(value) {
+        return `$${value}K`;
+      }
+
+      function personnelCount(item) {
+        return item.personnel.split(",").length;
+      }
+
+      function getMonth(id) {
+        return months.find((month) => month.id === id);
+      }
+
+      function getInitiative(id) {
+        return initiatives.find((initiative) => initiative.id === id);
+      }
+
+      function getAppliedItems() {
+        return initiatives
+          .filter((item) => state.applied.has(item.id))
+          .map((item) => ({ ...item, month: state.applied.get(item.id), startIndex: getMonth(state.applied.get(item.id)).index }));
+      }
+
+      function seedScenario(key) {
+        state.applied.clear();
+        state.selectedId = null;
+        state.selectedMonth = null;
+        (scenarios[key] || scenarios.baseline).forEach((id) => {
+          const item = getInitiative(id);
+          state.applied.set(id, item.defaultMonth);
+        });
+        document.querySelectorAll("[data-scenario]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.scenario === key);
+        });
+        render();
+      }
+
+      function matchesQuery(item) {
+        const query = state.query.trim().toLowerCase();
+        const categoryMatch = state.category === "all" || item.category === state.category;
+        if (!categoryMatch) return false;
+        if (!query) return true;
+        return query.split(/\s+/).every((term) => `${item.name} ${item.detail} ${item.search} ${item.type} ${item.category}`.toLowerCase().includes(term));
+      }
+
+      function monthLoad(monthId) {
+        const month = getMonth(monthId);
+        return getAppliedItems().filter((item) => month.index >= item.startIndex && month.index < item.startIndex + item.duration);
+      }
+
+      function monthRisk(monthId) {
+        const score = monthRiskScore(monthId);
+        if (score >= 6) return "high";
+        if (score >= 3) return "medium";
+        return "low";
+      }
+
+      function monthTypeLabel(monthId) {
+        const items = monthLoad(monthId);
+        if (!items.length) return "Open";
+        const counts = items.reduce((acc, item) => {
+          acc[item.type] = (acc[item.type] || 0) + 1;
+          return acc;
+        }, {});
+        return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+      }
+
+      function riskLabelFromScore(score) {
+        if (score >= 6) return "High";
+        if (score >= 3) return "Medium";
+        return "Low";
+      }
+
+      function monthCost(monthId) {
+        return monthLoad(monthId).reduce((sum, item) => sum + Math.round(item.cost / item.duration), 0);
+      }
+
+      function monthRiskScore(monthId) {
+        const items = monthLoad(monthId);
+        return items.reduce((sum, item) => sum + Math.max(0, item.risk), 0) + Math.max(0, items.length - 2) * 2;
+      }
+
+      function classForItem(item) {
+        if (item.category === "security") return "security";
+        if (item.category === "infrastructure" || item.category === "cloud" || item.category === "resilience") return "infrastructure";
+        if (item.category === "reporting" || item.category === "automation") return "reporting";
+        if (item.category === "adoption") return "adoption";
+        return "governance";
+      }
+
+      function dependencyRisks() {
+        const risks = [];
+        const has = (id) => state.applied.has(id);
+        const idx = (id) => (has(id) ? getMonth(state.applied.get(id)).index : -1);
+
+        if (has("reporting") && !has("data")) {
+          risks.push(["Reporting dependency", "Dashboards need source data ownership before leadership reporting is reliable."]);
+        }
+
+        if (has("reporting") && has("data") && idx("reporting") <= idx("data")) {
+          risks.push(["Reporting sequencing", "Reporting is scheduled before the data foundation can stabilize feeds."]);
+        }
+
+        if (has("network") && idx("network") > 3) {
+          risks.push(["Infrastructure timing", "Network work after November compresses testing and user acceptance."]);
+        }
+
+        if (has("sso") && idx("sso") > 5) {
+          risks.push(["Access control timing", "SSO/MFA after December can delay role validation and launch readiness."]);
+        }
+
+        if (has("aihelp") && !has("data")) {
+          risks.push(["AI readiness", "The AI service desk needs governed knowledge sources and review controls."]);
+        }
+
+        if ((has("agentgovern") || has("dataclassification") || has("hybridai")) && !has("aiusepolicy")) {
+          risks.push(["AI governance gap", "AI-heavy work should follow an approved use policy, data rules, and human-review model."]);
+        }
+
+        if (has("agentgovern") && !has("knowledgebase")) {
+          risks.push(["Agent source quality", "AI agents need trusted knowledge and documented escalation paths before production use."]);
+        }
+
+        if (has("hybridai") && !has("finops")) {
+          risks.push(["AI infrastructure cost", "AI workloads can create compute spend surprises without FinOps guardrails."]);
+        }
+
+        if ((has("ztna") || has("pqc")) && !has("edrbaseline")) {
+          risks.push(["Security baseline", "Advanced security work lands better after endpoint visibility and alert routing are confirmed."]);
+        }
+
+        if (has("observability") && !has("immutbackup")) {
+          risks.push(["Recovery confidence", "Observability shows failures quickly, but immutable backup tests prove recovery after a major event."]);
+        }
+
+        months.forEach((month) => {
+          const count = monthLoad(month.id).length;
+          if (count > 2) {
+            risks.push(["Capacity crowding", `${month.label} has ${count} initiatives competing for the same team capacity.`]);
+          }
+        });
+
+        return risks;
+      }
+
+      function getAnalysis() {
+        const applied = getAppliedItems();
+        const totalCost = applied.reduce((sum, item) => sum + item.cost, 0);
+        const scheduleWeeks = applied.reduce((sum, item) => {
+          const current = getMonth(item.month).index;
+          const ideal = getMonth(item.idealMonth).index;
+          const latePenalty = Math.max(0, current - ideal);
+          const overlapPenalty = Math.max(0, item.duration - 1);
+          return sum + item.weeks + latePenalty + Math.floor(overlapPenalty / 2);
+        }, 0);
+        const risks = dependencyRisks();
+        const rawRisk = applied.reduce((sum, item) => sum + item.risk, 0) + risks.length * 2;
+        const riskLevel = rawRisk >= 11 ? "High" : rawRisk >= 6 ? "Medium" : "Low";
+        const launchDate = scheduleWeeks <= 0 ? "Apr 16" : scheduleWeeks <= 3 ? "May 21" : scheduleWeeks <= 6 ? "Jun 11" : "Jul 09";
+        const scheduleText = scheduleWeeks === 0 ? "On plan" : scheduleWeeks < 0 ? `${Math.abs(scheduleWeeks)} wks early` : `${scheduleWeeks} wks late`;
+        const mostExpensive = [...applied].sort((a, b) => b.cost - a.cost)[0];
+        const topRisk = risks[0] || ["Plan looks balanced", "Current sequencing keeps infrastructure, access, reporting, and adoption in workable order."];
+
+        return { applied, totalCost, scheduleWeeks, scheduleText, launchDate, riskLevel, topRisk, mostExpensive };
+      }
+
+      function renderLibraryCard(item) {
+        const applied = state.applied.has(item.id);
+        const month = applied ? getMonth(state.applied.get(item.id)).label : getMonth(item.defaultMonth).label;
+        return `
+          <article class="library-card ${applied ? "applied" : ""}">
+            <div class="library-title-popover" aria-hidden="true">${item.name}</div>
+            <div class="library-card-header">
+              <strong title="${item.name}">${item.name}</strong>
+              <button type="button" data-toggle="${item.id}">${applied ? "Remove" : "Add"}</button>
+            </div>
+            <p>${item.detail}</p>
+            <small>${applied ? `On roadmap in ${month}` : `Suggested start: ${month}`}</small>
+            <div class="library-meta compact">
+              <span>${formatCost(item.cost)}</span>
+              <span>${item.duration} mo</span>
+              <span>${item.type}</span>
+              <span>${personnelCount(item)} roles</span>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderLibrary() {
+        const list = document.querySelector("#initiativeList");
+        const filtered = initiatives.filter(matchesQuery);
+        document.querySelector("#libraryCount").textContent = `${filtered.length} of ${initiatives.length} initiatives`;
+
+        if (!filtered.length) {
+          list.innerHTML = `<div class="empty-state">No initiatives match that search. Try a business problem like security, AI, reporting, recovery, or adoption.</div>`;
+          return;
+        }
+
+        const grouped = filtered.reduce((groups, item) => {
+          const key = item.category;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(item);
+          return groups;
+        }, new Map());
+
+        const orderedGroups = categoryOrder
+          .filter((key) => grouped.has(key))
+          .concat([...grouped.keys()].filter((key) => !categoryOrder.includes(key)));
+
+        list.innerHTML = orderedGroups
+          .map((key) => {
+            const items = grouped.get(key);
+            const open = state.query || state.category !== "all" || ["security", "automation", "cloud"].includes(key);
+            return `
+              <details class="theme-group" ${open ? "open" : ""}>
+                <summary>${categoryLabels[key] || key}<span>${items.length}</span></summary>
+                <div class="theme-group-body">
+                  ${items.map(renderLibraryCard).join("")}
+                </div>
+              </details>
+            `;
+          })
+          .join("");
+
+        list.querySelectorAll("[data-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const id = button.dataset.toggle;
+            if (state.applied.has(id)) {
+              state.applied.delete(id);
+              if (state.selectedId === id) state.selectedId = null;
+            } else {
+              state.applied.set(id, getInitiative(id).defaultMonth);
+              state.selectedId = id;
+              state.selectedMonth = null;
+            }
+            render();
+          });
+        });
+      }
+
+      function renderTimeline() {
+        const timeline = document.querySelector("#timeline");
+        const applied = getAppliedItems();
+        const laneById = new Map();
+        applied
+          .sort((a, b) => a.startIndex - b.startIndex || b.duration - a.duration)
+          .forEach((item) => {
+            let lane = 1;
+            const end = item.startIndex + item.duration;
+            while ([...laneById.entries()].some(([otherId, otherLane]) => {
+              if (otherLane !== lane) return false;
+              const other = applied.find((candidate) => candidate.id === otherId);
+              const otherEnd = other.startIndex + other.duration;
+              return item.startIndex < otherEnd && other.startIndex < end;
+            })) {
+              lane += 1;
+            }
+            laneById.set(item.id, lane);
+          });
+
+        timeline.innerHTML = months
+          .map((month) => {
+            const items = monthLoad(month.id);
+            const stressed = items.length > 2;
+            const cost = items.reduce((sum, item) => sum + item.cost, 0);
+            return `
+              <div class="risk-segment ${monthRisk(month.id)}" style="grid-column:${month.index + 1};"></div>
+              <section class="month ${stressed ? "stressed" : ""} ${state.selectedMonth === month.id ? "selected" : ""}" data-month="${month.id}" style="grid-column:${month.index + 1};">
+                <div class="month-header">
+                  <strong>${month.label}</strong>
+                  <span>${monthTypeLabel(month.id)}</span>
+                </div>
+              </section>
+              <div class="month-drop" data-month="${month.id}" style="grid-column:${month.index + 1};"></div>
+            `;
+          })
+          .join("") + `
+            <div class="bar-stage">
+              ${applied.map((item) => {
+                const span = Math.min(item.duration, months.length - item.startIndex);
+                return `
+                  <article
+                    class="roadmap-item ${classForItem(item)} ${state.selectedId === item.id ? "selected" : ""}"
+                    draggable="true"
+                    data-roadmap-id="${item.id}"
+                    style="grid-column:${item.startIndex + 1} / span ${span}; grid-row:${laneById.get(item.id)};"
+                  >
+                    <strong>${item.name}</strong>
+                    <span>${item.type} | ${item.duration} mo | ${formatCost(item.cost)} | risk ${item.risk}</span>
+                    <div class="roadmap-controls">
+                      <button class="move-button" type="button" data-remove="${item.id}">Remove</button>
+                    </div>
+                  </article>
+                `;
+              }).join("")}
+            </div>
+          `;
+
+        timeline.querySelectorAll("[data-roadmap-id]").forEach((card) => {
+          card.addEventListener("dragstart", (event) => {
+            state.draggedId = card.dataset.roadmapId;
+            event.dataTransfer.setData("text/plain", state.draggedId);
+          });
+          card.addEventListener("click", (event) => {
+            if (event.target.matches("[data-remove]")) return;
+            state.selectedId = card.dataset.roadmapId;
+            state.selectedMonth = null;
+            render();
+          });
+        });
+
+        timeline.querySelectorAll("[data-month]").forEach((monthEl) => {
+          monthEl.addEventListener("click", (event) => {
+            if (event.target.closest(".roadmap-item")) return;
+            state.selectedMonth = monthEl.dataset.month;
+            state.selectedId = null;
+            render();
+          });
+          monthEl.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            monthEl.classList.add("drag-over");
+          });
+          monthEl.addEventListener("dragleave", () => monthEl.classList.remove("drag-over"));
+          monthEl.addEventListener("drop", (event) => {
+            event.preventDefault();
+            const id = event.dataTransfer.getData("text/plain") || state.draggedId;
+            if (id && state.applied.has(id)) {
+              state.applied.set(id, monthEl.dataset.month);
+              state.selectedId = id;
+              state.selectedMonth = null;
+            }
+            state.draggedId = null;
+            render();
+          });
+        });
+
+        timeline.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.applied.delete(button.dataset.remove);
+            if (state.selectedId === button.dataset.remove) state.selectedId = null;
+            render();
+          });
+        });
+      }
+
+      function renderImpact() {
+        const analysis = getAnalysis();
+        const setMetric = (slot, label, value) => {
+          document.querySelector(`#metric${slot}Label`).textContent = label;
+          document.querySelector(`#metric${slot}Value`).textContent = value;
+        };
+        const setRisk = (level) => {
+          setMetric("Four", "Risk", level);
+          const badge = document.querySelector("#riskBadge");
+          badge.textContent = level;
+          badge.className = `risk-pill ${level.toLowerCase()}`;
+        };
+        const badge = document.querySelector("#riskBadge");
+        badge.style.display = "inline-flex";
+
+        if (state.selectedId) {
+          const selected = getInitiative(state.selectedId);
+          const start = state.applied.has(selected.id) ? getMonth(state.applied.get(selected.id)) : getMonth(selected.defaultMonth);
+          const endIndex = Math.min(months.length - 1, start.index + selected.duration - 1);
+          const end = months[endIndex];
+          const lateBy = Math.max(0, start.index - getMonth(selected.idealMonth).index);
+          const itemRisk = riskLabelFromScore(Math.max(0, selected.risk) + lateBy);
+          setMetric("One", "Start", start.label);
+          setMetric("Two", "Duration", `${selected.duration} mo`);
+          setMetric("Three", "Cost", formatCost(selected.cost));
+          setRisk(itemRisk);
+          document.querySelector("#impactHeadline").textContent = selected.name;
+          document.querySelector("#impactLine").textContent = `${selected.type} work runs ${start.label}-${end.label}. ${selected.detail}`;
+          document.querySelector("#costLine").textContent = `Equipment / services: ${selected.equipment}. Personnel: ${selected.personnel}.`;
+          document.querySelector("#selectedTitle").textContent = "AI replacement / augmentation";
+          document.querySelector("#selectedLine").textContent = lateBy
+            ? `${selected.aiReplacement} Starting ${lateBy} month${lateBy === 1 ? "" : "s"} later than ideal adds schedule and risk pressure.`
+            : selected.aiReplacement;
+          return;
+        }
+
+        if (state.selectedMonth) {
+          const month = getMonth(state.selectedMonth);
+          const items = monthLoad(month.id);
+          const riskLevel = riskLabelFromScore(monthRiskScore(month.id));
+          const cost = monthCost(month.id);
+          const dominant = monthTypeLabel(month.id);
+          const itemNames = items.map((item) => item.name).join(", ") || "No active initiatives.";
+          const roleCount = items.reduce((sum, item) => sum + personnelCount(item), 0);
+          setMetric("One", "Month", month.label);
+          setMetric("Two", "Focus", dominant);
+          setMetric("Three", "Cost", formatCost(cost));
+          setRisk(riskLevel);
+          document.querySelector("#impactHeadline").textContent = `${month.label} overview`;
+          document.querySelector("#impactLine").textContent = items.length
+            ? `${items.length} active initiative${items.length === 1 ? "" : "s"} crossing this month: ${itemNames}.`
+            : "This month is open capacity.";
+          document.querySelector("#costLine").textContent = items.length
+            ? `Monthly cost exposure is roughly ${formatCost(cost)} with about ${roleCount} named support roles touching the work.`
+            : "No active initiative cost in this month.";
+          document.querySelector("#selectedTitle").textContent = "Month risk note";
+          document.querySelector("#selectedLine").textContent = items.length > 2
+            ? "This month is crowded. Consider shifting one initiative earlier or later to reduce delivery pressure."
+            : "Capacity looks workable for this month.";
+          return;
+        }
+
+        setMetric("One", "Launch", analysis.launchDate);
+        setMetric("Two", "Schedule", analysis.scheduleText);
+        setMetric("Three", "Cost", formatCost(analysis.totalCost));
+        setRisk(analysis.riskLevel);
+        document.querySelector("#impactHeadline").textContent = "Global roadmap impact";
+        document.querySelector("#impactLine").textContent = `${analysis.applied.length} initiatives shape the current launch, cost, and risk profile. ${analysis.topRisk[1]}`;
+        document.querySelector("#costLine").textContent = analysis.mostExpensive
+          ? `${analysis.mostExpensive.name} is the largest line item at ${formatCost(analysis.mostExpensive.cost)}: ${analysis.mostExpensive.equipment}.`
+          : "No optional initiative cost selected.";
+        document.querySelector("#selectedTitle").textContent = analysis.topRisk[0];
+        document.querySelector("#selectedLine").textContent = "Click a month for monthly impact, or click a bar for initiative detail.";
+      }
+
+      function render() {
+        renderLibrary();
+        renderTimeline();
+        renderImpact();
+      }
+
+      document.querySelector("#initiativeSearch").addEventListener("input", (event) => {
+        state.query = event.target.value;
+        renderLibrary();
+      });
+
+      document.querySelector("#globalImpact").addEventListener("click", () => {
+        state.selectedId = null;
+        state.selectedMonth = null;
+        render();
+      });
+
+      document.querySelector("#timelineOnly").addEventListener("click", () => {
+        document.body.classList.add("timeline-only");
+      });
+
+      document.querySelector("#exitTimelineOnly").addEventListener("click", () => {
+        document.body.classList.remove("timeline-only");
+      });
+
+      document.querySelectorAll("[data-category-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.category = button.dataset.categoryFilter;
+          document.querySelectorAll("[data-category-filter]").forEach((candidate) => {
+            candidate.classList.toggle("active", candidate === button);
+          });
+          renderLibrary();
+        });
+      });
+
+      document.querySelectorAll("[data-scenario]").forEach((button) => {
+        button.addEventListener("click", () => seedScenario(button.dataset.scenario));
+      });
+
+      document.querySelector("#resetRoadmap").addEventListener("click", () => seedScenario("baseline"));
+
+      seedScenario("baseline");
+    </script>
+  </body>
+</html>

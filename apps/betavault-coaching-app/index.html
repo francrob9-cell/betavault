@@ -1,0 +1,2754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta Vault | Athlete Performance</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: white; scroll-behavior: smooth; }
+        .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); }
+        .stat-glow { text-shadow: 0 0 15px rgba(37, 99, 235, 0.5); }
+        .input-dark { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; font-size: 14px; outline: none; width: 100%; color: white; transition: 0.3s; }
+        .input-dark:focus { border-color: #2563eb; background: rgba(255,255,255,0.08); }
+        select.input-dark { background-color: #050505; color: #f8fafc; }
+        select.input-dark option { background-color: #050505; color: #f8fafc; }
+        .hidden { display: none !important; }
+        @media (max-width: 767px) {
+            .mobile-section:not(.mobile-section-active) { display: none !important; }
+            .mobile-nav-active { color: #fff; background: rgba(37, 99, 235, 0.22); border-color: rgba(59, 130, 246, 0.45); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- LAYER 1: LOGIN OVERLAY -->
+    <div id="loginOverlay" class="fixed inset-0 bg-[#050505] z-[100] flex items-center justify-center flex-col hidden">
+        <div class="glass-card p-10 rounded-2xl w-full max-w-md border border-blue-500/30 text-center">
+            <h2 class="text-3xl font-black italic uppercase tracking-tighter mb-2">BETA<span class="text-blue-600">VAULT</span></h2>
+            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-8">Athlete Portal Access</p>
+            
+            <div class="space-y-4">
+                <button onclick="handleGoogleLogin()" class="w-full bg-white text-black hover:bg-gray-200 py-4 rounded font-black uppercase tracking-widest text-xs transition"><i class="fab fa-google mr-2"></i>Continue with Google</button>
+                <button onclick="handleAppleLogin()" class="w-full bg-black text-white hover:bg-white/10 border border-white/15 py-4 rounded font-black uppercase tracking-widest text-xs transition"><i class="fab fa-apple mr-2"></i>Continue with Apple</button>
+                <div class="grid grid-cols-[1fr_auto] gap-2">
+                    <input type="tel" id="loginPhone" placeholder="Phone +13035551234" class="input-dark">
+                    <button onclick="sendPhoneLoginCode()" class="bg-green-600 hover:bg-green-700 px-4 rounded font-black uppercase tracking-widest text-[9px] transition">Send Code</button>
+                </div>
+                <div id="phoneCodeRow" class="hidden grid grid-cols-[1fr_auto] gap-2">
+                    <input type="text" id="loginPhoneCode" inputmode="numeric" placeholder="SMS code" class="input-dark">
+                    <button onclick="verifyPhoneLoginCode()" class="bg-green-600/80 hover:bg-green-700 px-4 rounded font-black uppercase tracking-widest text-[9px] transition">Verify</button>
+                </div>
+                <div class="flex items-center gap-3 py-1">
+                    <span class="h-px flex-1 bg-white/10"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-600">or email</span>
+                    <span class="h-px flex-1 bg-white/10"></span>
+                </div>
+                <input type="email" id="loginEmail" placeholder="Email" class="input-dark">
+                <input type="password" id="loginPassword" placeholder="Password" class="input-dark">
+                <input type="text" id="signupInviteCode" placeholder="Invite code (optional)" class="input-dark">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded font-black uppercase tracking-widest text-xs transition mt-4">Enter Vault</button>
+                <button onclick="handleSignup()" class="w-full bg-white/10 hover:bg-white/20 py-4 rounded font-black uppercase tracking-widest text-xs transition">Create Athlete Account</button>
+            </div>
+            <p class="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-5 leading-relaxed">Invited athletes can use their invite code. Self-signup stays open.</p>
+            <p id="loginError" class="text-red-500 text-[10px] mt-4 font-bold uppercase"></p>
+            <div id="phoneRecaptcha" class="mt-4"></div>
+        </div>
+    </div>
+
+    <!-- LAYER 2: SETUP OVERLAY (FOR NEW USERS) -->
+    <div id="setupOverlay" class="fixed inset-0 bg-[#050505] z-[90] flex items-center justify-center flex-col hidden px-6">
+        <div class="glass-card p-10 rounded-2xl w-full max-w-lg border border-green-500/30 max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter text-green-500">INITIALIZE PROFILE</h2>
+                <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-2">Set your baseline metrics</p>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-2 block">Full Name</label>
+                    <input type="text" id="setupName" placeholder="Alex Honnold" class="input-dark">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-2 block">Current Max Grade</label>
+                    <input type="text" id="setupGrade" oninput="formatGradeInput(this)" placeholder="e.g., V10 or 5.13a" class="input-dark">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-2 block">Primary Training Goal</label>
+                    <textarea id="setupGoal" placeholder="Break into 5.12 by Fall..." class="input-dark h-24"></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-2 block">Profile Picture Required</label>
+                    <input type="file" id="setupProfilePic" accept="image/*" class="input-dark">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-gray-400 mb-2 block">Video Upload Source</label>
+                    <select id="setupVideoSource" class="input-dark">
+                        <option value="camera">Phone camera first</option>
+                        <option value="library">Photo library / files first</option>
+                    </select>
+                    <p class="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-2 leading-relaxed">Your browser will ask where to pick each video. Beta Vault keeps this preference for the upload tool.</p>
+                </div>
+                <button onclick="saveInitialProfile()" class="w-full bg-green-600 hover:bg-green-700 py-4 rounded font-black uppercase tracking-widest text-xs transition">Activate Dashboard</button>
+                <p id="setupStatus" class="text-red-400 text-[10px] font-bold uppercase tracking-widest"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER 3: MAIN DASHBOARD -->
+    <!-- Sidebar -->
+    <div class="hidden md:flex fixed left-0 top-0 h-full w-20 md:w-64 glass-card border-r border-white/5 z-50 flex-col items-center py-8">
+        <div class="text-blue-600 text-2xl font-black italic mb-12 hidden md:block uppercase tracking-tighter">BETA<span class="text-white text-xs ml-2 font-light">VAULT</span></div>
+        <nav class="flex flex-col space-y-8 w-full px-4 text-center">
+            <a href="#" class="text-blue-500 bg-blue-500/10 p-3 rounded-lg"><i class="fas fa-th-large"></i></a>
+            <button onclick="logout()" class="mt-20 text-gray-500 hover:text-red-500 transition uppercase text-[10px] font-bold tracking-widest">Logout</button>
+        </nav>
+    </div>
+
+    <!-- Main View -->
+    <main class="md:ml-64 p-4 md:p-10 pb-28 md:pb-10">
+        <header data-mobile-section="profile" class="mobile-section mobile-section-active flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-10 gap-4">
+            <div>
+                <div class="flex items-center gap-5">
+                    <img id="displayProfilePic" src="" alt="Athlete profile" class="w-16 h-16 rounded-xl object-cover border border-white/10 bg-white/5 hidden">
+                    <div>
+                        <h1 class="text-3xl font-black uppercase italic tracking-tight">Athlete Performance</h1>
+                        <p class="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em]">Athlete: <span id="displayAthleteName" class="text-blue-500 font-black">---</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-4 rounded-xl flex items-center space-x-6">
+                <div class="text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-500">Max Grade</p>
+                    <p id="displayMaxGrade" class="text-xl font-black text-blue-500 uppercase">---</p>
+                </div>
+                <div class="w-[1px] h-8 bg-white/10"></div>
+                <div class="text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-500">Status</p>
+                    <p class="text-xl font-black text-green-500 italic uppercase">Active</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="md:hidden bg-white/5 border border-white/10 px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest text-gray-400">Logout</button>
+        </header>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Ticks Log -->
+            <div class="lg:col-span-2 space-y-8">
+                <section data-mobile-section="sends" class="mobile-section glass-card p-6 md:p-8 rounded-2xl">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-8 flex items-center">
+                        <span class="w-8 h-[2px] bg-blue-600 mr-4"></span> Log a New Send
+                    </h3>
+                    <p class="text-[10px] uppercase font-bold tracking-widest text-gray-600 mb-5">Quick tick: route, grade, optional MP link. Use Session Log for full training details.</p>
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <input type="text" id="tickRoute" oninput="syncTickMountainProjectSearch()" placeholder="Route Name" class="input-dark">
+                        <input type="text" id="tickGrade" oninput="formatGradeInput(this)" placeholder="Grade" class="input-dark">
+                        <div class="md:col-span-2 grid grid-cols-[1fr_auto] gap-2">
+                            <input type="text" id="tickMP" placeholder="MP URL (optional)" class="input-dark">
+                            <button type="button" onclick="searchTickMountainProject()" class="bg-white/10 hover:bg-white/20 border border-white/10 px-4 rounded text-[9px] font-black uppercase tracking-widest">Search</button>
+                        </div>
+                    </div>
+                    <button onclick="saveTick()" class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Save Quick Send</button>
+                </section>
+
+                <section data-mobile-section="sends" class="mobile-section">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 italic">Recent Sends</h3>
+                    <div id="tickList" class="space-y-4">
+                        <!-- Ticks load here -->
+                    </div>
+                </section>
+
+                <section data-mobile-section="sends" class="mobile-section glass-card p-6 md:p-8 rounded-2xl border-t-2 border-green-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-green-400">Grade Progression</h3>
+                    <div id="gradeProgressionChart" class="h-48 bg-black/20 border border-white/5 rounded-xl p-4 flex items-end gap-2 overflow-x-auto">
+                        <p class="text-gray-600 text-xs italic self-center">Log sends to see progression.</p>
+                    </div>
+                </section>
+
+                <section id="sessionForm" data-mobile-section="sends" class="mobile-section glass-card p-6 md:p-8 rounded-2xl border-t-2 border-white/20">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6">Session Log</h3>
+                    <div class="mb-5">
+                        <p class="text-[9px] uppercase font-black tracking-widest text-yellow-400 mb-3">New template buttons reset the current draft</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="applySessionTemplate('strength')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Strength</button>
+                            <button onclick="applySessionTemplate('limit bouldering')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Boulder</button>
+                            <button onclick="applySessionTemplate('limit climbing')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Climb</button>
+                            <button onclick="applySessionTemplate('endurance')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Endurance</button>
+                            <button onclick="applySessionTemplate('rest')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Rest</button>
+                            <button onclick="applySessionTemplate('technique')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Technique</button>
+                            <button onclick="applySessionTemplate('projecting')" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-200 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest"><i class="fas fa-rotate-left mr-1"></i>Project</button>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4 mb-4">
+                        <input type="date" id="sessionDate" class="input-dark">
+                        <input type="number" id="sessionDuration" min="0" placeholder="Duration minutes" class="input-dark">
+                        <input type="text" id="sessionLocation" placeholder="Location" class="input-dark">
+                        <input type="number" id="sessionFatigue" min="1" max="10" placeholder="Fatigue 1-10" class="input-dark">
+                        <input type="number" id="sessionMood" min="1" max="10" placeholder="Mood 1-10" class="input-dark">
+                        <input type="number" id="sessionSleep" min="0" max="12" step="0.25" placeholder="Sleep hours" class="input-dark">
+                        <input type="number" id="sessionPain" min="0" max="10" placeholder="Pain 0-10" class="input-dark">
+                        <input type="text" id="sessionPainArea" placeholder="Pain/body area" class="input-dark">
+                        <input type="number" id="sessionEffort" min="1" max="10" placeholder="RPE / effort 1-10" class="input-dark">
+                        <select id="sessionOutcome" class="input-dark">
+                            <option value="productive">Productive</option>
+                            <option value="breakthrough">Breakthrough</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="struggle">Struggle</option>
+                            <option value="cut short">Cut Short</option>
+                        </select>
+                    </div>
+                    <div id="sessionTemplateFields" class="space-y-4 mb-4"></div>
+                    <div id="sessionPromptGuide" class="hidden bg-white/5 border border-white/5 rounded-xl p-4 mb-4"></div>
+                    <textarea id="sessionNotes" placeholder="Write your notes here..." class="input-dark h-40 mb-4"></textarea>
+                    <button onclick="saveSessionLog()" class="bg-green-600 hover:bg-green-700 px-8 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Save Session</button>
+                    <div class="mt-8">
+                        <h4 class="text-[10px] uppercase font-black tracking-[0.25em] text-gray-500 mb-4">Session Trends</h4>
+                        <div id="sessionTrendChart" class="grid md:grid-cols-4 gap-3">
+                            <p class="text-gray-600 text-xs italic">Log sessions to see trends.</p>
+                        </div>
+                    </div>
+                    <div id="sessionList" class="space-y-3 mt-6">
+                        <p class="text-gray-600 text-xs italic">No sessions logged yet.</p>
+                    </div>
+                </section>
+
+                <section data-mobile-section="videos" class="mobile-section glass-card p-6 md:p-8 rounded-2xl border-t-2 border-purple-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 flex items-center text-purple-400">
+                        <span class="w-8 h-[2px] bg-purple-500 mr-4"></span> Video Review Folder
+                    </h3>
+                    <div class="grid md:grid-cols-3 gap-4 mb-6">
+                        <input type="text" id="videoTitle" placeholder="Video title" class="input-dark md:col-span-2">
+                        <input type="file" id="videoFile" accept="video/*" capture="environment" class="input-dark">
+                    </div>
+                    <button onclick="uploadTrainingVideo()" class="bg-purple-600 hover:bg-purple-700 px-8 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Upload Video</button>
+                    <p id="videoUploadStatus" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-4"></p>
+
+                    <div class="grid xl:grid-cols-3 gap-6 mt-8">
+                        <div id="athleteVideoList" class="space-y-3 xl:col-span-1">
+                            <p class="text-gray-600 text-xs italic">No videos uploaded yet.</p>
+                        </div>
+                        <div class="xl:col-span-2 space-y-4">
+                            <video id="athleteVideoPlayer" controls class="w-full bg-black rounded-xl border border-white/10"></video>
+                            <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                <span>Selected Second: <span id="athleteSelectedSecond" class="text-purple-400">0:00</span></span>
+                                <span id="athleteVideoDuration">0 seconds</span>
+                            </div>
+                            <div id="athleteVideoTimeline" class="flex gap-2 overflow-x-auto pb-2">
+                                <p class="text-gray-600 text-xs italic">Select a video to see timestamps.</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="seekAthleteVideoNote('prev')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Previous Note</button>
+                                <button onclick="seekAthleteVideoNote('next')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Next Note</button>
+                            </div>
+                            <div id="athleteVideoNotes" class="space-y-3">
+                                <p class="text-gray-600 text-xs italic">Coach notes will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Goals Sidebar -->
+            <div class="space-y-8">
+                <section data-mobile-section="profile" class="mobile-section mobile-section-active glass-card p-6 md:p-8 rounded-2xl border-t-2 border-green-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-4 text-green-500">Core Training Goal</h3>
+                    <p id="displayGoal" class="text-gray-400 text-sm leading-relaxed italic">No goal set.</p>
+                </section>
+
+                <section data-mobile-section="profile" class="mobile-section mobile-section-active glass-card p-6 md:p-8 rounded-2xl border-t-2 border-yellow-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-yellow-400">Notifications</h3>
+                    <div id="notificationList" class="space-y-3">
+                        <p class="text-gray-600 text-xs italic">No notifications yet.</p>
+                    </div>
+                </section>
+
+                <section data-mobile-section="profile" class="mobile-section mobile-section-active glass-card p-6 md:p-8 rounded-2xl border-t-2 border-blue-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-blue-500">Max Grade</h3>
+                    <input type="text" id="profileMaxGrade" oninput="formatGradeInput(this)" placeholder="V10 or 5.12a" class="input-dark mb-3">
+                    <select id="maxGradeConversionSystem" onchange="renderMaxGradeConversion()" class="input-dark mb-3">
+                        <option value="all">Show all available conversions</option>
+                        <option value="french">French / Fontainebleau</option>
+                        <option value="ewbank">Ewbank</option>
+                        <option value="uiaa">UIAA</option>
+                        <option value="southAfrica">South Africa</option>
+                        <option value="british">British</option>
+                    </select>
+                    <div id="maxGradeConversion" class="bg-black/20 border border-white/5 rounded-lg p-4 mb-4">
+                        <p class="text-gray-600 text-xs italic">Enter a max grade to see conversions.</p>
+                    </div>
+                    <p class="text-[9px] text-gray-600 uppercase font-bold leading-relaxed mb-4">Allowed: V1-V20, 5.8, 5.9, 5.10 variants, 5.11a-d, 5.12a-d, 5.13a-d, 5.14a-d</p>
+                    <button onclick="updateMaxGrade()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Update Grade</button>
+                    <p id="maxGradeStatus" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-4"></p>
+                </section>
+
+                <section data-mobile-section="profile" class="mobile-section mobile-section-active glass-card p-6 md:p-8 rounded-2xl border-t-2 border-purple-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-purple-400">Display Preferences</h3>
+                    <label class="text-[10px] uppercase font-bold text-gray-500 mb-2 block">Global Grade Display</label>
+                    <select id="preferredGradeSystem" onchange="updateGradeDisplayPreference()" class="input-dark mb-4">
+                        <option value="original">Original entered grade</option>
+                        <option value="french">French / Fontainebleau</option>
+                        <option value="ewbank">Ewbank</option>
+                        <option value="uiaa">UIAA</option>
+                        <option value="southAfrica">South Africa</option>
+                        <option value="british">British</option>
+                    </select>
+                    <label class="text-[10px] uppercase font-bold text-gray-500 mb-2 block">Video Picker Preference</label>
+                    <select id="videoSourcePreference" onchange="updateVideoSourcePreference()" class="input-dark">
+                        <option value="camera">Phone camera first</option>
+                        <option value="library">Photo library / files first</option>
+                    </select>
+                    <p id="preferenceStatus" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-4"></p>
+                </section>
+
+                <section data-mobile-section="profile" class="mobile-section mobile-section-active glass-card p-6 md:p-8 rounded-2xl border-t-2 border-white/20">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6">Profile Picture</h3>
+                    <div class="flex items-center gap-4 mb-5">
+                        <img id="profilePicPreview" src="" alt="Profile preview" class="w-20 h-20 rounded-xl object-cover border border-white/10 bg-white/5 hidden">
+                        <div>
+                            <p class="text-sm font-black uppercase italic tracking-tight" id="profilePicName">No photo set</p>
+                            <p class="text-[10px] text-gray-600 uppercase font-bold mt-1">Visible to coach roster</p>
+                        </div>
+                    </div>
+                    <input type="file" id="profilePicFile" accept="image/*" class="input-dark mb-4">
+                    <button onclick="uploadProfilePicture()" class="w-full bg-white/10 hover:bg-white/20 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Update Photo</button>
+                    <p id="profilePicStatus" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-4"></p>
+                </section>
+
+                <section data-mobile-section="goals" class="mobile-section glass-card p-6 md:p-8 rounded-2xl border-t-2 border-blue-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-blue-500">Training Goals</h3>
+                    <div class="space-y-4 mb-6">
+                        <input type="text" id="goalTitle" placeholder="Goal title" class="input-dark">
+                        <textarea id="goalNotes" placeholder="Coach/user notes, focus cues, milestones..." class="input-dark h-24"></textarea>
+                        <div class="grid grid-cols-2 gap-3">
+                            <select id="goalStatus" class="input-dark">
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <input type="date" id="goalTargetDate" class="input-dark">
+                        </div>
+                        <button onclick="saveTrainingGoal()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-black uppercase tracking-widest text-[10px] transition">Add Goal</button>
+                    </div>
+                    <div id="trainingGoalsList" class="space-y-4">
+                        <p class="text-gray-600 text-xs italic">No training goals yet.</p>
+                    </div>
+                </section>
+
+                <section data-mobile-section="goals" class="mobile-section glass-card p-6 md:p-8 rounded-2xl border-t-2 border-green-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-green-400">Weekly Training Plan</h3>
+                    <div id="trainingPlanList" class="space-y-3">
+                        <p class="text-gray-600 text-xs italic">No training plan assigned yet.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-white/10 px-3 py-3">
+        <div class="grid grid-cols-4 gap-2">
+            <button data-mobile-nav="profile" onclick="setMobileView('profile')" class="mobile-nav-active border border-white/10 rounded-lg py-3 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                <i class="fas fa-user block text-base mb-1"></i>
+                Profile
+            </button>
+            <button data-mobile-nav="goals" onclick="setMobileView('goals')" class="border border-white/10 rounded-lg py-3 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                <i class="fas fa-bullseye block text-base mb-1"></i>
+                Goals
+            </button>
+            <button data-mobile-nav="sends" onclick="setMobileView('sends')" class="border border-white/10 rounded-lg py-3 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                <i class="fas fa-list-check block text-base mb-1"></i>
+                Sends
+            </button>
+            <button data-mobile-nav="videos" onclick="setMobileView('videos')" class="border border-white/10 rounded-lg py-3 text-[9px] font-black uppercase tracking-widest text-gray-500">
+                <i class="fas fa-video block text-base mb-1"></i>
+                Videos
+            </button>
+        </div>
+    </nav>
+
+    <div id="toastHost" class="fixed right-4 bottom-28 md:bottom-6 z-[120] space-y-3 w-[calc(100%-2rem)] max-w-sm"></div>
+
+    <!-- FIREBASE LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, OAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0ALZd0Xmh7FDsksWFQGKXEKVPcm5bdD4",
+            authDomain: "beta-vault-7bc94.firebaseapp.com",
+            projectId: "beta-vault-7bc94",
+            storageBucket: "beta-vault-7bc94.firebasestorage.app",
+            messagingSenderId: "757561763135",
+            appId: "1:757561763135:web:fa51913efcf84f86f85f8a",
+            measurementId: "G-8R1PP8ZXXP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: "select_account" });
+        const appleProvider = new OAuthProvider("apple.com");
+        appleProvider.addScope("email");
+        appleProvider.addScope("name");
+
+        let athleteVideos = [];
+        let athleteVideoNotes = [];
+        let selectedAthleteVideo = null;
+        let selectedAthleteSecond = 0;
+        let athleteUnsubscribers = [];
+        let videoNotesUnsubscribe = null;
+        let currentAthleteTicks = [];
+        let currentAthleteMilestones = [];
+        let currentAthleteTrainingRecommendations = [];
+        let currentTrainingPlans = [];
+        let currentSessionLogs = [];
+        let currentSessionComments = [];
+        let currentNotifications = [];
+        let currentProfile = null;
+        let activeSessionType = "strength";
+        let phoneConfirmationResult = null;
+        let phoneRecaptchaVerifier = null;
+        const sessionDraftKey = "betaVaultSessionDraft";
+        let sessionDraftSaveSuspended = false;
+        let preferredGradeSystem = localStorage.getItem("betaVaultGradeSystem") || "original";
+        let videoSourcePreference = localStorage.getItem("betaVaultVideoSource") || "camera";
+
+        function showToast(message, type = "info") {
+            const host = document.getElementById('toastHost');
+            const colors = {
+                info: "border-blue-500/30 text-blue-100",
+                success: "border-green-500/30 text-green-100",
+                error: "border-red-500/30 text-red-100"
+            };
+            const toast = document.createElement('div');
+            toast.className = `glass-card border ${colors[type] || colors.info} rounded-lg p-4 text-xs font-bold uppercase tracking-widest shadow-2xl`;
+            toast.textContent = message;
+            host.appendChild(toast);
+            setTimeout(() => toast.remove(), 4200);
+        }
+
+        function stopAthleteRealtime() {
+            athleteUnsubscribers.forEach((unsubscribe) => unsubscribe && unsubscribe());
+            athleteUnsubscribers = [];
+            if (videoNotesUnsubscribe) videoNotesUnsubscribe();
+            videoNotesUnsubscribe = null;
+        }
+
+        window.setMobileView = (view) => {
+            document.querySelectorAll('[data-mobile-section]').forEach((section) => {
+                section.classList.toggle('mobile-section-active', section.dataset.mobileSection === view);
+            });
+
+            document.querySelectorAll('[data-mobile-nav]').forEach((button) => {
+                button.classList.toggle('mobile-nav-active', button.dataset.mobileNav === view);
+            });
+
+            if (window.innerWidth < 768) {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        };
+
+        const goalStatusStyles = {
+            active: "text-green-400 border-green-500/20 bg-green-500/10",
+            paused: "text-yellow-400 border-yellow-500/20 bg-yellow-500/10",
+            completed: "text-blue-400 border-blue-500/20 bg-blue-500/10"
+        };
+
+        const gradeConversions = {
+            yds: {
+                "5.8": { french: "5b", ewbank: "16", uiaa: "VI-", southAfrica: "15", british: "HVS 4c" },
+                "5.9": { french: "5c", ewbank: "17", uiaa: "VI", southAfrica: "17", british: "HVS 5a" },
+                "5.10": { french: "6b", ewbank: "20", uiaa: "VII-", southAfrica: "19", british: "E2 5b" },
+                "5.10a": { french: "6a", ewbank: "18", uiaa: "VI+", southAfrica: "18", british: "E1 5a" },
+                "5.10-": { french: "6a", ewbank: "18", uiaa: "VI+", southAfrica: "18", british: "E1 5a" },
+                "5.10a/b": { french: "6a+", ewbank: "19", uiaa: "VI+", southAfrica: "19", british: "E2 5b" },
+                "5.10b": { french: "6a+", ewbank: "19", uiaa: "VII-", southAfrica: "19", british: "E2 5b" },
+                "5.10b/c": { french: "6b", ewbank: "20", uiaa: "VII", southAfrica: "20", british: "E2 5b" },
+                "5.10c": { french: "6b", ewbank: "20", uiaa: "VII", southAfrica: "20", british: "E2 5b" },
+                "5.10+": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "20", british: "E3 5b" },
+                "5.10c/d": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "21", british: "E3 5b" },
+                "5.10d": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "21", british: "E3 5b" },
+                "5.11a": { french: "6c", ewbank: "22", uiaa: "VII+", southAfrica: "22", british: "E3 5c" },
+                "5.11b": { french: "6c", ewbank: "23", uiaa: "VIII-", southAfrica: "23", british: "E3 5c" },
+                "5.11c": { french: "6c+", ewbank: "24", uiaa: "VIII-", southAfrica: "24", british: "E4 6a" },
+                "5.11d": { french: "7a", ewbank: "24", uiaa: "VIII", southAfrica: "25", british: "E5 6a" },
+                "5.12a": { french: "7a+", ewbank: "25", uiaa: "VIII+", southAfrica: "25", british: "E5 6a" },
+                "5.12b": { french: "7b", ewbank: "26", uiaa: "VIII+", southAfrica: "26", british: "E5 6b" },
+                "5.12c": { french: "7b+", ewbank: "27", uiaa: "IX-", southAfrica: "27", british: "E6 6b" },
+                "5.12d": { french: "7c", ewbank: "28", uiaa: "IX", southAfrica: "28", british: "E6 6b" },
+                "5.13a": { french: "7c+", ewbank: "29", uiaa: "IX+", southAfrica: "29", british: "E6 6c" },
+                "5.13b": { french: "8a", ewbank: "29", uiaa: "IX+", southAfrica: "30", british: "E7 6c" },
+                "5.13c": { french: "8a+", ewbank: "30", uiaa: "X-", southAfrica: "31", british: "E7 7a" },
+                "5.13d": { french: "8b", ewbank: "31", uiaa: "X", southAfrica: "32", british: "E8 7a" },
+                "5.14a": { french: "8b+", ewbank: "32", uiaa: "X+", southAfrica: "32", british: "E8 7a" },
+                "5.14b": { french: "8c", ewbank: "33", uiaa: "X+", southAfrica: "33", british: "E9 7b" },
+                "5.14c": { french: "8c+", ewbank: "34", uiaa: "XI-", southAfrica: "35", british: "E9 7b" },
+                "5.14d": { french: "9a", ewbank: "35", uiaa: "XI", southAfrica: "36", british: "E10 7c" }
+            },
+            boulder: {
+                V1: { font: "5" },
+                V2: { font: "5+" },
+                V3: { font: "6A" },
+                V4: { font: "6B" },
+                V5: { font: "6C" },
+                V6: { font: "7A" },
+                V7: { font: "7A+" },
+                V8: { font: "7B" },
+                V9: { font: "7C" },
+                V10: { font: "7C+" },
+                V11: { font: "8A" },
+                V12: { font: "8A+" },
+                V13: { font: "8B" },
+                V14: { font: "8B+" },
+                V15: { font: "8C" },
+                V16: { font: "8C+" },
+                V17: { font: "9A" }
+            }
+        };
+
+        const conversionLabels = {
+            french: "French",
+            font: "Fontainebleau",
+            ewbank: "Ewbank",
+            uiaa: "UIAA",
+            southAfrica: "South Africa",
+            british: "British"
+        };
+
+        function escapeHTML(value = "") {
+            return String(value).replace(/[&<>"']/g, (character) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            })[character]);
+        }
+
+        function formatGoalDate(value) {
+            if (!value) return "No target date";
+            if (value.toDate) return value.toDate().toLocaleDateString();
+            return new Date(value).toLocaleDateString();
+        }
+
+        function formatSeconds(totalSeconds) {
+            const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+            const minutes = Math.floor(safeSeconds / 60);
+            const seconds = safeSeconds % 60;
+            return `${minutes}:${String(seconds).padStart(2, "0")}`;
+        }
+
+        function getTimestampMillis(value) {
+            if (!value) return 0;
+            if (value.toDate) return value.toDate().getTime();
+            return new Date(value).getTime();
+        }
+
+        function renderDataError(error, fallbackText) {
+            if (error?.code === "permission-denied") {
+                return "Permission denied. Update Firebase rules for this collection.";
+            }
+
+            if (error?.message?.includes("index")) {
+                return "Firestore index required. Check console for the index link.";
+            }
+
+            return fallbackText;
+        }
+
+        function formatDate(value) {
+            const timestamp = getTimestampMillis(value);
+            return timestamp ? new Date(timestamp).toLocaleDateString() : "";
+        }
+
+        function formatDateTime(value) {
+            const timestamp = getTimestampMillis(value);
+            return timestamp ? new Date(timestamp).toLocaleString() : "";
+        }
+
+        function normalizeGrade(value = "") {
+            return value.trim().replace(/\s+/g, "").replace(/^v/i, "V");
+        }
+
+        function isAllowedCoachEmail(email = "") {
+            return ["francrob9@gmail.com", "lmharr315@gmail.com"].includes(String(email || "").toLowerCase());
+        }
+
+        function currentUserEmail() {
+            return auth.currentUser?.email || "";
+        }
+
+        function currentUserPhone() {
+            return auth.currentUser?.phoneNumber || "";
+        }
+
+        async function createCoachNotification(type, message, metadata = {}) {
+            if (!auth.currentUser) return;
+            const notificationRef = doc(collection(db, "notifications"));
+            const athleteName = metadata.athleteName || currentProfile?.name || auth.currentUser.displayName || currentUserEmail() || currentUserPhone() || "Athlete";
+            const payload = {
+                userId: "coach",
+                audience: "coach",
+                athleteId: auth.currentUser.uid,
+                athleteEmail: currentUserEmail(),
+                athletePhone: currentUserPhone(),
+                athleteName,
+                type,
+                message,
+                read: false,
+                createdAt: new Date(),
+                ...metadata
+            };
+            await setDoc(notificationRef, payload).catch((error) => console.error("Coach notification error:", error));
+        }
+
+        function cleanPhoneNumber(value = "") {
+            const trimmed = value.trim();
+            const leadingPlus = trimmed.startsWith("+") ? "+" : "";
+            return leadingPlus + trimmed.replace(/\D/g, "");
+        }
+
+        async function ensureUserProfileRecord(user) {
+            if (!user) return;
+            const email = user.email || "";
+            const fallbackName = user.displayName || email || user.phoneNumber || "New Athlete";
+            const payload = {
+                name: fallbackName,
+                email,
+                phone: user.phoneNumber || "",
+                role: isAllowedCoachEmail(email) ? "coach" : "athlete",
+                authProvider: user.providerData?.map((provider) => provider.providerId).join(",") || "unknown",
+                lastLoginAt: new Date(),
+                updatedAt: new Date()
+            };
+            const profileRef = doc(db, "users", user.uid);
+            const existingProfile = await getDoc(profileRef).catch(() => null);
+            if (!existingProfile?.exists()) payload.createdAt = new Date();
+            await setDoc(profileRef, payload, { merge: true });
+        }
+
+        function isProfileComplete(profile = {}) {
+            return Boolean(profile.name && profile.maxGrade && profile.goal && profile.photoURL && profile.videoSourcePreference);
+        }
+
+        function applyVideoSourcePreference() {
+            const input = document.getElementById('videoFile');
+            if (!input) return;
+            if (videoSourcePreference === "camera") {
+                input.setAttribute("capture", "environment");
+            } else {
+                input.removeAttribute("capture");
+            }
+        }
+
+        function isValidMaxGrade(value = "") {
+            const grade = normalizeGrade(value);
+            if (/^V([1-9]|1[0-9]|20)$/.test(grade)) return true;
+            if (/^5\.(8|9|10)$/.test(grade)) return true;
+            if (/^5\.10(a|b|c|d|-|\+|a\/b|b\/c|c\/d)$/.test(grade)) return true;
+            return /^5\.(11|12|13|14)[abcd]$/.test(grade);
+        }
+
+        window.formatGradeInput = (input) => {
+            const originalStart = input.selectionStart;
+            input.value = normalizeGrade(input.value);
+            if (originalStart !== null) input.setSelectionRange(input.value.length, input.value.length);
+            if (input.id === "profileMaxGrade") renderMaxGradeConversion();
+        };
+
+        function setMaxGrade(grade) {
+            const normalizedGrade = normalizeGrade(grade);
+            document.getElementById('displayMaxGrade').innerText = formatGradeForDisplay(normalizedGrade) || "---";
+            document.getElementById('profileMaxGrade').value = normalizedGrade;
+            renderMaxGradeConversion();
+        }
+
+        function getGradeConversion(grade = "", system = preferredGradeSystem) {
+            const normalized = normalizeGrade(grade);
+            if (!normalized || system === "original") return normalized;
+            if (normalized.startsWith("V")) {
+                const font = gradeConversions.boulder[normalized]?.font;
+                return system === "french" && font ? `${font} Font` : normalized;
+            }
+            const conversion = gradeConversions.yds[normalized];
+            return conversion?.[system] ? `${conversion[system]} ${conversionLabels[system]}` : normalized;
+        }
+
+        function formatGradeForDisplay(grade = "") {
+            const normalized = normalizeGrade(grade);
+            const converted = getGradeConversion(normalized);
+            return preferredGradeSystem === "original" || converted === normalized ? normalized : `${normalized} / ${converted}`;
+        }
+
+        function gradeScore(grade = "") {
+            const normalized = normalizeGrade(grade);
+            if (normalized.startsWith("V")) return Number(normalized.slice(1)) * 10;
+            const ydsBase = { "5.8": 80, "5.9": 90, "5.10": 100, "5.10-": 98, "5.10a": 101, "5.10a/b": 102, "5.10b": 103, "5.10b/c": 104, "5.10c": 105, "5.10+": 106, "5.10c/d": 107, "5.10d": 108 };
+            if (ydsBase[normalized]) return ydsBase[normalized];
+            const match = normalized.match(/^5\.(11|12|13|14)([abcd])$/);
+            if (!match) return 0;
+            return Number(match[1]) * 10 + { a: 1, b: 2, c: 3, d: 4 }[match[2]];
+        }
+
+        function renderGradeProgression() {
+            const chart = document.getElementById('gradeProgressionChart');
+            const sends = [...currentAthleteTicks].filter((tick) => gradeScore(tick.grade)).sort((a, b) => getTimestampMillis(a.timestamp) - getTimestampMillis(b.timestamp)).slice(-12);
+            if (!sends.length) {
+                chart.innerHTML = '<p class="text-gray-600 text-xs italic self-center">Log sends to see progression.</p>';
+                return;
+            }
+
+            const max = Math.max(...sends.map((tick) => gradeScore(tick.grade)));
+            const min = Math.min(...sends.map((tick) => gradeScore(tick.grade)));
+            const span = Math.max(1, max - min);
+            chart.innerHTML = sends.map((tick) => {
+                const height = 28 + ((gradeScore(tick.grade) - min) / span) * 120;
+                return `
+                    <div class="min-w-14 flex flex-col items-center justify-end h-full">
+                        <div class="w-full bg-green-500/70 rounded-t" style="height:${height}px"></div>
+                        <p class="text-[9px] font-black text-green-300 mt-2 uppercase">${escapeHTML(formatGradeForDisplay(tick.grade || ""))}</p>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderConversionCard(label, value) {
+            return `
+                <div class="bg-white/5 border border-white/5 rounded-lg p-3">
+                    <p class="text-[8px] uppercase font-black tracking-widest text-gray-500">${escapeHTML(label)}</p>
+                    <p class="text-lg font-black text-blue-400 mt-1">${escapeHTML(value || "---")}</p>
+                </div>
+            `;
+        }
+
+        window.renderMaxGradeConversion = () => {
+            const container = document.getElementById('maxGradeConversion');
+            if (!container) return;
+
+            const grade = normalizeGrade(document.getElementById('profileMaxGrade').value);
+            const selectedSystem = document.getElementById('maxGradeConversionSystem').value;
+
+            if (!grade) {
+                container.innerHTML = '<p class="text-gray-600 text-xs italic">Enter a max grade to see conversions.</p>';
+                return;
+            }
+
+            if (!isValidMaxGrade(grade)) {
+                container.innerHTML = '<p class="text-red-400 text-xs font-bold uppercase">Invalid grade format.</p>';
+                return;
+            }
+
+            if (grade.startsWith("V")) {
+                const conversion = gradeConversions.boulder[grade];
+                if (!conversion) {
+                    container.innerHTML = '<p class="text-yellow-400 text-xs font-bold uppercase">No boulder conversion found for this grade in the workbook.</p>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-3">Boulder Conversion</p>
+                    <div class="grid grid-cols-1 gap-3">${renderConversionCard(conversionLabels.font, conversion.font)}</div>
+                `;
+                return;
+            }
+
+            const conversion = gradeConversions.yds[grade];
+            if (!conversion) {
+                container.innerHTML = '<p class="text-yellow-400 text-xs font-bold uppercase">No YDS conversion found for this grade in the workbook.</p>';
+                return;
+            }
+
+            const systems = selectedSystem === "all"
+                ? ["french", "ewbank", "uiaa", "southAfrica", "british"]
+                : [selectedSystem];
+
+            container.innerHTML = `
+                <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-3">YDS Conversion</p>
+                <div class="grid grid-cols-2 gap-3">
+                    ${systems.map((system) => renderConversionCard(conversionLabels[system], conversion[system])).join("")}
+                </div>
+            `;
+        };
+
+        function setProfilePhoto(photoURL, fileName = "") {
+            const headerPhoto = document.getElementById('displayProfilePic');
+            const previewPhoto = document.getElementById('profilePicPreview');
+            const photoName = document.getElementById('profilePicName');
+
+            if (!photoURL) {
+                headerPhoto.classList.add('hidden');
+                previewPhoto.classList.add('hidden');
+                photoName.innerText = "No photo set";
+                return;
+            }
+
+            headerPhoto.src = photoURL;
+            previewPhoto.src = photoURL;
+            headerPhoto.classList.remove('hidden');
+            previewPhoto.classList.remove('hidden');
+            photoName.innerText = fileName || "Profile photo active";
+        }
+
+        async function uploadProfileImageFile(file, statusElement = null) {
+            if (!file) return null;
+            if (!file.type.startsWith("image/")) throw new Error("Please choose an image file");
+
+            const safeName = file.name.replace(/[^a-z0-9._-]/gi, "_");
+            const storagePath = `users/${auth.currentUser.uid}/profile/avatar-${Date.now()}-${safeName}`;
+            const imageRef = ref(storage, storagePath);
+            const uploadTask = uploadBytesResumable(imageRef, file, { contentType: file.type });
+
+            if (statusElement) statusElement.innerText = "Uploading 0%";
+
+            return await new Promise((resolve, reject) => {
+                uploadTask.on("state_changed", (snapshot) => {
+                    if (!statusElement) return;
+                    const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    statusElement.innerText = `Uploading ${progress}%`;
+                }, reject, async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve({ downloadURL, storagePath, fileName: file.name });
+                });
+            });
+        }
+
+        // --- GLOBAL OBSERVER ---
+        onAuthStateChanged(auth, async (user) => {
+            const loginOverlay = document.getElementById('loginOverlay');
+            const setupOverlay = document.getElementById('setupOverlay');
+            const nameDisplay = document.getElementById('displayAthleteName');
+
+            if (user) {
+                console.log("Logged in as:", user.email || user.phoneNumber);
+                loginOverlay.classList.add('hidden');
+                nameDisplay.innerText = user.email || user.phoneNumber || "Athlete";
+
+                try {
+                    await ensureUserProfileRecord(user);
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        currentProfile = data;
+                        preferredGradeSystem = data.preferredGradeSystem || preferredGradeSystem;
+                        videoSourcePreference = data.videoSourcePreference || videoSourcePreference;
+                        localStorage.setItem("betaVaultGradeSystem", preferredGradeSystem);
+                        localStorage.setItem("betaVaultVideoSource", videoSourcePreference);
+                        document.getElementById('preferredGradeSystem').value = preferredGradeSystem;
+                        document.getElementById('videoSourcePreference').value = videoSourcePreference;
+                        applyVideoSourcePreference();
+                        nameDisplay.innerText = data.name;
+                        setMaxGrade(data.maxGrade);
+                        document.getElementById('displayGoal').innerText = data.goal || "No goals set.";
+                        setProfilePhoto(data.photoURL, data.photoFileName);
+                        if (!isProfileComplete(data)) {
+                            document.getElementById('setupName').value = data.name || "";
+                            document.getElementById('setupGrade').value = data.maxGrade || "";
+                            document.getElementById('setupGoal').value = data.goal || "";
+                            document.getElementById('setupVideoSource').value = videoSourcePreference;
+                            setupOverlay.classList.remove('hidden');
+                        } else {
+                            setupOverlay.classList.add('hidden');
+                        }
+                        stopAthleteRealtime();
+                        startAthleteRealtime(user.uid);
+                    } else {
+                        currentProfile = null;
+                        const inviteCode = localStorage.getItem("betaVaultInviteCode") || document.getElementById('signupInviteCode').value.trim();
+                        const pendingInvite = await findInviteForCurrentUser(inviteCode).catch(() => null);
+                        if (pendingInvite?.name) document.getElementById('setupName').value = pendingInvite.name;
+                        document.getElementById('setupVideoSource').value = videoSourcePreference;
+                        applyVideoSourcePreference();
+                        setupOverlay.classList.remove('hidden');
+                    }
+                } catch (e) { console.error("Profile load error:", e); }
+            } else {
+                stopAthleteRealtime();
+                loginOverlay.classList.remove('hidden');
+                setupOverlay.classList.add('hidden');
+            }
+        });
+
+        function startAthleteRealtime(uid) {
+            loadTicks(uid);
+            loadTrainingGoals(uid);
+            loadAthleteVideos(uid);
+            loadTrainingPlans(uid);
+            loadSessionLogs(uid);
+            loadNotifications(uid);
+        }
+
+        // --- TICK LOADING ---
+        function renderTicks(ticks) {
+            const list = document.getElementById('tickList');
+            currentAthleteTicks = ticks;
+            renderGradeProgression();
+            list.innerHTML = "";
+            if (!ticks.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No ticks yet.</p>';
+                return;
+            }
+
+            ticks.sort((a, b) => getTimestampMillis(b.timestamp) - getTimestampMillis(a.timestamp));
+            list.innerHTML = ticks.map((data) => {
+                const mpLink = data.mpUrl ? `<a href="${data.mpUrl}" target="_blank" class="text-blue-500 ml-2"><i class="fas fa-external-link-alt"></i></a>` : "";
+                return `
+                    <div class="glass-card p-5 rounded-xl border border-white/5 flex justify-between items-center gap-4 group">
+                        <div>
+                            <p class="text-xl font-black italic uppercase tracking-tighter">${escapeHTML(data.route)}</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase">${escapeHTML(formatGradeForDisplay(data.grade))} ${mpLink}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[9px] text-gray-700 font-bold mb-3">${formatDate(data.timestamp)}</span>
+                            <button onclick="deleteTick('${data.id}')" class="text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function loadTicks(uid) {
+            const list = document.getElementById('tickList');
+            list.innerHTML = '<p class="text-gray-600 text-xs italic">Loading sends...</p>';
+            try {
+                const q = query(collection(db, "ticks"), where("userId", "==", uid));
+                const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                    const ticks = [];
+                    querySnapshot.forEach((tickDoc) => ticks.push({ id: tickDoc.id, ...tickDoc.data() }));
+                    renderTicks(ticks);
+                }, (e) => {
+                    console.error("Ticks realtime error:", e);
+                    list.innerHTML = `<p class="text-red-500 text-xs uppercase font-bold">${renderDataError(e, "Error loading logbook. Check console.")}</p>`;
+                    showToast(renderDataError(e, "Error loading logbook"), "error");
+                });
+                athleteUnsubscribers.push(unsubscribe);
+            } catch (e) {
+                console.error("Ticks Error (Check Index):", e);
+                list.innerHTML = `<p class="text-red-500 text-xs uppercase font-bold">${renderDataError(e, "Error loading logbook. Check console.")}</p>`;
+            }
+        }
+
+        // --- TRAINING GOALS ---
+        let currentAthleteGoals = [];
+        let currentAthleteGoalComments = [];
+
+        function buildTrainingRecommendationDraft(goal = {}) {
+            const text = `${goal.title || ""} ${goal.notes || ""}`.toLowerCase();
+            let focus = "Technique + consistency";
+            let firstBlock = "2 technique-focused sessions using easier grades, repeat attempts, and one movement cue per climb.";
+            let secondBlock = "1 moderate volume day with clean movement and a low-risk finish before fatigue changes form.";
+            let coachCheck = "Review after 2 weeks against session logs, fatigue, sleep, and any pain notes.";
+
+            if (/finger|hang|strength|power|campus|board/.test(text)) {
+                focus = "Strength foundation";
+                firstBlock = "2 strength sessions per week with conservative volume, long rests, and no max-effort work if pain is present.";
+                secondBlock = "1 technique or easy mileage session to keep movement quality high without stacking load.";
+                coachCheck = "Watch finger/shoulder pain, session RPE, and whether sleep supports the extra intensity.";
+            } else if (/endurance|pump|route|lead|sport|5\./.test(text)) {
+                focus = "Route endurance";
+                firstBlock = "1 aerobic capacity session and 1 power-endurance session per week, separated from limit days.";
+                secondBlock = "Use routes below max grade to build repeatable pacing, clipping/rest positions, and pump management.";
+                coachCheck = "Track average effort, sleep, and whether quality drops late in the session.";
+            } else if (/project|send|outdoor|redpoint|mp|mountain/.test(text)) {
+                focus = "Project process";
+                firstBlock = "Break the climb into sections: beta map, crux isolation, links, then full attempts with planned rests.";
+                secondBlock = "Pair project attempts with a lower-volume support day to preserve skin and nervous system freshness.";
+                coachCheck = "Use video notes to review body position, rest choices, and where falls or hangs repeat.";
+            } else if (/technique|foot|feet|movement|body|balance/.test(text)) {
+                focus = "Movement quality";
+                firstBlock = "2 focused technique sessions with easy-to-moderate climbs, repeat attempts, and a single cue each round.";
+                secondBlock = "Add short video review after the session to capture footwork, hips, pacing, and tension notes.";
+                coachCheck = "Look for cleaner movement at lower RPE before adding intensity.";
+            }
+
+            return `Recommended focus: ${focus}\n\nSuggested first block:\n${firstBlock}\n\nSupport work:\n${secondBlock}\n\nCoach check-in:\n${coachCheck}`;
+        }
+
+        async function createTrainingRecommendationDraft(goalId, goalPayload) {
+            if ((goalPayload.status || "active") !== "active") return;
+            const recommendationRef = doc(collection(db, "trainingRecommendations"));
+            const recommendationPayload = {
+                goalId,
+                userId: goalPayload.userId,
+                athleteEmail: goalPayload.athleteEmail || "",
+                goalTitle: goalPayload.title || "",
+                recommendation: buildTrainingRecommendationDraft(goalPayload),
+                status: "pending",
+                source: "local-draft",
+                coachEmails: ["francrob9@gmail.com", "lmharr315@gmail.com"],
+                emailStatus: "not-configured",
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                createdByRole: "system"
+            };
+            await setDoc(recommendationRef, recommendationPayload);
+            await setDoc(doc(db, "users", goalPayload.userId, "trainingRecommendations", recommendationRef.id), recommendationPayload).catch(() => {});
+        }
+
+        function renderTrainingGoals() {
+            const list = document.getElementById('trainingGoalsList');
+            const goals = [...currentAthleteGoals].sort((a, b) => getTimestampMillis(b.createdAt) - getTimestampMillis(a.createdAt));
+            const commentsByGoal = {};
+            const milestonesByGoal = {};
+            currentAthleteGoalComments.forEach((comment) => {
+                if (!commentsByGoal[comment.goalId]) commentsByGoal[comment.goalId] = [];
+                commentsByGoal[comment.goalId].push(comment);
+            });
+            currentAthleteMilestones.forEach((milestone) => {
+                if (!milestonesByGoal[milestone.goalId]) milestonesByGoal[milestone.goalId] = [];
+                milestonesByGoal[milestone.goalId].push(milestone);
+            });
+            Object.values(commentsByGoal).forEach((comments) => comments.sort((a, b) => getTimestampMillis(a.createdAt) - getTimestampMillis(b.createdAt)));
+            Object.values(milestonesByGoal).forEach((milestones) => milestones.sort((a, b) => getTimestampMillis(a.createdAt) - getTimestampMillis(b.createdAt)));
+
+            if (!goals.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No training goals yet.</p>';
+                return;
+            }
+
+            list.innerHTML = goals.map((goal) => {
+                    const status = goal.status || "active";
+                    const statusClass = goalStatusStyles[status] || goalStatusStyles.active;
+                    const updatedBy = goal.updatedByRole || goal.createdByRole || "user";
+                    const comments = commentsByGoal[goal.id] || [];
+                    const milestones = milestonesByGoal[goal.id] || [];
+                    const approvedRecommendation = currentAthleteTrainingRecommendations
+                        .filter((recommendation) => recommendation.goalId === goal.id && recommendation.status === "approved")
+                        .sort((a, b) => getTimestampMillis(b.approvedAt || b.updatedAt) - getTimestampMillis(a.approvedAt || a.updatedAt))[0];
+                    const completedMilestones = milestones.filter((milestone) => milestone.completed).length;
+                    const progress = milestones.length ? Math.round((completedMilestones / milestones.length) * 100) : 0;
+                    const commentHistory = comments.length
+                        ? comments.map((comment) => `
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                                <p class="text-[8px] uppercase font-black tracking-widest text-blue-400">${escapeHTML(comment.createdByRole || "user")} <span class="text-gray-600 ml-2">${escapeHTML(formatDateTime(comment.createdAt))}</span></p>
+                                <p class="text-xs text-gray-300 leading-relaxed mt-2 whitespace-pre-line">${escapeHTML(comment.comment || "")}</p>
+                            </div>
+                        `).join("")
+                        : (goal.notes ? `
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                                <p class="text-[8px] uppercase font-black tracking-widest text-gray-500">Initial note</p>
+                                <p class="text-xs text-gray-300 leading-relaxed mt-2 whitespace-pre-line">${escapeHTML(goal.notes)}</p>
+                            </div>
+                        ` : '<p class="text-gray-600 text-xs italic">No comments yet.</p>');
+                    return `
+                        <div class="glass-card p-5 rounded-xl border border-white/5 space-y-4">
+                            <div class="flex justify-between items-start gap-4">
+                                <div>
+                                    <p class="text-sm font-black uppercase italic tracking-tight">${escapeHTML(goal.title)}</p>
+                                    <p class="text-[9px] text-gray-600 uppercase font-bold mt-1">Target: ${escapeHTML(formatGoalDate(goal.targetDate))}</p>
+                                </div>
+                                <span class="px-2 py-1 rounded border text-[8px] font-black uppercase tracking-widest ${statusClass}">${escapeHTML(status)}</span>
+                            </div>
+                            ${approvedRecommendation ? `
+                                <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                                    <p class="text-[9px] uppercase font-black tracking-widest text-green-300">Coach-Approved Training Recommendation</p>
+                                    <p class="text-xs text-gray-200 leading-relaxed mt-3 whitespace-pre-line">${escapeHTML(approvedRecommendation.recommendation || "")}</p>
+                                </div>
+                            ` : ""}
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-[9px] uppercase font-black tracking-widest text-gray-500">
+                                    <span>Milestones</span>
+                                    <span>${progress}%</span>
+                                </div>
+                                <div class="h-2 bg-white/5 rounded overflow-hidden">
+                                    <div class="h-full bg-green-500" style="width:${progress}%"></div>
+                                </div>
+                                ${milestones.length ? milestones.map((milestone) => `
+                                    <label class="flex items-start gap-3 bg-black/20 border border-white/5 rounded-lg p-3">
+                                        <input type="checkbox" ${milestone.completed ? "checked" : ""} onchange="toggleMilestone('${milestone.id}', this.checked)" class="mt-1">
+                                        <span>
+                                            <span class="block text-xs font-bold text-gray-200">${escapeHTML(milestone.title || "")}</span>
+                                            <span class="block text-[9px] uppercase font-bold text-gray-600">${escapeHTML(milestone.dueDate || "No due date")}</span>
+                                        </span>
+                                    </label>
+                                `).join("") : '<p class="text-gray-600 text-xs italic">No milestones yet.</p>'}
+                            </div>
+                            <div class="space-y-3">
+                                <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Comment History</p>
+                                ${commentHistory}
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <select id="status-${goal.id}" class="input-dark text-[11px]">
+                                    <option value="active" ${status === "active" ? "selected" : ""}>Active</option>
+                                    <option value="paused" ${status === "paused" ? "selected" : ""}>Paused</option>
+                                    <option value="completed" ${status === "completed" ? "selected" : ""}>Completed</option>
+                                </select>
+                                <input type="date" id="target-${goal.id}" value="${escapeHTML(goal.targetDate || "")}" class="input-dark text-[11px]">
+                            </div>
+                            <textarea id="comment-${goal.id}" class="input-dark h-20 text-[11px]" placeholder="Add a reply for your coach..."></textarea>
+                            <div class="flex justify-between items-center gap-3">
+                                <p class="text-[8px] uppercase font-bold text-gray-600">Last updated by ${escapeHTML(updatedBy)}</p>
+                                <div class="flex gap-2">
+                                    <button onclick="deleteTrainingGoal('${goal.id}')" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Delete</button>
+                                    <button onclick="updateTrainingGoal('${goal.id}')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Save Reply</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+        }
+
+        function loadTrainingGoals(uid) {
+            const list = document.getElementById('trainingGoalsList');
+            list.innerHTML = '<p class="text-gray-600 text-xs italic">Loading training goals...</p>';
+            const goalsQuery = query(collection(db, "trainingGoals"), where("userId", "==", uid));
+            const commentsQuery = query(collection(db, "goalComments"), where("userId", "==", uid));
+            const milestonesQuery = query(collection(db, "goalMilestones"), where("userId", "==", uid));
+            const recommendationsQuery = query(collection(db, "trainingRecommendations"), where("userId", "==", uid));
+
+            athleteUnsubscribers.push(onSnapshot(goalsQuery, (querySnapshot) => {
+                currentAthleteGoals = [];
+                querySnapshot.forEach((goalDoc) => currentAthleteGoals.push({ id: goalDoc.id, ...goalDoc.data() }));
+                renderTrainingGoals();
+            }, (e) => {
+                console.error("Training Goals Error:", e);
+                list.innerHTML = `<p class="text-red-500 text-xs uppercase font-bold">${renderDataError(e, "Error loading training goals.")}</p>`;
+                showToast(renderDataError(e, "Error loading training goals"), "error");
+            }));
+
+            athleteUnsubscribers.push(onSnapshot(commentsQuery, (querySnapshot) => {
+                currentAthleteGoalComments = [];
+                querySnapshot.forEach((commentDoc) => currentAthleteGoalComments.push({ id: commentDoc.id, ...commentDoc.data() }));
+                renderTrainingGoals();
+            }, (e) => console.error("Goal comments realtime error:", e)));
+
+            athleteUnsubscribers.push(onSnapshot(milestonesQuery, (querySnapshot) => {
+                currentAthleteMilestones = [];
+                querySnapshot.forEach((milestoneDoc) => currentAthleteMilestones.push({ id: milestoneDoc.id, ...milestoneDoc.data() }));
+                renderTrainingGoals();
+            }, (e) => console.error("Goal milestones realtime error:", e)));
+
+            athleteUnsubscribers.push(onSnapshot(recommendationsQuery, (querySnapshot) => {
+                currentAthleteTrainingRecommendations = [];
+                querySnapshot.forEach((recommendationDoc) => currentAthleteTrainingRecommendations.push({ id: recommendationDoc.id, ...recommendationDoc.data() }));
+                renderTrainingGoals();
+            }, (e) => console.error("Training recommendations realtime error:", e)));
+        }
+
+        // --- VIDEO REVIEW FOLDER ---
+        function renderAthleteVideos() {
+            const list = document.getElementById('athleteVideoList');
+            const videos = [...athleteVideos].sort((a, b) => getTimestampMillis(b.createdAt) - getTimestampMillis(a.createdAt));
+            if (!videos.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No videos uploaded yet.</p>';
+                return;
+            }
+
+            list.innerHTML = videos.map((video) => `
+                <div class="glass-card p-4 rounded-xl border border-white/5 hover:border-purple-500/40 transition">
+                    <button onclick="selectAthleteVideo('${video.id}')" class="w-full text-left">
+                        <p class="text-sm font-black uppercase italic tracking-tight">${escapeHTML(video.title || "Untitled Video")}</p>
+                        <p class="text-[9px] text-gray-600 uppercase font-bold mt-1">${escapeHTML(video.fileName || "Training video")}</p>
+                    </button>
+                    <button onclick="deleteTrainingVideo('${video.id}')" class="mt-3 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest">Delete Video</button>
+                </div>
+            `).join("");
+        }
+
+        function loadAthleteVideos(uid) {
+            const list = document.getElementById('athleteVideoList');
+            list.innerHTML = '<p class="text-gray-600 text-xs italic">Loading videos...</p>';
+            const q = query(collection(db, "videos"), where("userId", "==", uid));
+            athleteUnsubscribers.push(onSnapshot(q, (querySnapshot) => {
+                athleteVideos = [];
+                querySnapshot.forEach((videoDoc) => athleteVideos.push({ id: videoDoc.id, ...videoDoc.data() }));
+                renderAthleteVideos();
+                if (selectedAthleteVideo && !athleteVideos.some((video) => video.id === selectedAthleteVideo.id)) {
+                    selectedAthleteVideo = null;
+                    document.getElementById('athleteVideoPlayer').removeAttribute('src');
+                    document.getElementById('athleteVideoNotes').innerHTML = '<p class="text-gray-600 text-xs italic">Coach notes will appear here.</p>';
+                }
+            }, (e) => {
+                console.error("Video load error:", e);
+                list.innerHTML = `<p class="text-red-500 text-xs uppercase font-bold">${renderDataError(e, "Error loading videos.")}</p>`;
+                showToast(renderDataError(e, "Error loading videos"), "error");
+            }));
+        }
+
+        function renderAthleteTimeline(duration) {
+            const timeline = document.getElementById('athleteVideoTimeline');
+            const seconds = Math.floor(duration || 0);
+            const noteSeconds = new Set(athleteVideoNotes.map((note) => Number(note.second || 0)));
+            document.getElementById('athleteVideoDuration').innerText = `${seconds} seconds`;
+
+            if (!seconds) {
+                timeline.innerHTML = '<p class="text-gray-600 text-xs italic">No timestamp data yet.</p>';
+                return;
+            }
+
+            timeline.innerHTML = Array.from({ length: seconds + 1 }, (_, second) => {
+                const hasNote = noteSeconds.has(second);
+                const markerClass = hasNote ? "bg-purple-600/30 border-purple-400 text-white shadow-lg shadow-purple-900/20" : "bg-white/5 border-white/10";
+                return `
+                    <button onclick="seekAthleteVideo(${second})" class="min-w-12 px-3 py-2 hover:bg-purple-600 border rounded text-[9px] font-black transition ${markerClass}">${formatSeconds(second)}${hasNote ? '<span class="block text-[7px] mt-1">NOTE</span>' : ""}</button>
+                `;
+            }).join("");
+        }
+
+        function renderAthleteVideoNotes() {
+            const notesList = document.getElementById('athleteVideoNotes');
+            const notes = [...athleteVideoNotes];
+            notes.sort((a, b) => (a.second || 0) - (b.second || 0));
+            const player = document.getElementById('athleteVideoPlayer');
+            if (player.duration) renderAthleteTimeline(player.duration);
+
+            if (!notes.length) {
+                notesList.innerHTML = '<p class="text-gray-600 text-xs italic">No coach notes yet.</p>';
+                return;
+            }
+
+            notesList.innerHTML = notes.map((note) => `
+                <button onclick="seekAthleteVideo(${Number(note.second || 0)})" class="w-full text-left glass-card p-4 rounded-xl border border-white/5 hover:border-purple-500/40 transition">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-purple-400">${formatSeconds(note.second)}</p>
+                    <p class="text-sm text-gray-300 leading-relaxed mt-2">${escapeHTML(note.note || "")}</p>
+                    ${note.annotationURL ? `<img src="${escapeHTML(note.annotationURL)}" class="mt-3 rounded-lg border border-white/10 w-full">` : ""}
+                </button>
+            `).join("");
+        }
+
+        function loadAthleteVideoNotes(videoId) {
+            if (videoNotesUnsubscribe) videoNotesUnsubscribe();
+            const notesList = document.getElementById('athleteVideoNotes');
+            notesList.innerHTML = '<p class="text-gray-600 text-xs italic">Loading coach notes...</p>';
+            const q = query(collection(db, "videoNotes"), where("videoId", "==", videoId), where("userId", "==", auth.currentUser.uid));
+            videoNotesUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                athleteVideoNotes = [];
+                querySnapshot.forEach((noteDoc) => athleteVideoNotes.push({ id: noteDoc.id, ...noteDoc.data() }));
+                renderAthleteVideoNotes();
+            }, (e) => {
+                console.error("Video notes realtime error:", e);
+                notesList.innerHTML = `<p class="text-red-500 text-xs uppercase font-bold">${renderDataError(e, "Error loading coach notes.")}</p>`;
+            });
+        }
+
+        window.selectAthleteVideo = (videoId) => {
+            selectedAthleteVideo = athleteVideos.find((video) => video.id === videoId);
+            if (!selectedAthleteVideo) return;
+
+            const player = document.getElementById('athleteVideoPlayer');
+            player.src = selectedAthleteVideo.downloadURL;
+            player.onloadedmetadata = () => renderAthleteTimeline(player.duration);
+            player.ontimeupdate = () => {
+                selectedAthleteSecond = Math.floor(player.currentTime || 0);
+                document.getElementById('athleteSelectedSecond').innerText = formatSeconds(selectedAthleteSecond);
+            };
+            selectedAthleteSecond = 0;
+            document.getElementById('athleteSelectedSecond').innerText = formatSeconds(0);
+            loadAthleteVideoNotes(videoId);
+        };
+
+        window.seekAthleteVideo = (second) => {
+            const player = document.getElementById('athleteVideoPlayer');
+            selectedAthleteSecond = Math.floor(second || 0);
+            player.currentTime = selectedAthleteSecond;
+            document.getElementById('athleteSelectedSecond').innerText = formatSeconds(selectedAthleteSecond);
+        };
+
+        window.seekAthleteVideoNote = (direction) => {
+            const noteSeconds = [...new Set(athleteVideoNotes.map((note) => Number(note.second || 0)))].sort((a, b) => a - b);
+            if (!noteSeconds.length) return;
+
+            const target = direction === "prev"
+                ? [...noteSeconds].reverse().find((second) => second < selectedAthleteSecond) ?? noteSeconds[noteSeconds.length - 1]
+                : noteSeconds.find((second) => second > selectedAthleteSecond) ?? noteSeconds[0];
+
+            seekAthleteVideo(target);
+        };
+
+        function renderTrainingPlans() {
+            const list = document.getElementById('trainingPlanList');
+            const plans = [...currentTrainingPlans].sort((a, b) => (a.weekStart || "").localeCompare(b.weekStart || ""));
+            if (!plans.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No training plan assigned yet.</p>';
+                return;
+            }
+
+            list.innerHTML = plans.map((plan) => `
+                <div class="bg-black/20 border border-white/5 rounded-xl p-4">
+                    <div class="flex justify-between gap-3 mb-3">
+                        <div>
+                            <p class="text-sm font-black uppercase italic">${escapeHTML(plan.blockType || "Training")}</p>
+                            <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(plan.weekStart || "No week")} ${plan.day ? "| " + escapeHTML(plan.day) : ""}</p>
+                        </div>
+                        <label class="text-[9px] uppercase font-black text-green-400">
+                            <input type="checkbox" ${plan.completed ? "checked" : ""} onchange="toggleTrainingPlan('${plan.id}', this.checked)" class="mr-1">
+                            Done
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed whitespace-pre-line">${escapeHTML(plan.notes || "")}</p>
+                </div>
+            `).join("");
+        }
+
+        function loadTrainingPlans(uid) {
+            const q = query(collection(db, "trainingPlans"), where("userId", "==", uid));
+            athleteUnsubscribers.push(onSnapshot(q, (querySnapshot) => {
+                currentTrainingPlans = [];
+                querySnapshot.forEach((planDoc) => currentTrainingPlans.push({ id: planDoc.id, ...planDoc.data() }));
+                renderTrainingPlans();
+            }, (e) => showToast(renderDataError(e, "Error loading training plan"), "error")));
+        }
+
+        function renderSessionTemplateSummary(session) {
+            const details = session.templateDetails || {};
+            if (session.type === "strength" && details.sets?.length) {
+                return `
+                    <div class="mt-3 grid gap-2">
+                        ${details.sets.map((set) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(set.name || set.recommendedExercise || "Set")} | ${escapeHTML(set.muscleGroup || "-")} | ${escapeHTML(set.reps || "-")} | Rest ${escapeHTML(set.rest || "-")}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if ((session.type === "limit bouldering" || session.type === "limit climbing") && details.problems?.length) {
+                return `
+                    <p class="mt-3 text-[9px] uppercase font-black tracking-widest text-gray-600">${escapeHTML(details.environment || "indoor")}</p>
+                    <div class="mt-3 grid md:grid-cols-2 gap-2">
+                        ${details.problems.map((problem, index) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${session.type === "limit climbing" && details.environment === "outdoor" ? "C" : "P"}${index + 1}: ${escapeHTML(problem.name || "Problem")} | ${escapeHTML(problem.grade || "-")} | ${escapeHTML(problem.attempts || "0")} attempts ${problem.mountainProjectUrl ? "| MP" : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "endurance" && details.blocks?.length) {
+                return `
+                    <div class="mt-3 grid gap-2">
+                        ${details.blocks.map((block) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(block.system || "Endurance")} | ${escapeHTML(block.exercise || "-")} | ${escapeHTML(block.duration || "0")} min | HR ${escapeHTML(block.averageHeartRate || "-")}/${escapeHTML(block.maxHeartRate || "-")}${block.edgeSize ? " | Edge " + escapeHTML(block.edgeSize) : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "technique" && (details.drill || details.cue || details.volume || details.terrain)) {
+                return `<p class="mt-3 text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(details.drill || "Technique")} | Cue ${escapeHTML(details.cue || "-")} | Volume ${escapeHTML(details.volume || "-")} | Terrain ${escapeHTML(details.terrain || "-")}</p>`;
+            }
+            if (session.type === "projecting" && details.projects?.length) {
+                return `
+                    <p class="mt-3 text-[9px] uppercase font-black tracking-widest text-gray-600">${escapeHTML(details.environment || "indoor")}</p>
+                    <div class="mt-3 grid gap-2">
+                        ${details.projects.map((project, index) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${details.environment === "indoor" ? "P" : "R"}${index + 1}: ${escapeHTML(project.routeName || "Project")} | ${escapeHTML(project.grade || "-")} | ${escapeHTML(project.attempts || "0")} attempts | Hangs ${escapeHTML(project.hangs || "0")} | Falls ${escapeHTML(project.falls || "0")} ${project.mountainProjectUrl ? "| MP" : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "rest" && (details.focus || details.sleepGoal || details.recoveryWork)) {
+                return `<p class="mt-3 text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(details.focus || "Rest")} | Sleep goal ${escapeHTML(details.sleepGoal || "-")} | ${escapeHTML(details.recoveryWork || "Recovery")}</p>`;
+            }
+            return "";
+        }
+
+        function renderSessionLogs() {
+            const list = document.getElementById('sessionList');
+            renderSessionTrends();
+            const sessions = [...currentSessionLogs].sort((a, b) => getSessionMillis(b) - getSessionMillis(a)).slice(0, 8);
+            if (!sessions.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No sessions logged yet.</p>';
+                return;
+            }
+
+            list.innerHTML = sessions.map((session) => {
+                const comments = currentSessionComments
+                    .filter((comment) => comment.sessionId === session.id)
+                    .sort((a, b) => getTimestampMillis(a.createdAt) - getTimestampMillis(b.createdAt));
+                const report = session.report || buildSessionReport(session, session.id);
+                const reportStatus = session.reviewStatus || (comments.length ? "coach reviewed" : report.status || "awaiting coach review");
+                return `
+                <div class="bg-black/20 border border-white/5 rounded-xl p-5">
+                    <div class="flex justify-between gap-3 border-b border-white/5 pb-4">
+                        <div>
+                            <p class="text-[9px] uppercase font-black tracking-widest text-green-400">Session Report</p>
+                            <p class="text-lg font-black uppercase italic">${escapeHTML(report.title || session.type || "Session")}</p>
+                            <p class="text-[9px] uppercase font-bold text-gray-600 mt-1">${escapeHTML(session.sessionDate || formatDate(session.createdAt))} ${session.duration ? "| " + escapeHTML(session.duration) + " min" : ""} ${session.location ? "| " + escapeHTML(session.location) : ""}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[9px] uppercase font-black text-green-400">${escapeHTML(session.outcome || "")}</span>
+                            <span class="block text-[8px] uppercase font-black tracking-widest text-blue-400 mt-2">${escapeHTML(reportStatus)}</span>
+                        </div>
+                    </div>
+                    ${report.flags?.length ? `<div class="flex flex-wrap gap-2 mt-4">${report.flags.map((flag) => `<span class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest">${escapeHTML(flag)}</span>`).join("")}</div>` : ""}
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mt-4">Overview</p>
+                    <p class="text-[9px] uppercase font-bold text-gray-600 mt-3">Type: ${escapeHTML(session.type || "-")} | Effort: ${escapeHTML(session.effort || "-")} | Fatigue: ${escapeHTML(session.fatigue || "-")} | Mood: ${escapeHTML(session.mood || "-")} | Sleep: ${escapeHTML(session.sleep || "-")}</p>
+                    <p class="text-[9px] uppercase font-bold text-gray-600 mt-1">Pain: ${escapeHTML(session.pain || "0")} ${session.painArea ? "| " + escapeHTML(session.painArea) : ""}</p>
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mt-4">Training Detail</p>
+                    ${renderSessionTemplateSummary(session)}
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mt-4">Athlete Notes</p>
+                    <p class="text-xs text-gray-300 leading-relaxed mt-3 whitespace-pre-line">${escapeHTML(session.notes || "")}</p>
+                    ${comments.length ? `
+                        <div class="space-y-2 mt-4 border-t border-white/5 pt-4">
+                            <p class="text-[9px] uppercase font-black tracking-widest text-blue-400">Coach Notes</p>
+                            ${comments.map((comment) => `
+                                <div class="bg-white/5 border border-white/5 rounded-lg p-3">
+                                    <p class="text-[8px] uppercase font-black tracking-widest text-gray-500">${escapeHTML(comment.createdByRole || "coach")} ${escapeHTML(formatDateTime(comment.createdAt))}</p>
+                                    <p class="text-xs text-gray-300 mt-2">${escapeHTML(comment.comment || "")}</p>
+                                </div>
+                            `).join("")}
+                        </div>
+                    ` : ""}
+                </div>
+            `}).join("");
+        }
+
+        function getSessionMillis(session) {
+            if (session.sessionDate) return new Date(`${session.sessionDate}T12:00:00`).getTime();
+            return getTimestampMillis(session.createdAt);
+        }
+
+        function buildSessionReport(session, reportId = "") {
+            const flags = [];
+            if (Number(session.pain || 0) >= 5) flags.push(`Pain ${session.pain}${session.painArea ? " - " + session.painArea : ""}`);
+            if (Number(session.fatigue || 0) >= 8) flags.push(`High fatigue ${session.fatigue}/10`);
+            if (session.sleep && Number(session.sleep) < 6) flags.push(`Low sleep ${session.sleep}h`);
+            return {
+                id: reportId,
+                title: `${session.sessionDate || "Session"} ${session.type || "training"} report`,
+                status: "awaiting coach review",
+                flags,
+                generatedAt: new Date()
+            };
+        }
+
+        function renderSessionTrends() {
+            const chart = document.getElementById('sessionTrendChart');
+            if (!chart) return;
+            const sessions = [...currentSessionLogs].sort((a, b) => getSessionMillis(a) - getSessionMillis(b)).slice(-10);
+            if (!sessions.length) {
+                chart.innerHTML = '<p class="text-gray-600 text-xs italic">Log sessions to see trends.</p>';
+                return;
+            }
+            const metrics = [
+                { key: "fatigue", label: "Fatigue", color: "bg-yellow-500" },
+                { key: "mood", label: "Mood", color: "bg-blue-500" },
+                { key: "sleep", label: "Sleep", color: "bg-green-500" },
+                { key: "pain", label: "Pain", color: "bg-red-500" }
+            ];
+            chart.innerHTML = metrics.map((metric) => {
+                const values = sessions.map((session) => Number(session[metric.key] || 0));
+                const latest = values[values.length - 1] || 0;
+                const max = metric.key === "sleep" ? 12 : 10;
+                return `
+                    <div class="bg-black/20 border border-white/5 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-[9px] uppercase font-black text-gray-500">${metric.label}</p>
+                            <p class="text-lg font-black">${latest || "-"}</p>
+                        </div>
+                        <div class="h-20 flex items-end gap-1">
+                            ${values.map((value) => `<div class="${metric.color} flex-1 rounded-t opacity-80" style="height:${Math.max(6, (Math.min(value, max) / max) * 80)}px"></div>`).join("")}
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        const strengthExerciseRecommendations = {
+            fingers: ["Max hangs", "Repeaters", "No-hang lifts", "Density hangs"],
+            pulling: ["Weighted pull-ups", "Lock-offs", "Frenchies", "Rows"],
+            shoulders: ["Scap pulls", "External rotations", "Y-T-W raises", "Overhead press"],
+            core: ["Front lever progression", "Hollow body", "Windshield wipers", "Dead bugs"],
+            legs: ["Split squats", "Step-ups", "Romanian deadlifts", "Calf raises"],
+            antagonist: ["Push-ups", "Dips", "Face pulls", "Reverse wrist curls"]
+        };
+
+        const enduranceRecommendations = {
+            "lactic threshold": ["4x4 boulders", "Linked boulder circuits", "Route intervals", "Timed pump laps"],
+            "aerobic capacity": ["ARC climbing", "Easy route mileage", "Continuous traversing", "Zone 2 bike/run"],
+            "power endurance": ["Boulder triples", "On/off wall intervals", "Route doubles", "Minute-on/minute-off circuits", "Hang board"]
+        };
+
+        function renderStrengthSetRow(index) {
+            return `
+                <div class="grid md:grid-cols-5 gap-3 bg-black/20 border border-white/5 rounded-xl p-3" data-strength-set>
+                    <input type="text" data-strength-name placeholder="Set / exercise name" class="input-dark">
+                    <select data-strength-muscle onchange="updateStrengthRecommendation(this)" class="input-dark">
+                        <option value="">Muscle group</option>
+                        <option value="fingers">Fingers</option>
+                        <option value="pulling">Pulling</option>
+                        <option value="shoulders">Shoulders</option>
+                        <option value="core">Core</option>
+                        <option value="legs">Legs</option>
+                        <option value="antagonist">Antagonist</option>
+                    </select>
+                    <input type="text" data-strength-reps placeholder="Reps / load" class="input-dark">
+                    <input type="text" data-strength-rest placeholder="Rest" class="input-dark">
+                    <select data-strength-recommendation class="input-dark">
+                        <option value="">Recommended exercise</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        function isValidLimitGrade(value = "", mode = "boulder") {
+            const grade = normalizeGrade(value);
+            if (!grade) return true;
+            if (mode === "boulder") return /^V([1-9]|1[0-9]|20)$/.test(grade);
+            return isValidMaxGrade(grade);
+        }
+
+        function renderEnvironmentToggle(type, selected = "indoor") {
+            return `
+                <div class="grid grid-cols-2 gap-3 mb-4" data-environment-toggle>
+                    <button type="button" onclick="setTemplateEnvironment('${type}', 'indoor')" data-env-choice="indoor" class="${selected === "indoor" ? "bg-blue-600/30 border-blue-400 text-blue-100" : "bg-white/5 border-white/10 text-gray-400"} border px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest">Indoor</button>
+                    <button type="button" onclick="setTemplateEnvironment('${type}', 'outdoor')" data-env-choice="outdoor" class="${selected === "outdoor" ? "bg-green-600/30 border-green-400 text-green-100" : "bg-white/5 border-white/10 text-gray-400"} border px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest">Outdoor</button>
+                    <input type="hidden" id="templateEnvironment" value="${selected}">
+                </div>
+            `;
+        }
+
+        function outdoorProjectTripReportPrompt() {
+            return "Trip objective:\nApproach conditions and timing:\nPack weight and what you carried:\nWeather, temps, and rock conditions:\nGear issues or missing gear:\nWarm-up quality:\nBeta struggles:\nFear, falls, or commitment notes:\nSkin, fatigue, and nutrition:\nBest links / high point:\nWhat to bring or change next trip:";
+        }
+
+        function showSessionPromptGuide(promptText = "") {
+            const guide = document.getElementById('sessionPromptGuide');
+            if (!guide) return;
+            const prompts = promptText.split("\n").map((line) => line.trim()).filter(Boolean);
+            if (!prompts.length) {
+                guide.classList.add('hidden');
+                guide.innerHTML = "";
+                return;
+            }
+            guide.classList.remove('hidden');
+            guide.innerHTML = `
+                <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-3">Narrative Prompts</p>
+                <div class="grid md:grid-cols-2 gap-2">
+                    ${prompts.map((prompt) => `<button type="button" onclick='insertNarrativePrompt(${JSON.stringify(prompt)})' class="text-left bg-black/30 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 rounded-lg px-3 py-2 text-[10px] uppercase font-black tracking-widest text-blue-300 transition">${escapeHTML(prompt)}</button>`).join("")}
+                </div>
+            `;
+        }
+
+        window.insertNarrativePrompt = (prompt) => {
+            const notes = document.getElementById('sessionNotes');
+            const starter = String(prompt).endsWith(":") ? String(prompt) : `${prompt}:`;
+            const existing = notes.value.trimEnd();
+            notes.value = existing ? `${existing}\n\n${starter}\n` : `${starter}\n`;
+            notes.focus();
+            notes.setSelectionRange(notes.value.length, notes.value.length);
+            saveSessionDraft();
+        };
+
+        function getLimitLabel(mode = "boulder", environment = "indoor") {
+            if (mode === "boulder") return "Problem";
+            return environment === "indoor" ? "Problem" : "Climb";
+        }
+
+        function renderLimitRow(mode = "boulder", environment = "indoor", index = 0) {
+            const gradePlaceholder = mode === "boulder" ? "V grade" : "V or YDS grade";
+            const label = getLimitLabel(mode, environment);
+            const showMpSearch = mode === "climbing" && environment === "outdoor";
+            const gridClass = showMpSearch ? "md:grid-cols-4" : "grid-cols-3";
+            return `
+                <div class="grid ${gridClass} gap-3 bg-black/20 border border-white/5 rounded-xl p-3" data-limit-row data-limit-index="${index}" data-limit-mode="${mode}">
+                    <input type="text" data-limit-name oninput="syncMountainProjectSearch(this); maybeAddLimitRow(this)" placeholder="${label} ${index + 1}" class="input-dark">
+                    <input type="text" data-limit-grade data-limit-mode="${mode}" oninput="formatGradeInput(this); maybeAddLimitRow(this)" placeholder="${gradePlaceholder}" class="input-dark">
+                    <input type="number" data-limit-attempts oninput="maybeAddLimitRow(this)" min="0" placeholder="Attempts" class="input-dark">
+                    ${showMpSearch ? `
+                        <div class="grid grid-cols-[1fr_auto] gap-2">
+                            <input type="url" data-limit-mp placeholder="MP URL" class="input-dark">
+                            <button type="button" onclick="searchMountainProject(this)" class="bg-white/10 hover:bg-white/20 border border-white/10 px-3 rounded text-[9px] font-black uppercase tracking-widest">Search</button>
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        }
+
+        function renderLimitRows(mode = "boulder", environment = "indoor") {
+            return renderLimitRow(mode, environment, 0);
+        }
+
+        function renderProjectRow(environment = "indoor", index = 0) {
+            const label = environment === "indoor" ? "Problem" : "Climb";
+            const gridClass = environment === "outdoor" ? "md:grid-cols-6" : "md:grid-cols-5";
+            return `
+                <div class="grid ${gridClass} gap-3 bg-black/20 border border-white/5 rounded-xl p-3" data-project-row data-project-index="${index}">
+                    <input type="text" data-project-route oninput="syncMountainProjectSearch(this); maybeAddProjectRow(this)" placeholder="${label} ${index + 1} name" class="input-dark">
+                    <input type="text" data-project-grade oninput="formatGradeInput(this); maybeAddProjectRow(this)" placeholder="V or YDS grade" class="input-dark">
+                    <input type="number" data-project-attempts oninput="maybeAddProjectRow(this)" min="0" placeholder="Attempts" class="input-dark">
+                    <input type="number" data-project-hangs oninput="maybeAddProjectRow(this)" min="0" placeholder="Hangs" class="input-dark">
+                    <input type="number" data-project-falls oninput="maybeAddProjectRow(this)" min="0" placeholder="Falls" class="input-dark">
+                    ${environment === "outdoor" ? `
+                        <div class="grid grid-cols-[1fr_auto] gap-2">
+                            <input type="url" data-project-mp placeholder="MP URL" class="input-dark">
+                            <button type="button" onclick="searchMountainProject(this)" class="bg-white/10 hover:bg-white/20 border border-white/10 px-3 rounded text-[9px] font-black uppercase tracking-widest">Search</button>
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        }
+
+        function renderProjectRows(environment = "indoor") {
+            return renderProjectRow(environment, 0);
+        }
+
+        function renderEnduranceBlock(index = 0) {
+            return `
+                <div class="grid md:grid-cols-4 gap-3 bg-black/20 border border-white/5 rounded-xl p-3" data-endurance-block>
+                    <select data-endurance-system onchange="updateEnduranceRecommendation(this)" class="input-dark">
+                        <option value="lactic threshold">Lactic Threshold</option>
+                        <option value="aerobic capacity">Aerobic Capacity</option>
+                        <option value="power endurance">Power Endurance</option>
+                    </select>
+                    <select data-endurance-exercise class="input-dark">
+                        ${enduranceRecommendations["lactic threshold"].map((item) => `<option value="${item}">${item}</option>`).join("")}
+                    </select>
+                    <input type="number" data-endurance-duration min="0" placeholder="Duration min" class="input-dark">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" data-endurance-max-hr min="0" placeholder="Max HR" class="input-dark">
+                        <input type="number" data-endurance-avg-hr min="0" placeholder="Avg HR" class="input-dark">
+                    </div>
+                    <input type="text" data-endurance-edge-size placeholder="Edge size" class="input-dark">
+                </div>
+            `;
+        }
+
+        window.renderSessionTemplateFields = (type) => {
+            const container = document.getElementById('sessionTemplateFields');
+            if (!container) return;
+            if (type === "strength") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <p class="text-[10px] uppercase font-black tracking-widest text-green-400">Strength Sets</p>
+                            <button onclick="addStrengthSet()" class="bg-white/10 hover:bg-white/20 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest">Add Set</button>
+                        </div>
+                        <div id="strengthSetList" class="space-y-3">${Array.from({ length: 4 }, (_, index) => renderStrengthSetRow(index)).join("")}</div>
+                    </div>
+                `;
+            } else if (type === "limit bouldering") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <p class="text-[10px] uppercase font-black tracking-widest text-blue-400 mb-4">Boulder Attempts</p>
+                        ${renderEnvironmentToggle(type)}
+                        <div id="limitRows" class="space-y-3">${renderLimitRows("boulder", "indoor")}</div>
+                    </div>
+                `;
+            } else if (type === "limit climbing") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <p class="text-[10px] uppercase font-black tracking-widest text-blue-400 mb-4">Climb Attempts</p>
+                        <p class="text-[9px] uppercase font-bold text-gray-600 mb-4">Allowed grades: V1-V20 or the approved YDS list.</p>
+                        ${renderEnvironmentToggle(type)}
+                        <div id="limitRows" class="space-y-3">${renderLimitRows("climbing", "indoor")}</div>
+                    </div>
+                `;
+            } else if (type === "endurance") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <p class="text-[10px] uppercase font-black tracking-widest text-yellow-400">Endurance Blocks</p>
+                            <button onclick="addEnduranceBlock()" class="bg-white/10 hover:bg-white/20 px-3 py-2 rounded text-[9px] font-black uppercase tracking-widest">Add Block</button>
+                        </div>
+                        <div id="enduranceBlockList" class="space-y-3">${renderEnduranceBlock()}</div>
+                    </div>
+                `;
+            } else if (type === "technique") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <p class="text-[10px] uppercase font-black tracking-widest text-cyan-400 mb-4">Technique Work</p>
+                        <div class="grid md:grid-cols-4 gap-3">
+                            <input type="text" id="techniqueDrill" placeholder="Drill / focus" class="input-dark">
+                            <input type="text" id="techniqueCue" placeholder="Movement cue" class="input-dark">
+                            <input type="text" id="techniqueVolume" placeholder="Volume" class="input-dark">
+                            <input type="text" id="techniqueTerrain" placeholder="Terrain" class="input-dark">
+                        </div>
+                    </div>
+                `;
+            } else if (type === "projecting") {
+                container.innerHTML = `
+                    <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                        <p class="text-[10px] uppercase font-black tracking-widest text-purple-400 mb-4">Project Attempts</p>
+                        ${renderEnvironmentToggle(type)}
+                        <div id="projectRows" class="space-y-3">${renderProjectRows("indoor")}</div>
+                    </div>
+                `;
+            } else if (type === "rest") {
+                container.innerHTML = `
+                    <div class="grid md:grid-cols-3 gap-3 bg-white/5 border border-white/5 rounded-xl p-4">
+                        <select id="restFocus" class="input-dark">
+                            <option value="full rest">Full Rest</option>
+                            <option value="mobility">Mobility</option>
+                            <option value="walk">Easy Walk</option>
+                            <option value="prehab">Prehab</option>
+                        </select>
+                        <input type="number" id="restSleepGoal" min="0" max="12" step="0.25" placeholder="Sleep goal" class="input-dark">
+                        <input type="text" id="restRecoveryWork" placeholder="Recovery work" class="input-dark">
+                    </div>
+                `;
+            } else {
+                container.innerHTML = "";
+            }
+        };
+
+        window.addStrengthSet = () => {
+            document.getElementById('strengthSetList').insertAdjacentHTML("beforeend", renderStrengthSetRow(document.querySelectorAll('[data-strength-set]').length));
+        };
+
+        window.setTemplateEnvironment = (type, environment) => {
+            const hidden = document.getElementById('templateEnvironment');
+            if (hidden) hidden.value = environment;
+            document.querySelectorAll('[data-env-choice]').forEach((button) => {
+                const active = button.dataset.envChoice === environment;
+                button.className = `${active
+                    ? (environment === "indoor" ? "bg-blue-600/30 border-blue-400 text-blue-100" : "bg-green-600/30 border-green-400 text-green-100")
+                    : "bg-white/5 border-white/10 text-gray-400"} border px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest`;
+            });
+            if (type === "limit bouldering") document.getElementById('limitRows').innerHTML = renderLimitRows("boulder", environment);
+            if (type === "limit climbing") document.getElementById('limitRows').innerHTML = renderLimitRows("climbing", environment);
+            if (type === "projecting") document.getElementById('projectRows').innerHTML = renderProjectRows(environment);
+            if (type === "projecting") {
+                showSessionPromptGuide(environment === "outdoor" ? outdoorProjectTripReportPrompt() : "");
+                document.getElementById('sessionNotes').value = "";
+            }
+            saveSessionDraft();
+        };
+
+        window.maybeAddLimitRow = (input) => {
+            const row = input.closest('[data-limit-row]');
+            const rows = [...document.querySelectorAll('[data-limit-row]')];
+            if (row !== rows[rows.length - 1]) return;
+            const hasName = Boolean(row.querySelector('[data-limit-name]')?.value.trim());
+            const hasGrade = Boolean(row.querySelector('[data-limit-grade]')?.value.trim());
+            const hasAttempts = row.querySelector('[data-limit-attempts]')?.value !== "";
+            if (!hasName || !hasGrade || !hasAttempts) return;
+            if (rows.length >= 10) return;
+            const environment = document.getElementById('templateEnvironment')?.value || "indoor";
+            const mode = row.dataset.limitMode || "boulder";
+            document.getElementById('limitRows').insertAdjacentHTML("beforeend", renderLimitRow(mode, environment, rows.length));
+            saveSessionDraft();
+        };
+
+        window.maybeAddProjectRow = (input) => {
+            const row = input.closest('[data-project-row]');
+            const rows = [...document.querySelectorAll('[data-project-row]')];
+            if (row !== rows[rows.length - 1]) return;
+            const hasName = Boolean(row.querySelector('[data-project-route]')?.value.trim());
+            const hasGrade = Boolean(row.querySelector('[data-project-grade]')?.value.trim());
+            const hasWork = ["[data-project-attempts]", "[data-project-hangs]", "[data-project-falls]"]
+                .some((selector) => row.querySelector(selector)?.value !== "");
+            if (!hasName || !hasGrade || !hasWork) return;
+            if (rows.length >= 10) return;
+            const environment = document.getElementById('templateEnvironment')?.value || "indoor";
+            document.getElementById('projectRows').insertAdjacentHTML("beforeend", renderProjectRow(environment, rows.length));
+            saveSessionDraft();
+        };
+
+        window.searchMountainProject = (button) => {
+            const row = button.closest('[data-project-row], [data-limit-row]');
+            const routeName = row.querySelector('[data-project-route], [data-limit-name]')?.value.trim() || "";
+            const mpInput = row.querySelector('[data-project-mp], [data-limit-mp]');
+            const query = routeName || mpInput?.value.trim() || "";
+            if (!query) {
+                showToast("Enter a route name first", "error");
+                return;
+            }
+            window.open(`https://www.mountainproject.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
+        };
+
+        window.syncMountainProjectSearch = (input) => {
+            const row = input.closest('[data-project-row], [data-limit-row]');
+            const mpInput = row.querySelector('[data-project-mp], [data-limit-mp]');
+            if (!mpInput) return;
+            const routeName = input.value.trim();
+            mpInput.value = routeName
+                ? `https://www.mountainproject.com/search?q=${encodeURIComponent(routeName)}`
+                : "";
+            saveSessionDraft();
+        };
+
+        window.syncTickMountainProjectSearch = () => {
+            const routeName = document.getElementById('tickRoute').value.trim();
+            document.getElementById('tickMP').value = routeName
+                ? `https://www.mountainproject.com/search?q=${encodeURIComponent(routeName)}`
+                : "";
+        };
+
+        window.searchTickMountainProject = () => {
+            const routeName = document.getElementById('tickRoute').value.trim();
+            const mpUrl = document.getElementById('tickMP').value.trim();
+            if (!routeName && !mpUrl) {
+                showToast("Enter a route name first", "error");
+                return;
+            }
+            const target = mpUrl.startsWith("http") && !routeName
+                ? mpUrl
+                : `https://www.mountainproject.com/search?q=${encodeURIComponent(routeName || mpUrl)}`;
+            window.open(target, "_blank", "noopener,noreferrer");
+        };
+
+        window.updateStrengthRecommendation = (select) => {
+            const row = select.closest('[data-strength-set]');
+            const recommendation = row.querySelector('[data-strength-recommendation]');
+            const options = strengthExerciseRecommendations[select.value] || [];
+            recommendation.innerHTML = '<option value="">Recommended exercise</option>' + options.map((item) => `<option value="${item}">${item}</option>`).join("");
+        };
+
+        window.addEnduranceBlock = () => {
+            document.getElementById('enduranceBlockList').insertAdjacentHTML("beforeend", renderEnduranceBlock());
+        };
+
+        window.updateEnduranceRecommendation = (select) => {
+            const row = select.closest('[data-endurance-block]');
+            const exercise = row.querySelector('[data-endurance-exercise]');
+            const options = enduranceRecommendations[select.value] || [];
+            exercise.innerHTML = options.map((item) => `<option value="${item}">${item}</option>`).join("");
+        };
+
+        function collectSessionTemplateDetails(type) {
+            if (type === "strength") {
+                return {
+                    sets: [...document.querySelectorAll('[data-strength-set]')].map((row) => ({
+                        name: row.querySelector('[data-strength-name]').value.trim(),
+                        muscleGroup: row.querySelector('[data-strength-muscle]').value,
+                        reps: row.querySelector('[data-strength-reps]').value.trim(),
+                        rest: row.querySelector('[data-strength-rest]').value.trim(),
+                        recommendedExercise: row.querySelector('[data-strength-recommendation]').value
+                    })).filter((set) => set.name || set.muscleGroup || set.reps || set.rest || set.recommendedExercise)
+                };
+            }
+            if (type === "limit bouldering" || type === "limit climbing") {
+                const mode = type === "limit bouldering" ? "boulder" : "climbing";
+                const gradeInputs = [...document.querySelectorAll('[data-limit-grade]')];
+                const invalidGrade = gradeInputs
+                    .map((input) => normalizeGrade(input.value))
+                    .find((grade) => grade && !isValidLimitGrade(grade, mode));
+                if (invalidGrade) throw new Error(type === "limit bouldering"
+                    ? `Invalid boulder grade: ${invalidGrade}. Use V1-V20.`
+                    : `Invalid limit climbing grade: ${invalidGrade}. Use V1-V20 or the approved YDS grades.`);
+                return {
+                    environment: document.getElementById('templateEnvironment')?.value || "indoor",
+                    problems: [...document.querySelectorAll('[data-limit-name]')].map((input, index) => ({
+                        name: input.value.trim(),
+                        grade: normalizeGrade(gradeInputs[index].value),
+                        attempts: document.querySelectorAll('[data-limit-attempts]')[index].value,
+                        mountainProjectUrl: input.closest('[data-limit-row]').querySelector('[data-limit-mp]')?.value.trim() || ""
+                    })).filter((problem) => problem.name || problem.grade || problem.attempts || problem.mountainProjectUrl)
+                };
+            }
+            if (type === "endurance") {
+                return {
+                    blocks: [...document.querySelectorAll('[data-endurance-block]')].map((row) => ({
+                        system: row.querySelector('[data-endurance-system]').value,
+                        exercise: row.querySelector('[data-endurance-exercise]').value,
+                        duration: row.querySelector('[data-endurance-duration]').value,
+                        maxHeartRate: row.querySelector('[data-endurance-max-hr]').value,
+                        averageHeartRate: row.querySelector('[data-endurance-avg-hr]').value,
+                        edgeSize: row.querySelector('[data-endurance-edge-size]').value.trim()
+                    })).filter((block) => block.exercise || block.duration || block.maxHeartRate || block.averageHeartRate || block.edgeSize)
+                };
+            }
+            if (type === "technique") {
+                return {
+                    drill: document.getElementById('techniqueDrill')?.value.trim() || "",
+                    cue: document.getElementById('techniqueCue')?.value.trim() || "",
+                    volume: document.getElementById('techniqueVolume')?.value.trim() || "",
+                    terrain: document.getElementById('techniqueTerrain')?.value.trim() || ""
+                };
+            }
+            if (type === "projecting") {
+                const gradeInputs = [...document.querySelectorAll('[data-project-grade]')];
+                const invalidGrade = gradeInputs
+                    .map((input) => normalizeGrade(input.value))
+                    .find((grade) => grade && !isValidMaxGrade(grade));
+                if (invalidGrade) throw new Error(`Invalid project grade: ${invalidGrade}. Use V1-V20 or the approved YDS grades.`);
+                return {
+                    environment: document.getElementById('templateEnvironment')?.value || "indoor",
+                    projects: [...document.querySelectorAll('[data-project-row]')].map((row) => ({
+                        routeName: row.querySelector('[data-project-route]').value.trim(),
+                        grade: normalizeGrade(row.querySelector('[data-project-grade]').value),
+                        attempts: row.querySelector('[data-project-attempts]').value,
+                        hangs: row.querySelector('[data-project-hangs]').value,
+                        falls: row.querySelector('[data-project-falls]').value,
+                        mountainProjectUrl: row.querySelector('[data-project-mp]')?.value.trim() || ""
+                    })).filter((project) => project.routeName || project.grade || project.attempts || project.hangs || project.falls || project.mountainProjectUrl)
+                };
+            }
+            if (type === "rest") {
+                return {
+                    focus: document.getElementById('restFocus')?.value || "",
+                    sleepGoal: document.getElementById('restSleepGoal')?.value || "",
+                    recoveryWork: document.getElementById('restRecoveryWork')?.value.trim() || ""
+                };
+            }
+            return {};
+        }
+
+        function currentSessionDraft() {
+            return {
+                type: activeSessionType,
+                sessionDate: document.getElementById('sessionDate').value,
+                duration: document.getElementById('sessionDuration').value,
+                location: document.getElementById('sessionLocation').value,
+                fatigue: document.getElementById('sessionFatigue').value,
+                mood: document.getElementById('sessionMood').value,
+                sleep: document.getElementById('sessionSleep').value,
+                pain: document.getElementById('sessionPain').value,
+                painArea: document.getElementById('sessionPainArea').value,
+                effort: document.getElementById('sessionEffort').value,
+                outcome: document.getElementById('sessionOutcome').value,
+                notes: document.getElementById('sessionNotes').value,
+                templateDetails: collectSessionTemplateDraftDetails(activeSessionType)
+            };
+        }
+
+        function collectSessionTemplateDraftDetails(type) {
+            if (type === "strength") {
+                return {
+                    sets: [...document.querySelectorAll('[data-strength-set]')].map((row) => ({
+                        name: row.querySelector('[data-strength-name]').value.trim(),
+                        muscleGroup: row.querySelector('[data-strength-muscle]').value,
+                        reps: row.querySelector('[data-strength-reps]').value.trim(),
+                        rest: row.querySelector('[data-strength-rest]').value.trim(),
+                        recommendedExercise: row.querySelector('[data-strength-recommendation]').value
+                    })).filter((set) => set.name || set.muscleGroup || set.reps || set.rest || set.recommendedExercise)
+                };
+            }
+            if (type === "limit bouldering" || type === "limit climbing") {
+                const gradeInputs = [...document.querySelectorAll('[data-limit-grade]')];
+                return {
+                    environment: document.getElementById('templateEnvironment')?.value || "indoor",
+                    problems: [...document.querySelectorAll('[data-limit-name]')].map((input, index) => ({
+                        name: input.value.trim(),
+                        grade: normalizeGrade(gradeInputs[index].value),
+                        attempts: document.querySelectorAll('[data-limit-attempts]')[index].value,
+                        mountainProjectUrl: input.closest('[data-limit-row]').querySelector('[data-limit-mp]')?.value.trim() || ""
+                    })).filter((problem) => problem.name || problem.grade || problem.attempts || problem.mountainProjectUrl)
+                };
+            }
+            if (type === "endurance") {
+                return {
+                    blocks: [...document.querySelectorAll('[data-endurance-block]')].map((row) => ({
+                        system: row.querySelector('[data-endurance-system]').value,
+                        exercise: row.querySelector('[data-endurance-exercise]').value,
+                        duration: row.querySelector('[data-endurance-duration]').value,
+                        maxHeartRate: row.querySelector('[data-endurance-max-hr]').value,
+                        averageHeartRate: row.querySelector('[data-endurance-avg-hr]').value,
+                        edgeSize: row.querySelector('[data-endurance-edge-size]').value.trim()
+                    })).filter((block) => block.exercise || block.duration || block.maxHeartRate || block.averageHeartRate || block.edgeSize)
+                };
+            }
+            if (type === "technique") {
+                return {
+                    drill: document.getElementById('techniqueDrill')?.value.trim() || "",
+                    cue: document.getElementById('techniqueCue')?.value.trim() || "",
+                    volume: document.getElementById('techniqueVolume')?.value.trim() || "",
+                    terrain: document.getElementById('techniqueTerrain')?.value.trim() || ""
+                };
+            }
+            if (type === "projecting") {
+                return {
+                    environment: document.getElementById('templateEnvironment')?.value || "indoor",
+                    projects: [...document.querySelectorAll('[data-project-row]')].map((row) => ({
+                        routeName: row.querySelector('[data-project-route]').value.trim(),
+                        grade: normalizeGrade(row.querySelector('[data-project-grade]').value),
+                        attempts: row.querySelector('[data-project-attempts]').value,
+                        hangs: row.querySelector('[data-project-hangs]').value,
+                        falls: row.querySelector('[data-project-falls]').value,
+                        mountainProjectUrl: row.querySelector('[data-project-mp]')?.value.trim() || ""
+                    })).filter((project) => project.routeName || project.grade || project.attempts || project.hangs || project.falls || project.mountainProjectUrl)
+                };
+            }
+            if (type === "rest") {
+                return {
+                    focus: document.getElementById('restFocus')?.value || "",
+                    sleepGoal: document.getElementById('restSleepGoal')?.value || "",
+                    recoveryWork: document.getElementById('restRecoveryWork')?.value.trim() || ""
+                };
+            }
+            return {};
+        }
+
+        function saveSessionDraft() {
+            if (sessionDraftSaveSuspended) return;
+            localStorage.setItem(sessionDraftKey, JSON.stringify(currentSessionDraft()));
+        }
+
+        function getSessionDraft() {
+            try {
+                return JSON.parse(localStorage.getItem(sessionDraftKey) || "null");
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function setSessionValue(id, value = "") {
+            const element = document.getElementById(id);
+            if (element) element.value = value || "";
+        }
+
+        function restoreStrengthDetails(details = {}) {
+            const sets = details.sets?.length ? details.sets : [{}];
+            const list = document.getElementById('strengthSetList');
+            if (!list) return;
+            list.innerHTML = sets.map((_, index) => renderStrengthSetRow(index)).join("");
+            [...document.querySelectorAll('[data-strength-set]')].forEach((row, index) => {
+                const set = sets[index] || {};
+                row.querySelector('[data-strength-name]').value = set.name || "";
+                row.querySelector('[data-strength-muscle]').value = set.muscleGroup || "";
+                window.updateStrengthRecommendation(row.querySelector('[data-strength-muscle]'));
+                row.querySelector('[data-strength-reps]').value = set.reps || "";
+                row.querySelector('[data-strength-rest]').value = set.rest || "";
+                row.querySelector('[data-strength-recommendation]').value = set.recommendedExercise || "";
+            });
+        }
+
+        function restoreLimitDetails(type, details = {}) {
+            const mode = type === "limit bouldering" ? "boulder" : "climbing";
+            const environment = details.environment || "indoor";
+            window.setTemplateEnvironment(type, environment);
+            const problems = details.problems?.length ? details.problems : [{}];
+            const list = document.getElementById('limitRows');
+            list.innerHTML = problems.map((_, index) => renderLimitRow(mode, environment, index)).join("");
+            [...document.querySelectorAll('[data-limit-row]')].forEach((row, index) => {
+                const problem = problems[index] || {};
+                row.querySelector('[data-limit-name]').value = problem.name || "";
+                row.querySelector('[data-limit-grade]').value = problem.grade || "";
+                row.querySelector('[data-limit-attempts]').value = problem.attempts || "";
+                const mpInput = row.querySelector('[data-limit-mp]');
+                if (mpInput) mpInput.value = problem.mountainProjectUrl || "";
+            });
+        }
+
+        function restoreEnduranceDetails(details = {}) {
+            const blocks = details.blocks?.length ? details.blocks : [{}];
+            const list = document.getElementById('enduranceBlockList');
+            list.innerHTML = blocks.map(() => renderEnduranceBlock()).join("");
+            [...document.querySelectorAll('[data-endurance-block]')].forEach((row, index) => {
+                const block = blocks[index] || {};
+                row.querySelector('[data-endurance-system]').value = block.system || "lactic threshold";
+                window.updateEnduranceRecommendation(row.querySelector('[data-endurance-system]'));
+                row.querySelector('[data-endurance-exercise]').value = block.exercise || row.querySelector('[data-endurance-exercise]').value;
+                row.querySelector('[data-endurance-duration]').value = block.duration || "";
+                row.querySelector('[data-endurance-max-hr]').value = block.maxHeartRate || "";
+                row.querySelector('[data-endurance-avg-hr]').value = block.averageHeartRate || "";
+                row.querySelector('[data-endurance-edge-size]').value = block.edgeSize || "";
+            });
+        }
+
+        function restoreProjectDetails(details = {}) {
+            const environment = details.environment || "indoor";
+            window.setTemplateEnvironment("projecting", environment);
+            const projects = details.projects?.length ? details.projects : [{}];
+            const list = document.getElementById('projectRows');
+            list.innerHTML = projects.map((_, index) => renderProjectRow(environment, index)).join("");
+            [...document.querySelectorAll('[data-project-row]')].forEach((row, index) => {
+                const project = projects[index] || {};
+                row.querySelector('[data-project-route]').value = project.routeName || "";
+                row.querySelector('[data-project-grade]').value = project.grade || "";
+                row.querySelector('[data-project-attempts]').value = project.attempts || "";
+                row.querySelector('[data-project-hangs]').value = project.hangs || "";
+                row.querySelector('[data-project-falls]').value = project.falls || "";
+                const mpInput = row.querySelector('[data-project-mp]');
+                if (mpInput) mpInput.value = project.mountainProjectUrl || "";
+            });
+        }
+
+        function restoreTemplateDetails(type, details = {}) {
+            if (type === "strength") restoreStrengthDetails(details);
+            if (type === "limit bouldering" || type === "limit climbing") restoreLimitDetails(type, details);
+            if (type === "endurance") restoreEnduranceDetails(details);
+            if (type === "technique") {
+                setSessionValue('techniqueDrill', details.drill);
+                setSessionValue('techniqueCue', details.cue);
+                setSessionValue('techniqueVolume', details.volume);
+                setSessionValue('techniqueTerrain', details.terrain);
+            }
+            if (type === "projecting") restoreProjectDetails(details);
+            if (type === "rest") {
+                setSessionValue('restFocus', details.focus || "full rest");
+                setSessionValue('restSleepGoal', details.sleepGoal);
+                setSessionValue('restRecoveryWork', details.recoveryWork);
+            }
+        }
+
+        function restoreSessionDraft() {
+            const draft = getSessionDraft();
+            if (!draft) return false;
+            sessionDraftSaveSuspended = true;
+            activeSessionType = draft.type || "strength";
+            window.renderSessionTemplateFields(activeSessionType);
+            restoreTemplateDetails(activeSessionType, draft.templateDetails || {});
+            setSessionValue('sessionDate', draft.sessionDate);
+            setSessionValue('sessionDuration', draft.duration);
+            setSessionValue('sessionLocation', draft.location);
+            setSessionValue('sessionFatigue', draft.fatigue);
+            setSessionValue('sessionMood', draft.mood);
+            setSessionValue('sessionSleep', draft.sleep);
+            setSessionValue('sessionPain', draft.pain);
+            setSessionValue('sessionPainArea', draft.painArea);
+            setSessionValue('sessionEffort', draft.effort);
+            setSessionValue('sessionOutcome', draft.outcome || "productive");
+            setSessionValue('sessionNotes', draft.notes);
+            showSessionPromptGuide(activeSessionType === "strength"
+                ? "What strength quality were you training?\nHardest set or load completed:\nWhat felt strong, weak, or painful?\nAdjustment for next strength session:"
+                : activeSessionType === "technique"
+                    ? "Technique focus:\nCue that improved movement:\nWhere did the skill break down?\nHow to practice it next time:"
+                    : activeSessionType === "projecting" && (draft.templateDetails || {}).environment === "outdoor"
+                        ? outdoorProjectTripReportPrompt()
+                        : "");
+            sessionDraftSaveSuspended = false;
+            return true;
+        }
+
+        function loadSessionLogs(uid) {
+            const q = query(collection(db, "sessionLogs"), where("userId", "==", uid));
+            athleteUnsubscribers.push(onSnapshot(q, (querySnapshot) => {
+                currentSessionLogs = [];
+                querySnapshot.forEach((sessionDoc) => currentSessionLogs.push({ id: sessionDoc.id, ...sessionDoc.data() }));
+                renderSessionLogs();
+            }, (e) => showToast(renderDataError(e, "Error loading sessions"), "error")));
+
+            const commentQuery = query(collection(db, "sessionComments"), where("userId", "==", uid));
+            athleteUnsubscribers.push(onSnapshot(commentQuery, (querySnapshot) => {
+                currentSessionComments = [];
+                querySnapshot.forEach((commentDoc) => currentSessionComments.push({ id: commentDoc.id, ...commentDoc.data() }));
+                renderSessionLogs();
+            }, (e) => showToast(renderDataError(e, "Error loading session comments"), "error")));
+        }
+
+        function renderNotifications() {
+            const list = document.getElementById('notificationList');
+            const notifications = [...currentNotifications].sort((a, b) => getTimestampMillis(b.createdAt) - getTimestampMillis(a.createdAt)).slice(0, 8);
+            if (!notifications.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No notifications yet.</p>';
+                return;
+            }
+
+            list.innerHTML = notifications.map((notification) => `
+                <button onclick="markNotificationRead('${notification.id}')" class="w-full text-left bg-black/20 border ${notification.read ? "border-white/5" : "border-yellow-500/30"} rounded-xl p-4">
+                    <p class="text-[9px] uppercase font-black tracking-widest ${notification.read ? "text-gray-500" : "text-yellow-400"}">${escapeHTML(notification.type || "Update")}</p>
+                    <p class="text-sm text-gray-200 mt-2">${escapeHTML(notification.message || "")}</p>
+                </button>
+            `).join("");
+        }
+
+        function loadNotifications(uid) {
+            const q = query(collection(db, "notifications"), where("userId", "==", uid));
+            athleteUnsubscribers.push(onSnapshot(q, (querySnapshot) => {
+                currentNotifications = [];
+                querySnapshot.forEach((notificationDoc) => currentNotifications.push({ id: notificationDoc.id, ...notificationDoc.data() }));
+                renderNotifications();
+            }, (e) => showToast(renderDataError(e, "Error loading notifications"), "error")));
+        }
+
+        // --- EXPOSED FUNCTIONS ---
+        getRedirectResult(auth).catch((error) => {
+            console.error("Provider redirect login error:", error);
+            const errorElement = document.getElementById('loginError');
+            if (errorElement) errorElement.innerText = error?.message || "LOGIN FAILED";
+        });
+
+        async function signInWithProvider(provider, label, errorElementId = "loginError") {
+            const inviteCode = document.getElementById('signupInviteCode')?.value.trim();
+            if (inviteCode) localStorage.setItem("betaVaultInviteCode", inviteCode);
+            const errorElement = document.getElementById(errorElementId);
+            if (errorElement) errorElement.innerText = "";
+
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error(`${label} popup login error:`, error);
+                if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(error?.code)) {
+                    await signInWithRedirect(auth, provider);
+                    return;
+                }
+                if (errorElement) errorElement.innerText = error?.message || `${label.toUpperCase()} LOGIN FAILED`;
+            }
+        }
+
+        window.handleGoogleLogin = () => signInWithProvider(googleProvider, "Google", "loginError");
+        window.handleAppleLogin = () => signInWithProvider(appleProvider, "Apple", "loginError");
+
+        function getPhoneRecaptchaVerifier() {
+            if (phoneRecaptchaVerifier) return phoneRecaptchaVerifier;
+            phoneRecaptchaVerifier = new RecaptchaVerifier(auth, "phoneRecaptcha", {
+                size: "invisible",
+                callback: () => {}
+            });
+            return phoneRecaptchaVerifier;
+        }
+
+        window.sendPhoneLoginCode = async () => {
+            const rawPhone = document.getElementById('loginPhone').value;
+            const phoneNumber = cleanPhoneNumber(rawPhone);
+            const inviteCode = document.getElementById('signupInviteCode').value.trim();
+            const errorElement = document.getElementById('loginError');
+            if (inviteCode) localStorage.setItem("betaVaultInviteCode", inviteCode);
+            if (!phoneNumber || !phoneNumber.startsWith("+")) {
+                errorElement.innerText = "ENTER PHONE AS +13035551234";
+                return;
+            }
+            errorElement.innerText = "SENDING CODE...";
+            try {
+                phoneConfirmationResult = await signInWithPhoneNumber(auth, phoneNumber, getPhoneRecaptchaVerifier());
+                document.getElementById('phoneCodeRow').classList.remove('hidden');
+                errorElement.innerText = "CODE SENT. CHECK SMS.";
+            } catch (error) {
+                console.error("Phone login send error:", error);
+                errorElement.innerText = error?.message || "PHONE CODE FAILED";
+                if (phoneRecaptchaVerifier) {
+                    phoneRecaptchaVerifier.clear();
+                    phoneRecaptchaVerifier = null;
+                }
+            }
+        };
+
+        window.verifyPhoneLoginCode = async () => {
+            const code = document.getElementById('loginPhoneCode').value.trim();
+            const errorElement = document.getElementById('loginError');
+            if (!phoneConfirmationResult) {
+                errorElement.innerText = "SEND A CODE FIRST";
+                return;
+            }
+            if (!code) {
+                errorElement.innerText = "ENTER THE SMS CODE";
+                return;
+            }
+            errorElement.innerText = "VERIFYING...";
+            try {
+                await phoneConfirmationResult.confirm(code);
+            } catch (error) {
+                console.error("Phone login verify error:", error);
+                errorElement.innerText = error?.message || "INVALID SMS CODE";
+            }
+        };
+
+        window.handleLogin = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const inviteCode = document.getElementById('signupInviteCode').value.trim();
+            if (inviteCode) localStorage.setItem("betaVaultInviteCode", inviteCode);
+            try { await signInWithEmailAndPassword(auth, email, password); }
+            catch (e) { document.getElementById('loginError').innerText = "ERROR: INVALID CREDENTIALS"; }
+        };
+
+        async function findInviteForCurrentUser(inviteCode = "") {
+            if (!auth.currentUser) return null;
+            let matchedInvite = null;
+            const email = currentUserEmail().toLowerCase();
+            if (email) {
+                const inviteQuery = query(collection(db, "athleteInvites"), where("email", "==", email));
+                const snapshot = await getDocs(inviteQuery);
+                snapshot.forEach((inviteDoc) => {
+                    const invite = { id: inviteDoc.id, ...inviteDoc.data() };
+                    if (!matchedInvite && (!inviteCode || invite.inviteCode === inviteCode)) matchedInvite = invite;
+                });
+            }
+            if (!matchedInvite && inviteCode) {
+                const codeQuery = query(collection(db, "athleteInvites"), where("inviteCode", "==", inviteCode));
+                const codeSnapshot = await getDocs(codeQuery);
+                codeSnapshot.forEach((inviteDoc) => {
+                    if (!matchedInvite) matchedInvite = { id: inviteDoc.id, ...inviteDoc.data() };
+                });
+            }
+            return matchedInvite;
+        }
+
+        window.handleSignup = async () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const inviteCode = document.getElementById('signupInviteCode').value.trim();
+            const error = document.getElementById('loginError');
+            if (!email || !password) {
+                error.innerText = "EMAIL AND PASSWORD REQUIRED";
+                return;
+            }
+            if (password.length < 6) {
+                error.innerText = "PASSWORD MUST BE AT LEAST 6 CHARACTERS";
+                return;
+            }
+            try {
+                if (inviteCode) localStorage.setItem("betaVaultInviteCode", inviteCode);
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (e) {
+                console.error("Signup error:", e);
+                error.innerText = e?.message || "SIGNUP FAILED";
+            }
+        };
+
+        window.saveInitialProfile = async () => {
+            const status = document.getElementById('setupStatus');
+            const name = document.getElementById('setupName').value.trim();
+            const grade = normalizeGrade(document.getElementById('setupGrade').value);
+            const goal = document.getElementById('setupGoal').value.trim();
+            const profilePic = document.getElementById('setupProfilePic').files[0];
+            const selectedVideoSource = document.getElementById('setupVideoSource').value;
+            if (!name || !grade || !goal || !selectedVideoSource) {
+                status.innerText = "Name, max grade, one goal, and video source are required.";
+                return;
+            }
+            if (!currentProfile?.photoURL && !profilePic) {
+                status.innerText = "Profile picture is required.";
+                return;
+            }
+            if (!isValidMaxGrade(grade)) {
+                status.innerText = "Use V1-V20, 5.8, 5.9, 5.10 variants, 5.11a-d, 5.12a-d, 5.13a-d, 5.14a-d";
+                return;
+            }
+            status.innerText = "Saving profile...";
+            const inviteCode = localStorage.getItem("betaVaultInviteCode") || document.getElementById('signupInviteCode').value.trim();
+            const invite = await findInviteForCurrentUser(inviteCode).catch(() => null);
+            const uploadedPhoto = profilePic ? await uploadProfileImageFile(profilePic) : null;
+            const athleteEmail = currentUserEmail();
+            const profilePayload = {
+                name,
+                maxGrade: grade,
+                goal,
+                setupDate: new Date(),
+                onboardingComplete: true,
+                email: athleteEmail,
+                phone: currentUserPhone(),
+                role: isAllowedCoachEmail(athleteEmail) ? "coach" : "athlete",
+                invitedBy: invite?.coachEmail || "",
+                inviteId: invite?.id || "",
+                videoSourcePreference: selectedVideoSource,
+                preferredGradeSystem,
+                photoURL: uploadedPhoto?.downloadURL || currentProfile?.photoURL || "",
+                photoStoragePath: uploadedPhoto?.storagePath || currentProfile?.photoStoragePath || "",
+                photoFileName: uploadedPhoto?.fileName || currentProfile?.photoFileName || ""
+            };
+            await setDoc(doc(db, "users", auth.currentUser.uid), profilePayload, { merge: true });
+            videoSourcePreference = selectedVideoSource;
+            localStorage.setItem("betaVaultVideoSource", selectedVideoSource);
+            applyVideoSourcePreference();
+            if (invite?.id) {
+                await updateDoc(doc(db, "athleteInvites", invite.id), {
+                    status: "accepted",
+                    acceptedAt: new Date(),
+                    userId: auth.currentUser.uid
+                }).catch(() => {});
+                localStorage.removeItem("betaVaultInviteCode");
+            }
+            const existingGoals = await getDocs(query(collection(db, "trainingGoals"), where("userId", "==", auth.currentUser.uid)));
+            if (existingGoals.empty) {
+                const goalRef = doc(collection(db, "trainingGoals"));
+                const goalPayload = {
+                    userId: auth.currentUser.uid,
+                    athleteEmail,
+                    title: "Primary Training Goal",
+                    notes: goal,
+                    status: "active",
+                    targetDate: "",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    createdByRole: "user",
+                    updatedByRole: "user"
+                };
+                await setDoc(goalRef, goalPayload);
+                await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalRef.id), goalPayload);
+                await createTrainingRecommendationDraft(goalRef.id, goalPayload).catch((error) => console.error("Recommendation draft error:", error));
+                const commentRef = doc(collection(db, "goalComments"));
+                const commentPayload = {
+                    goalId: goalRef.id,
+                    userId: auth.currentUser.uid,
+                    athleteEmail,
+                    comment: goal,
+                    createdAt: new Date(),
+                    createdByRole: "user"
+                };
+                await setDoc(commentRef, commentPayload);
+                await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalRef.id, "comments", commentRef.id), commentPayload);
+                await createCoachNotification("New Active Goal", `${name} added an active training goal during onboarding.`, {
+                    athleteName: name,
+                    goalId: goalRef.id,
+                    linkType: "goal"
+                });
+            }
+            window.location.reload();
+        };
+
+        window.updateMaxGrade = async () => {
+            const status = document.getElementById('maxGradeStatus');
+            const grade = normalizeGrade(document.getElementById('profileMaxGrade').value);
+
+            if (!isValidMaxGrade(grade)) {
+                status.innerText = "Invalid grade format";
+                showToast("Use V1-V20 or the allowed 5.x grades", "error");
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                    maxGrade: grade,
+                    maxGradeUpdatedAt: new Date()
+                });
+                setMaxGrade(grade);
+                status.innerText = "Grade updated";
+                showToast("Max grade updated", "success");
+            } catch (e) {
+                console.error("Max grade update error:", e);
+                status.innerText = renderDataError(e, "Grade update failed");
+                showToast(renderDataError(e, "Grade update failed"), "error");
+            }
+        };
+
+        window.updateGradeDisplayPreference = async () => {
+            const value = document.getElementById('preferredGradeSystem').value;
+            preferredGradeSystem = value;
+            localStorage.setItem("betaVaultGradeSystem", value);
+            document.getElementById('preferenceStatus').innerText = "Grade display updated";
+            setMaxGrade(document.getElementById('profileMaxGrade').value);
+            renderTicks([...currentAthleteTicks]);
+            renderGradeProgression();
+            if (auth.currentUser) {
+                await setDoc(doc(db, "users", auth.currentUser.uid), { preferredGradeSystem: value }, { merge: true }).catch((e) => {
+                    showToast(renderDataError(e, "Preference save failed"), "error");
+                });
+            }
+        };
+
+        window.updateVideoSourcePreference = async () => {
+            const value = document.getElementById('videoSourcePreference').value;
+            videoSourcePreference = value;
+            localStorage.setItem("betaVaultVideoSource", value);
+            applyVideoSourcePreference();
+            document.getElementById('preferenceStatus').innerText = "Video preference updated";
+            if (auth.currentUser) {
+                await setDoc(doc(db, "users", auth.currentUser.uid), { videoSourcePreference: value }, { merge: true }).catch((e) => {
+                    showToast(renderDataError(e, "Preference save failed"), "error");
+                });
+            }
+        };
+
+        window.uploadProfilePicture = async () => {
+            const fileInput = document.getElementById('profilePicFile');
+            const status = document.getElementById('profilePicStatus');
+            const file = fileInput.files[0];
+
+            if (!file) return alert("Choose a profile picture first");
+            if (!auth.currentUser) return alert("You must be logged in");
+
+            try {
+                const uploadedPhoto = await uploadProfileImageFile(file, status);
+                await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                    photoURL: uploadedPhoto.downloadURL,
+                    photoStoragePath: uploadedPhoto.storagePath,
+                    photoFileName: uploadedPhoto.fileName,
+                    photoUpdatedAt: new Date()
+                });
+
+                fileInput.value = "";
+                setProfilePhoto(uploadedPhoto.downloadURL, uploadedPhoto.fileName);
+                status.innerText = "Photo updated";
+            } catch (e) {
+                console.error("Profile photo upload error:", e);
+                status.innerText = e?.message || "Photo upload failed";
+            }
+        };
+
+        window.saveTrainingGoal = async () => {
+            const title = document.getElementById('goalTitle').value.trim();
+            const notes = document.getElementById('goalNotes').value.trim();
+            const status = document.getElementById('goalStatus').value;
+            const targetDate = document.getElementById('goalTargetDate').value;
+
+            if (!title) return alert("Goal title is required");
+
+            const goalRef = doc(collection(db, "trainingGoals"));
+            const goalPayload = {
+                userId: auth.currentUser.uid,
+                athleteEmail: currentUserEmail(),
+                title,
+                notes,
+                status,
+                targetDate,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                createdByRole: "user",
+                updatedByRole: "user"
+            };
+            await setDoc(goalRef, goalPayload);
+            await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalRef.id), goalPayload);
+            await createTrainingRecommendationDraft(goalRef.id, goalPayload).catch((error) => console.error("Recommendation draft error:", error));
+            if ((status || "active") === "active") {
+                await createCoachNotification("New Active Goal", `${currentProfile?.name || currentUserEmail() || "Athlete"} added an active training goal: ${title}.`, {
+                    goalId: goalRef.id,
+                    linkType: "goal"
+                });
+            }
+
+            if (notes) {
+                const commentRef = doc(collection(db, "goalComments"));
+                const commentPayload = {
+                    goalId: goalRef.id,
+                    userId: auth.currentUser.uid,
+                    athleteEmail: currentUserEmail(),
+                    comment: notes,
+                    createdAt: new Date(),
+                    createdByRole: "user"
+                };
+                await setDoc(commentRef, commentPayload);
+                await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalRef.id, "comments", commentRef.id), commentPayload);
+            }
+
+            document.getElementById('goalTitle').value = "";
+            document.getElementById('goalNotes').value = "";
+            document.getElementById('goalStatus').value = "active";
+            document.getElementById('goalTargetDate').value = "";
+            showToast("Goal saved", "success");
+        };
+
+        window.updateTrainingGoal = async (goalId) => {
+            const status = document.getElementById(`status-${goalId}`).value;
+            const comment = document.getElementById(`comment-${goalId}`).value.trim();
+            const targetDate = document.getElementById(`target-${goalId}`).value;
+
+            await updateDoc(doc(db, "trainingGoals", goalId), {
+                status,
+                targetDate,
+                updatedAt: new Date(),
+                updatedByRole: "user"
+            });
+            await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalId), {
+                status,
+                targetDate,
+                updatedAt: new Date(),
+                updatedByRole: "user"
+            }, { merge: true });
+
+            if (comment) {
+                const commentRef = doc(collection(db, "goalComments"));
+                const commentPayload = {
+                    goalId,
+                    userId: auth.currentUser.uid,
+                    athleteEmail: currentUserEmail(),
+                    comment,
+                    createdAt: new Date(),
+                    createdByRole: "user"
+                };
+                await setDoc(commentRef, commentPayload);
+                await setDoc(doc(db, "users", auth.currentUser.uid, "goals", goalId, "comments", commentRef.id), commentPayload);
+                await createCoachNotification("Goal Reply", `${currentProfile?.name || currentUserEmail() || "Athlete"} replied to a training goal.`, {
+                    goalId,
+                    linkType: "goal"
+                });
+            }
+
+            showToast("Goal updated", "success");
+        };
+
+        window.uploadTrainingVideo = async () => {
+            const fileInput = document.getElementById('videoFile');
+            const title = document.getElementById('videoTitle').value.trim();
+            const status = document.getElementById('videoUploadStatus');
+            const file = fileInput.files[0];
+
+            if (!file) return alert("Choose a video first");
+            if (!auth.currentUser) return alert("You must be logged in");
+
+            const safeName = file.name.replace(/[^a-z0-9._-]/gi, "_");
+            const storagePath = `users/${auth.currentUser.uid}/videos/${Date.now()}-${safeName}`;
+            const videoRef = ref(storage, storagePath);
+            const uploadTask = uploadBytesResumable(videoRef, file, { contentType: file.type });
+
+            status.innerText = "Uploading 0%";
+
+            uploadTask.on("state_changed", (snapshot) => {
+                const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                status.innerText = `Uploading ${progress}%`;
+            }, (error) => {
+                console.error("Video upload error:", error);
+                status.innerText = "Upload failed";
+            }, async () => {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                const videoDoc = doc(collection(db, "videos"));
+                const videoPayload = {
+                    userId: auth.currentUser.uid,
+                    athleteEmail: currentUserEmail(),
+                    title: title || file.name,
+                    fileName: file.name,
+                    storagePath,
+                    downloadURL,
+                    contentType: file.type,
+                    createdAt: new Date(),
+                    createdByRole: "user"
+                };
+                await setDoc(videoDoc, videoPayload);
+                await setDoc(doc(db, "users", auth.currentUser.uid, "videos", videoDoc.id), videoPayload);
+                await createCoachNotification("Video Uploaded", `${currentProfile?.name || currentUserEmail() || "Athlete"} uploaded a video: ${videoPayload.title}.`, {
+                    videoId: videoDoc.id,
+                    linkType: "video"
+                });
+
+                document.getElementById('videoTitle').value = "";
+                fileInput.value = "";
+                status.innerText = "Upload complete";
+                showToast("Video uploaded", "success");
+            });
+        };
+
+        window.saveTick = async () => {
+            const route = document.getElementById('tickRoute').value;
+            const grade = normalizeGrade(document.getElementById('tickGrade').value);
+            const mpUrl = document.getElementById('tickMP').value;
+            if (!route || !grade) return showToast("Route and grade are required", "error");
+            if (!isValidMaxGrade(grade)) return showToast("Use V1-V20 or the allowed 5.x grades", "error");
+            const tickRef = doc(collection(db, "ticks"));
+            const tickPayload = {
+                userId: auth.currentUser.uid, route, grade, mpUrl, timestamp: new Date()
+            };
+            await setDoc(tickRef, tickPayload);
+            await setDoc(doc(db, "users", auth.currentUser.uid, "ticks", tickRef.id), tickPayload);
+            showToast("Tick saved", "success");
+            document.getElementById('tickRoute').value = "";
+            document.getElementById('tickGrade').value = "";
+        };
+
+        window.deleteTick = async (tickId) => {
+            if (!confirm("Delete this send?")) return;
+            await deleteDoc(doc(db, "ticks", tickId));
+            await deleteDoc(doc(db, "users", auth.currentUser.uid, "ticks", tickId)).catch(() => {});
+            showToast("Tick deleted", "success");
+        };
+
+        window.deleteTrainingGoal = async (goalId) => {
+            if (!confirm("Delete this training goal?")) return;
+            await deleteDoc(doc(db, "trainingGoals", goalId));
+            await deleteDoc(doc(db, "users", auth.currentUser.uid, "goals", goalId)).catch(() => {});
+            showToast("Goal deleted", "success");
+        };
+
+        window.deleteTrainingVideo = async (videoId) => {
+            const video = athleteVideos.find((item) => item.id === videoId);
+            if (!video || !confirm("Delete this video?")) return;
+            await deleteDoc(doc(db, "videos", videoId));
+            await deleteDoc(doc(db, "users", auth.currentUser.uid, "videos", videoId)).catch(() => {});
+            if (video.storagePath) await deleteObject(ref(storage, video.storagePath)).catch(() => {});
+            if (selectedAthleteVideo?.id === videoId) {
+                selectedAthleteVideo = null;
+                document.getElementById('athleteVideoPlayer').removeAttribute('src');
+                document.getElementById('athleteVideoNotes').innerHTML = '<p class="text-gray-600 text-xs italic">Coach notes will appear here.</p>';
+            }
+            showToast("Video deleted", "success");
+        };
+
+        window.saveSessionLog = async () => {
+            const sessionDate = document.getElementById('sessionDate').value || new Date().toISOString().slice(0, 10);
+            const duration = document.getElementById('sessionDuration').value;
+            const location = document.getElementById('sessionLocation').value.trim();
+            const type = activeSessionType;
+            const style = type;
+            const fatigue = document.getElementById('sessionFatigue').value;
+            const mood = document.getElementById('sessionMood').value;
+            const sleep = document.getElementById('sessionSleep').value;
+            const pain = document.getElementById('sessionPain').value;
+            const painArea = document.getElementById('sessionPainArea').value.trim();
+            const effort = document.getElementById('sessionEffort').value;
+            const outcome = document.getElementById('sessionOutcome').value;
+            const notes = document.getElementById('sessionNotes').value.trim();
+            let templateDetails = {};
+            try {
+                templateDetails = collectSessionTemplateDetails(type);
+            } catch (e) {
+                showToast(e.message || "Invalid template fields", "error");
+                return;
+            }
+            const clamp = (value, min, max) => {
+                if (value === "") return "";
+                return String(Math.min(max, Math.max(min, Number(value))));
+            };
+            const sessionRef = doc(collection(db, "sessionLogs"));
+            const payload = {
+                userId: auth.currentUser.uid,
+                athleteEmail: currentUserEmail(),
+                sessionDate,
+                duration,
+                location,
+                type,
+                style,
+                fatigue: clamp(fatigue, 1, 10),
+                mood: clamp(mood, 1, 10),
+                sleep: clamp(sleep, 0, 12),
+                pain: clamp(pain, 0, 10),
+                painArea,
+                effort: clamp(effort, 1, 10),
+                outcome,
+                templateDetails,
+                notes,
+                createdAt: new Date()
+            };
+            payload.report = buildSessionReport(payload, sessionRef.id);
+            await setDoc(sessionRef, payload);
+            await setDoc(doc(db, "users", auth.currentUser.uid, "sessionLogs", sessionRef.id), payload);
+            const isFlaggedSession = Number(payload.pain || 0) >= 5 || Number(payload.fatigue || 0) >= 8 || (payload.sleep !== "" && Number(payload.sleep || 0) < 6);
+            if (isFlaggedSession) {
+                await createCoachNotification("Flagged Session", `${currentProfile?.name || currentUserEmail() || "Athlete"} saved a flagged ${type} session. Pain ${payload.pain || "0"}, fatigue ${payload.fatigue || "0"}, sleep ${payload.sleep || "n/a"}.`, {
+                    sessionId: sessionRef.id,
+                    linkType: "session"
+                });
+            }
+            saveSessionDraft();
+            showToast("Session logged", "success");
+        };
+
+        window.toggleTrainingPlan = async (planId, completed) => {
+            await updateDoc(doc(db, "trainingPlans", planId), {
+                completed,
+                completedAt: completed ? new Date() : null,
+                updatedAt: new Date()
+            });
+            await setDoc(doc(db, "users", auth.currentUser.uid, "trainingPlans", planId), {
+                completed,
+                completedAt: completed ? new Date() : null,
+                updatedAt: new Date()
+            }, { merge: true });
+            showToast(completed ? "Training block complete" : "Training block reopened", "success");
+        };
+
+        window.toggleMilestone = async (milestoneId, completed) => {
+            const milestone = currentAthleteMilestones.find((item) => item.id === milestoneId);
+            if (!milestone) return;
+            await updateDoc(doc(db, "goalMilestones", milestoneId), {
+                completed,
+                completedAt: completed ? new Date() : null,
+                updatedAt: new Date()
+            });
+            await setDoc(doc(db, "users", auth.currentUser.uid, "goals", milestone.goalId, "milestones", milestoneId), {
+                completed,
+                completedAt: completed ? new Date() : null,
+                updatedAt: new Date()
+            }, { merge: true });
+            showToast(completed ? "Milestone complete" : "Milestone reopened", "success");
+        };
+
+        window.markNotificationRead = async (notificationId) => {
+            await updateDoc(doc(db, "notifications", notificationId), { read: true, readAt: new Date() });
+            await setDoc(doc(db, "users", auth.currentUser.uid, "notifications", notificationId), { read: true, readAt: new Date() }, { merge: true });
+        };
+
+        function resetSessionMainFields() {
+            ["sessionDate", "sessionDuration", "sessionLocation", "sessionFatigue", "sessionMood", "sessionSleep", "sessionPain", "sessionPainArea", "sessionEffort", "sessionNotes"].forEach((id) => setSessionValue(id, ""));
+            setSessionValue("sessionOutcome", "productive");
+        }
+
+        window.applySessionTemplate = (type) => {
+            const templates = {
+                strength: { effort: 7, outcome: "productive", notes: "What strength quality were you training?\nHardest set or load completed:\nWhat felt strong, weak, or painful?\nAdjustment for next strength session:" },
+                "limit bouldering": { effort: 9, outcome: "productive", notes: "" },
+                "limit climbing": { effort: 9, outcome: "productive", notes: "" },
+                endurance: { effort: 7, outcome: "maintenance", notes: "" },
+                rest: { effort: 1, outcome: "maintenance", notes: "" },
+                technique: { effort: 5, outcome: "productive", notes: "Technique focus:\nCue that improved movement:\nWhere did the skill break down?\nHow to practice it next time:" },
+                projecting: { effort: 9, outcome: "productive", notes: "" }
+            };
+            const template = templates[type] || templates.strength;
+            sessionDraftSaveSuspended = true;
+            activeSessionType = type;
+            resetSessionMainFields();
+            document.getElementById('sessionEffort').value = template.effort;
+            document.getElementById('sessionOutcome').value = template.outcome;
+            window.renderSessionTemplateFields(type);
+            showSessionPromptGuide(template.notes || "");
+            document.getElementById('sessionNotes').value = "";
+            sessionDraftSaveSuspended = false;
+            saveSessionDraft();
+        };
+
+        document.getElementById('sessionForm')?.addEventListener('input', saveSessionDraft);
+        document.getElementById('sessionForm')?.addEventListener('change', saveSessionDraft);
+
+        if (!restoreSessionDraft()) window.applySessionTemplate(activeSessionType);
+
+        window.logout = () => signOut(auth).then(() => window.location.reload());
+    </script>
+</body>
+</html>
+

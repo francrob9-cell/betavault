@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X: Open Atlas v2</title>
+    <style>
+      :root {
+        --bg: #050607;
+        --panel: rgba(11, 14, 20, 0.86);
+        --panel-strong: rgba(18, 23, 34, 0.94);
+        --line: rgba(238, 243, 247, 0.16);
+        --text: #eef3f7;
+        --muted: #9aa7b5;
+        --blue: #4dd8ff;
+        --yellow: #ffd166;
+        --red: #ff5a5f;
+        --green: #9bdb7d;
+        --purple: #c084fc;
+        --orange: #ff9f1c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 70% 30%, rgba(77, 216, 255, 0.12), transparent 32%),
+          radial-gradient(circle at 18% 78%, rgba(192, 132, 252, 0.13), transparent 26%),
+          var(--bg);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow: hidden;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .game-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 310px;
+        height: 100vh;
+      }
+
+      .arena-wrap {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hud {
+        position: absolute;
+        z-index: 5;
+        top: 16px;
+        left: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        max-width: calc(100% - 32px);
+        pointer-events: none;
+      }
+
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        background: var(--panel);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .clarity {
+        width: 210px;
+      }
+
+      .clarity-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .meter {
+        height: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(238, 243, 247, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .meter span {
+        display: block;
+        height: 100%;
+        width: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--red), var(--yellow), var(--green));
+        transition: width 140ms ease;
+      }
+
+      .sidebar {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: 14px;
+        border-left: 1px solid var(--line);
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(9, 12, 18, 0.96), rgba(5, 6, 7, 0.98));
+        overflow: auto;
+      }
+
+      .brand {
+        display: grid;
+        gap: 5px;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 0.9;
+      }
+
+      .brand p,
+      .panel p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 13px;
+        background: var(--panel);
+      }
+
+      .panel h2 {
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .tool-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tool {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 9px;
+        align-items: center;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.045);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .tool.active {
+        border-color: rgba(255, 255, 255, 0.72);
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .tool kbd {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        color: var(--bg);
+        background: var(--text);
+        font-weight: 900;
+      }
+
+      .tool strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .tool span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .scanner {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scan-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .bias-name {
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .mini-map {
+        display: grid;
+        gap: 7px;
+        align-content: start;
+      }
+
+      .zone-row {
+        display: grid;
+        grid-template-columns: 14px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: currentColor;
+        box-shadow: 0 0 14px currentColor;
+      }
+
+      .zone-row.cleared {
+        color: rgba(154, 167, 181, 0.44);
+        text-decoration: line-through;
+      }
+
+      .overlay {
+        position: absolute;
+        z-index: 10;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle, rgba(5, 6, 7, 0.62), rgba(5, 6, 7, 0.86));
+      }
+
+      .overlay[hidden] {
+        display: none;
+      }
+
+      .modal {
+        width: min(520px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 22px;
+        background: var(--panel-strong);
+        box-shadow: 0 28px 74px rgba(0, 0, 0, 0.42);
+        text-align: center;
+      }
+
+      .modal h2 {
+        margin-bottom: 8px;
+        font-size: 30px;
+      }
+
+      .modal button {
+        margin-top: 16px;
+        border: 0;
+        border-radius: 999px;
+        padding: 11px 16px;
+        color: #050607;
+        background: var(--text);
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .mobile-pad {
+        position: absolute;
+        z-index: 6;
+        right: 18px;
+        bottom: 18px;
+        display: none;
+        grid-template-columns: repeat(3, 48px);
+        grid-template-rows: repeat(3, 48px);
+        gap: 6px;
+      }
+
+      .mobile-pad button {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        color: var(--text);
+        background: var(--panel);
+        font-weight: 900;
+      }
+
+      .mobile-pad button:nth-child(1) {
+        grid-column: 2;
+      }
+
+      .mobile-pad button:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .mobile-pad button:nth-child(3) {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
+      .mobile-pad button:nth-child(4) {
+        grid-column: 2;
+        grid-row: 3;
+      }
+
+      @media (max-width: 900px) {
+        body {
+          overflow: auto;
+        }
+
+        .game-shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(58vh, 68vh) auto;
+          min-height: 100vh;
+        }
+
+        .sidebar {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .mobile-pad {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="arena-wrap" aria-label="Playable bias atlas arena">
+        <canvas id="gameCanvas" aria-label="Top-down playable bias atlas"></canvas>
+        <div class="hud">
+          <div class="pill clarity">
+            <div class="clarity-label"><span>Clarity</span><span id="clarityValue">100%</span></div>
+            <div class="meter"><span id="clarityMeter"></span></div>
+          </div>
+          <div class="pill" id="scorePill">Wisdom 0</div>
+          <div class="pill" id="objectivePill">Explore the open atlas</div>
+        </div>
+        <div class="mobile-pad" aria-label="Touch movement controls">
+          <button type="button" data-move="up">^</button>
+          <button type="button" data-move="left">&lt;</button>
+          <button type="button" data-move="right">&gt;</button>
+          <button type="button" data-move="down">v</button>
+        </div>
+        <div class="overlay" id="startOverlay">
+          <div class="modal">
+            <h2>X: Open Atlas</h2>
+            <p>Explore a larger mental landscape, uncover hidden bias distortions, collect evidence sparks, and stabilize what you find.</p>
+            <button type="button" id="startGame">Enter atlas</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar" aria-label="Game controls and bias scanner">
+        <section class="brand">
+          <h1>X</h1>
+          <p>Open-world playable bias atlas.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Tools</h2>
+          <div class="tool-grid" id="toolGrid"></div>
+        </section>
+
+        <section class="panel scanner">
+          <div class="scan-title"><span>Scanner</span><span id="scanDistance">No signal</span></div>
+          <div class="bias-name" id="scanBias">Explore the fog</div>
+          <p id="scanText">Move through biomes to reveal hidden distortions. The scanner gets stronger as you approach an anomaly.</p>
+        </section>
+
+        <section class="panel mini-map" id="zoneList" aria-label="Bias zones"></section>
+      </aside>
+    </main>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const clarityMeter = document.getElementById("clarityMeter");
+      const clarityValue = document.getElementById("clarityValue");
+      const scorePill = document.getElementById("scorePill");
+      const objectivePill = document.getElementById("objectivePill");
+      const scanDistance = document.getElementById("scanDistance");
+      const scanBias = document.getElementById("scanBias");
+      const scanText = document.getElementById("scanText");
+      const startOverlay = document.getElementById("startOverlay");
+      const startGame = document.getElementById("startGame");
+      const toolGrid = document.getElementById("toolGrid");
+      const zoneList = document.getElementById("zoneList");
+
+      const tools = [
+        { id: "evidence", key: "1", name: "Evidence", hint: "Collect alternate signals", color: "#4dd8ff" },
+        { id: "outside", key: "2", name: "Outside View", hint: "Check base rates", color: "#ffd166" },
+        { id: "reframe", key: "3", name: "Reframe", hint: "Break the pull of ownership", color: "#c084fc" },
+        { id: "slow", key: "4", name: "Slow Down", hint: "Reduce urgency", color: "#9bdb7d" },
+      ];
+
+      const world = {
+        width: 2800,
+        height: 1900,
+        cell: 120,
+        requiredClears: 4,
+      };
+
+      const biomes = [
+        { name: "Memory Forest", x: 0, y: 0, w: 1080, h: 900, color: "#9bdb7d", grid: "memory" },
+        { name: "Salience Canyon", x: 1080, y: 0, w: 980, h: 880, color: "#ff5a5f", grid: "salience" },
+        { name: "Social Village", x: 2060, y: 0, w: 740, h: 980, color: "#ff9f1c", grid: "social" },
+        { name: "Valuation Mines", x: 0, y: 900, w: 1380, h: 1000, color: "#c084fc", grid: "value" },
+        { name: "Planning Plains", x: 1380, y: 880, w: 1420, h: 1020, color: "#4dd8ff", grid: "control" },
+      ];
+
+      const zones = [
+        {
+          id: "confirmation",
+          name: "Confirmation Loop",
+          bias: "Confirmation bias",
+          biome: "Memory Forest",
+          tool: "evidence",
+          x: 520,
+          y: 420,
+          radius: 92,
+          color: "#4dd8ff",
+          text: "The zone only shows signals that agree with the first path. Evidence counters the loop.",
+        },
+        {
+          id: "availability",
+          name: "Availability Storm",
+          bias: "Availability heuristic",
+          biome: "Salience Canyon",
+          tool: "outside",
+          x: 1640,
+          y: 420,
+          radius: 98,
+          color: "#ffd166",
+          text: "Recent dramatic signals are drowning out quiet base rates. Outside View steadies the storm.",
+        },
+        {
+          id: "endowment",
+          name: "Ownership Gravity",
+          bias: "Endowment effect",
+          biome: "Valuation Mines",
+          tool: "reframe",
+          x: 850,
+          y: 1330,
+          radius: 88,
+          color: "#c084fc",
+          text: "The thing you already hold feels heavier and more valuable. Reframe loosens the pull.",
+        },
+        {
+          id: "loss",
+          name: "Loss Alarm",
+          bias: "Loss aversion",
+          biome: "Salience Canyon",
+          tool: "slow",
+          x: 1880,
+          y: 720,
+          radius: 86,
+          color: "#ff5a5f",
+          text: "The alarm makes every loss feel urgent. Slow Down gives the signal room to settle.",
+        },
+        {
+          id: "bandwagon",
+          name: "Crowd Current",
+          bias: "Bandwagon effect",
+          biome: "Social Village",
+          tool: "outside",
+          x: 2380,
+          y: 520,
+          radius: 96,
+          color: "#ff9f1c",
+          text: "Crowd motion makes one path feel safer than it is. Outside View checks whether the group signal is evidence.",
+        },
+        {
+          id: "planning",
+          name: "Easy Bridge",
+          bias: "Planning fallacy",
+          biome: "Planning Plains",
+          tool: "slow",
+          x: 2200,
+          y: 1360,
+          radius: 90,
+          color: "#4dd8ff",
+          text: "The bridge looks short from here, but gaps appear as you cross. Slow Down makes hidden effort visible.",
+        },
+      ];
+
+      const state = {
+        running: false,
+        clarity: 100,
+        wisdom: 0,
+        selectedTool: "evidence",
+        player: { x: 1400, y: 960, vx: 0, vy: 0, r: 13 },
+        camera: { x: 0, y: 0 },
+        keys: new Set(),
+        sparks: [],
+        particles: [],
+        visited: new Set(),
+        nearestZone: null,
+        currentBiome: "Open Atlas",
+        time: 0,
+        message: "",
+      };
+
+      function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(rect.width * ratio);
+        canvas.height = Math.floor(rect.height * ratio);
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        if (!state.running) {
+          state.player.x = world.width * 0.5;
+          state.player.y = world.height * 0.52;
+        }
+        updateCamera();
+      }
+
+      function zonePoint(zone) {
+        return { x: zone.x, y: zone.y };
+      }
+
+      function worldToScreen(point) {
+        return { x: point.x - state.camera.x, y: point.y - state.camera.y };
+      }
+
+      function screenToWorld(point) {
+        return { x: point.x + state.camera.x, y: point.y + state.camera.y };
+      }
+
+      function updateCamera() {
+        state.camera.x = Math.max(0, Math.min(world.width - canvas.clientWidth, state.player.x - canvas.clientWidth / 2));
+        state.camera.y = Math.max(0, Math.min(world.height - canvas.clientHeight, state.player.y - canvas.clientHeight / 2));
+      }
+
+      function currentBiomeFor(point) {
+        return biomes.find((biome) => point.x >= biome.x && point.x <= biome.x + biome.w && point.y >= biome.y && point.y <= biome.y + biome.h) || null;
+      }
+
+      function markVisited() {
+        const radius = 2;
+        const cx = Math.floor(state.player.x / world.cell);
+        const cy = Math.floor(state.player.y / world.cell);
+        for (let y = cy - radius; y <= cy + radius; y += 1) {
+          for (let x = cx - radius; x <= cx + radius; x += 1) {
+            if (x >= 0 && y >= 0 && x * world.cell <= world.width && y * world.cell <= world.height) {
+              state.visited.add(`${x}:${y}`);
+            }
+          }
+        }
+      }
+
+      function spawnSparks() {
+        state.sparks = [];
+        zones.forEach((zone) => {
+          const point = zonePoint(zone);
+          for (let i = 0; i < 4; i += 1) {
+            const angle = (Math.PI * 2 * i) / 4 + 0.45;
+            state.sparks.push({
+              zone: zone.id,
+              x: point.x + Math.cos(angle) * (zone.radius + 34),
+              y: point.y + Math.sin(angle) * (zone.radius + 34),
+              r: 7,
+              collected: false,
+              color: zone.color,
+            });
+          }
+        });
+      }
+
+      function renderTools() {
+        toolGrid.innerHTML = tools.map((tool) => `
+          <button class="tool ${state.selectedTool === tool.id ? "active" : ""}" type="button" data-tool="${tool.id}">
+            <kbd>${tool.key}</kbd>
+            <span><strong>${tool.name}</strong><span>${tool.hint}</span></span>
+          </button>
+        `).join("");
+        toolGrid.querySelectorAll("[data-tool]").forEach((button) => {
+          button.addEventListener("click", () => selectTool(button.dataset.tool));
+        });
+      }
+
+      function renderZones() {
+        zoneList.innerHTML = zones.map((zone) => `
+          <div class="zone-row ${zone.cleared ? "cleared" : ""}" style="color:${zone.color}">
+            <span class="dot"></span>
+            <span>${zone.discovered ? zone.name : "Undiscovered anomaly"}<br><small>${zone.discovered ? zone.biome : "Explore to reveal"}</small></span>
+            <strong>${zone.cleared ? "Clear" : zone.discovered ? "Found" : "Hidden"}</strong>
+          </div>
+        `).join("");
+      }
+
+      function selectTool(toolId) {
+        state.selectedTool = toolId;
+        renderTools();
+      }
+
+      function startRun() {
+        state.running = true;
+        state.clarity = 100;
+        state.wisdom = 0;
+        state.selectedTool = "evidence";
+        state.message = "";
+        zones.forEach((zone) => {
+          zone.cleared = false;
+          zone.discovered = false;
+        });
+        state.visited.clear();
+        state.player.x = world.width * 0.5;
+        state.player.y = world.height * 0.52;
+        updateCamera();
+        markVisited();
+        spawnSparks();
+        startOverlay.hidden = true;
+        renderTools();
+        renderZones();
+      }
+
+      function endRun(won) {
+        state.running = false;
+        startOverlay.hidden = false;
+        startOverlay.querySelector("h2").textContent = won ? "Atlas stabilized" : "Clarity collapsed";
+        startOverlay.querySelector("p").textContent = won
+          ? `Wisdom score ${state.wisdom}. You mapped enough anomalies to stabilize this atlas seed.`
+          : "The distortions overwhelmed the run. Try collecting more sparks before entering a zone.";
+        startOverlay.querySelector("button").textContent = "Run again";
+      }
+
+      function distance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function activeSparksFor(zoneId) {
+        return state.sparks.filter((spark) => spark.zone === zoneId && spark.collected).length;
+      }
+
+      function clearZone(zone) {
+        zone.cleared = true;
+        state.wisdom += 20 + activeSparksFor(zone.id) * 4;
+        state.message = `${zone.bias} stabilized`;
+        for (let i = 0; i < 42; i += 1) {
+          const point = zonePoint(zone);
+          state.particles.push({
+            x: point.x,
+            y: point.y,
+            vx: (Math.random() - 0.5) * 5,
+            vy: (Math.random() - 0.5) * 5,
+            life: 40 + Math.random() * 20,
+            color: zone.color,
+          });
+        }
+        renderZones();
+      }
+
+      function updatePlayer() {
+        const speed = state.keys.has("Shift") ? 5.1 : 3.6;
+        let dx = 0;
+        let dy = 0;
+        if (state.keys.has("ArrowUp") || state.keys.has("w")) dy -= 1;
+        if (state.keys.has("ArrowDown") || state.keys.has("s")) dy += 1;
+        if (state.keys.has("ArrowLeft") || state.keys.has("a")) dx -= 1;
+        if (state.keys.has("ArrowRight") || state.keys.has("d")) dx += 1;
+        if (dx || dy) {
+          const len = Math.hypot(dx, dy);
+          dx /= len;
+          dy /= len;
+        }
+
+        let pullX = 0;
+        let pullY = 0;
+        zones.forEach((zone) => {
+          if (zone.cleared) return;
+          const point = zonePoint(zone);
+          const dist = distance(state.player, point);
+          if (!zone.discovered && dist < zone.radius * 2.15) {
+            zone.discovered = true;
+            state.message = `${zone.name} discovered`;
+            state.wisdom += 6;
+            renderZones();
+          }
+          if (dist < zone.radius * 1.25) {
+            const force = (1 - dist / (zone.radius * 1.25)) * 0.55;
+            if (zone.id === "endowment") {
+              pullX += (point.x - state.player.x) * 0.008 * force;
+              pullY += (point.y - state.player.y) * 0.008 * force;
+            }
+            if (zone.id === "availability") {
+              pullX += Math.sin(state.time * 0.08) * force;
+              pullY += Math.cos(state.time * 0.09) * force;
+            }
+            if (zone.id === "confirmation") {
+              pullX += Math.sign(point.x - state.player.x) * 0.2 * force;
+            }
+            if (zone.id === "loss") {
+              state.clarity -= 0.035 * force;
+            }
+            if (zone.id === "bandwagon") {
+              pullX += Math.cos(state.time * 0.045) * 0.42 * force;
+              pullY += Math.sin(state.time * 0.045) * 0.42 * force;
+            }
+            if (zone.id === "planning") {
+              pullX += Math.sin(state.time * 0.035) * 0.24 * force;
+            }
+          }
+        });
+
+        state.player.x += dx * speed + pullX;
+        state.player.y += dy * speed + pullY;
+        state.player.x = Math.max(22, Math.min(world.width - 22, state.player.x));
+        state.player.y = Math.max(22, Math.min(world.height - 22, state.player.y));
+        state.currentBiome = currentBiomeFor(state.player)?.name || "Open Atlas";
+        updateCamera();
+        markVisited();
+      }
+
+      function updateSparks() {
+        state.sparks.forEach((spark) => {
+          if (spark.collected) return;
+          if (distance(state.player, spark) < state.player.r + spark.r + 3) {
+            spark.collected = true;
+            state.clarity = Math.min(100, state.clarity + 4);
+            state.wisdom += 2;
+            state.particles.push({ x: spark.x, y: spark.y, vx: 0, vy: -1, life: 24, color: spark.color });
+          }
+        });
+      }
+
+      function updateZones() {
+        let nearest = null;
+        let nearestDist = Infinity;
+        zones.forEach((zone) => {
+          if (zone.cleared) return;
+          const point = zonePoint(zone);
+          const dist = distance(state.player, point);
+          if (dist < zone.radius * 3 && dist < nearestDist) {
+            nearest = zone;
+            nearestDist = dist;
+          }
+          if (dist < zone.radius * 0.72) {
+            state.clarity -= 0.035;
+            const enoughEvidence = activeSparksFor(zone.id) >= 2;
+            if (state.selectedTool === zone.tool && enoughEvidence) {
+              clearZone(zone);
+            } else if (state.selectedTool !== zone.tool) {
+              state.clarity -= 0.03;
+              state.message = "Wrong counter-tool";
+            } else {
+              state.message = "Collect more evidence sparks";
+            }
+          }
+        });
+        state.nearestZone = nearest ? { zone: nearest, dist: nearestDist } : null;
+      }
+
+      function updateParticles() {
+        state.particles = state.particles.filter((particle) => {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vx *= 0.97;
+          particle.vy *= 0.97;
+          particle.life -= 1;
+          return particle.life > 0;
+        });
+      }
+
+      function updateHud() {
+        const cleared = zones.filter((zone) => zone.cleared).length;
+        const discovered = zones.filter((zone) => zone.discovered).length;
+        clarityMeter.style.width = `${Math.max(0, state.clarity)}%`;
+        clarityValue.textContent = `${Math.max(0, Math.round(state.clarity))}%`;
+        scorePill.textContent = `Wisdom ${state.wisdom} | ${state.currentBiome}`;
+        objectivePill.textContent = `Found ${discovered}/${zones.length} | Clear ${cleared}/${world.requiredClears}`;
+
+        if (state.nearestZone) {
+          const zone = state.nearestZone.zone;
+          const signal = Math.max(0, Math.round(100 - (state.nearestZone.dist / (zone.radius * 3)) * 100));
+          scanDistance.textContent = `${signal}% signal`;
+          scanBias.textContent = zone.discovered ? zone.name : "Hidden anomaly";
+          scanText.textContent = zone.discovered
+            ? `${zone.text} Need: ${tools.find((tool) => tool.id === zone.tool).name}. Sparks: ${activeSparksFor(zone.id)}/2.`
+            : `Something is distorting ${zone.biome}. Get closer to reveal it.`;
+        } else {
+          scanDistance.textContent = "No signal";
+          scanBias.textContent = state.currentBiome;
+          scanText.textContent = "Explore beyond the cleared fog to find hidden anomalies.";
+        }
+
+        if (cleared >= world.requiredClears) endRun(true);
+        if (state.clarity <= 0) endRun(false);
+      }
+
+      function drawBackground() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        ctx.save();
+        ctx.translate(-state.camera.x, -state.camera.y);
+        biomes.forEach((biome) => {
+          const gradient = ctx.createRadialGradient(
+            biome.x + biome.w * 0.5,
+            biome.y + biome.h * 0.45,
+            20,
+            biome.x + biome.w * 0.5,
+            biome.y + biome.h * 0.5,
+            Math.max(biome.w, biome.h) * 0.72
+          );
+          gradient.addColorStop(0, `${biome.color}20`);
+          gradient.addColorStop(1, `${biome.color}05`);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(biome.x, biome.y, biome.w, biome.h);
+          ctx.strokeStyle = `${biome.color}36`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(biome.x + 8, biome.y + 8, biome.w - 16, biome.h - 16);
+          ctx.fillStyle = "rgba(238,243,247,0.28)";
+          ctx.font = "900 18px Inter, sans-serif";
+          ctx.fillText(biome.name, biome.x + 26, biome.y + 42);
+        });
+
+        ctx.globalAlpha = 0.78;
+        ctx.strokeStyle = "rgba(238,243,247,0.05)";
+        ctx.lineWidth = 1;
+        const grid = 44;
+        for (let x = 0; x < world.width + grid; x += grid) {
+          ctx.beginPath();
+          ctx.moveTo(x + Math.sin(state.time * 0.006 + x * 0.01) * 8, 0);
+          ctx.lineTo(x, world.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < world.height + grid; y += grid) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(world.width, y + Math.cos(state.time * 0.006 + y * 0.01) * 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawZones() {
+        zones.forEach((zone) => {
+          if (!zone.discovered && !zone.cleared) return;
+          const point = zonePoint(zone);
+          const screen = worldToScreen(point);
+          if (screen.x < -180 || screen.y < -180 || screen.x > canvas.clientWidth + 180 || screen.y > canvas.clientHeight + 180) return;
+          const pulse = Math.sin(state.time * 0.04) * 7;
+          ctx.save();
+          ctx.globalAlpha = zone.cleared ? 0.14 : 0.72;
+          const gradient = ctx.createRadialGradient(screen.x, screen.y, 12, screen.x, screen.y, zone.radius + pulse);
+          gradient.addColorStop(0, `${zone.color}77`);
+          gradient.addColorStop(0.65, `${zone.color}22`);
+          gradient.addColorStop(1, `${zone.color}00`);
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, zone.radius + pulse, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = zone.color;
+          ctx.globalAlpha = zone.cleared ? 0.22 : 0.86;
+          ctx.lineWidth = zone.cleared ? 1 : 2;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, zone.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      function drawSparks() {
+        state.sparks.forEach((spark) => {
+          if (spark.collected) return;
+          const screen = worldToScreen(spark);
+          if (screen.x < -40 || screen.y < -40 || screen.x > canvas.clientWidth + 40 || screen.y > canvas.clientHeight + 40) return;
+          ctx.save();
+          ctx.fillStyle = spark.color;
+          ctx.shadowColor = spark.color;
+          ctx.shadowBlur = 18;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y + Math.sin(state.time * 0.08 + spark.x) * 3, spark.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawPlayer() {
+        const p = state.player;
+        const screen = worldToScreen(p);
+        const tool = tools.find((item) => item.id === state.selectedTool);
+        ctx.save();
+        ctx.translate(screen.x, screen.y);
+        ctx.shadowColor = tool.color;
+        ctx.shadowBlur = 22;
+        ctx.fillStyle = tool.color;
+        ctx.beginPath();
+        for (let i = 0; i < 3; i += 1) {
+          const angle = -Math.PI / 2 + i * (Math.PI * 2 / 3) + state.time * 0.025;
+          const radius = i === 0 ? 17 : 12;
+          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#050607";
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        state.particles.forEach((particle) => {
+          const screen = worldToScreen(particle);
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, particle.life / 34);
+          ctx.fillStyle = particle.color;
+          ctx.shadowColor = particle.color;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(screen.x, screen.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawFog() {
+        const startX = Math.floor(state.camera.x / world.cell) - 1;
+        const endX = Math.ceil((state.camera.x + canvas.clientWidth) / world.cell) + 1;
+        const startY = Math.floor(state.camera.y / world.cell) - 1;
+        const endY = Math.ceil((state.camera.y + canvas.clientHeight) / world.cell) + 1;
+        ctx.save();
+        for (let y = startY; y <= endY; y += 1) {
+          for (let x = startX; x <= endX; x += 1) {
+            if (x < 0 || y < 0) continue;
+            const key = `${x}:${y}`;
+            const wx = x * world.cell;
+            const wy = y * world.cell;
+            const screen = worldToScreen({ x: wx, y: wy });
+            ctx.fillStyle = state.visited.has(key) ? "rgba(5,6,7,0.18)" : "rgba(5,6,7,0.72)";
+            ctx.fillRect(screen.x, screen.y, world.cell + 1, world.cell + 1);
+          }
+        }
+        const playerScreen = worldToScreen(state.player);
+        const gradient = ctx.createRadialGradient(playerScreen.x, playerScreen.y, 36, playerScreen.x, playerScreen.y, 230);
+        gradient.addColorStop(0, "rgba(5,6,7,0)");
+        gradient.addColorStop(1, "rgba(5,6,7,0.28)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+        ctx.restore();
+      }
+
+      function drawMessage() {
+        if (!state.message) return;
+        ctx.save();
+        ctx.font = "800 16px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(238,243,247,0.9)";
+        ctx.fillText(state.message, canvas.clientWidth / 2, canvas.clientHeight - 32);
+        ctx.restore();
+      }
+
+      function loop() {
+        state.time += 1;
+        if (state.running) {
+          updatePlayer();
+          updateSparks();
+          updateZones();
+          updateParticles();
+          updateHud();
+        }
+        drawBackground();
+        drawZones();
+        drawFog();
+        drawSparks();
+        drawParticles();
+        drawPlayer();
+        drawMessage();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", () => {
+        resize();
+        if (state.running) updateCamera();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) event.preventDefault();
+        if (["1", "2", "3", "4"].includes(event.key)) {
+          const tool = tools.find((item) => item.key === event.key);
+          if (tool) selectTool(tool.id);
+        }
+        state.keys.add(event.key.toLowerCase() === "shift" ? "Shift" : event.key.toLowerCase());
+      });
+
+      window.addEventListener("keyup", (event) => {
+        state.keys.delete(event.key.toLowerCase() === "shift" ? "Shift" : event.key.toLowerCase());
+      });
+
+      document.querySelectorAll("[data-move]").forEach((button) => {
+        const keyByMove = { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" };
+        const key = keyByMove[button.dataset.move];
+        button.addEventListener("pointerdown", () => state.keys.add(key));
+        button.addEventListener("pointerup", () => state.keys.delete(key));
+        button.addEventListener("pointerleave", () => state.keys.delete(key));
+      });
+
+      startGame.addEventListener("click", startRun);
+      resize();
+      renderTools();
+      renderZones();
+      loop();
+    </script>
+  </body>
+</html>

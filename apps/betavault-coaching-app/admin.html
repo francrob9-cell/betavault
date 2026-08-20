@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Command | Beta Vault Admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); }
+        .admin-glow { text-shadow: 0 0 15px rgba(239, 68, 68, 0.5); } /* Red accent for Coach mode */
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="adminLoginOverlay" class="fixed inset-0 z-[200] flex items-center justify-center bg-[#050505] px-6">
+        <div class="glass-card w-full max-w-md rounded-2xl border border-red-500/30 p-8 md:p-10 shadow-2xl">
+            <div class="mb-8 text-center">
+                <p class="text-[10px] font-black uppercase tracking-[0.35em] text-red-500">Beta Vault</p>
+                <h2 class="mt-3 text-3xl font-black uppercase italic tracking-tight admin-glow text-white">Coach Admin</h2>
+                <p class="mt-3 text-xs font-bold uppercase tracking-widest text-gray-500">Sign in with an approved coach account.</p>
+            </div>
+            <div class="space-y-4">
+                <button onclick="adminGoogleLogin()" class="w-full rounded bg-white py-3 text-[10px] font-black uppercase tracking-widest text-black transition hover:bg-gray-200"><i class="fab fa-google mr-2"></i>Continue with Google</button>
+                <button onclick="adminAppleLogin()" class="w-full rounded bg-black py-3 text-[10px] font-black uppercase tracking-widest text-white border border-white/15 transition hover:bg-white/10"><i class="fab fa-apple mr-2"></i>Continue with Apple</button>
+                <div class="flex items-center gap-3 py-1">
+                    <span class="h-px flex-1 bg-white/10"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-600">or email</span>
+                    <span class="h-px flex-1 bg-white/10"></span>
+                </div>
+                <input type="email" id="adminLoginEmail" placeholder="Admin email" class="w-full rounded bg-black/50 border border-white/10 p-3 text-sm text-white placeholder:text-gray-600">
+                <input type="password" id="adminLoginPassword" placeholder="Password" onkeydown="if(event.key === 'Enter') adminLogin()" class="w-full rounded bg-black/50 border border-white/10 p-3 text-sm text-white placeholder:text-gray-600">
+                <button onclick="adminLogin()" class="w-full rounded bg-red-600 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-red-700">Enter Coach Admin</button>
+            </div>
+            <p id="adminLoginMessage" class="mt-5 min-h-[1.25rem] text-center text-[10px] font-bold uppercase tracking-widest text-red-300"></p>
+            <a href="index.html" class="mt-6 block text-center text-[10px] font-bold uppercase tracking-widest text-gray-500 transition hover:text-white">Back to athlete portal</a>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="fixed left-0 top-0 h-full w-20 md:w-64 glass-card border-r border-white/5 z-50 flex flex-col items-center py-8">
+        <div class="text-red-600 text-2xl font-black italic mb-12 hidden md:block uppercase tracking-tighter">COACH<span class="text-white text-xs ml-1 font-light tracking-widest uppercase">Admin</span></div>
+        <nav class="flex flex-col space-y-8 w-full px-4 text-center">
+            <button id="nav-home" onclick="showAdminView('home')" class="admin-nav-link flex items-center space-x-4 text-red-500 bg-red-500/10 p-3 rounded-lg text-left"><i class="fas fa-home"></i> <span class="hidden md:block font-bold text-[10px] uppercase tracking-widest">Home</span><span id="coachInboxBadge" class="hidden ml-auto rounded-full bg-yellow-400 px-2 py-1 text-[8px] font-black text-black">0</span></button>
+            <button id="nav-roster" onclick="showAdminView('roster')" class="admin-nav-link flex items-center space-x-4 text-gray-500 hover:text-white p-3 rounded-lg transition text-left"><i class="fas fa-users"></i> <span class="hidden md:block font-bold text-[10px] uppercase tracking-widest">Roster</span></button>
+            <button id="nav-goals" onclick="showAdminView('goals')" class="admin-nav-link flex items-center space-x-4 text-gray-500 hover:text-white p-3 rounded-lg transition text-left"><i class="fas fa-bullseye"></i> <span class="hidden md:block font-bold text-[10px] uppercase tracking-widest">Goals</span></button>
+            <button id="nav-video" onclick="showAdminView('video')" class="admin-nav-link flex items-center space-x-4 text-gray-500 hover:text-white p-3 rounded-lg transition text-left"><i class="fas fa-play"></i> <span class="hidden md:block font-bold text-[10px] uppercase tracking-widest">Video Queue</span><span id="videoQueueBadge" class="hidden ml-auto rounded-full bg-purple-400 px-2 py-1 text-[8px] font-black text-black">0</span></button>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="ml-20 md:ml-64 p-4 md:p-10">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-end mb-12">
+            <div>
+                <h1 class="text-3xl font-black uppercase italic tracking-tight admin-glow text-red-600">Coach Command</h1>
+                <p class="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">Denver Performance Hub | Lee Harris</p>
+            </div>
+            <div class="flex space-x-4">
+                <a href="index.html" class="bg-white/5 border border-white/10 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest">Athlete Portal</a>
+                <button onclick="logoutAdmin()" class="bg-red-600 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest">Logout</button>
+            </div>
+        </header>
+
+        <div id="adminHomeView" data-admin-view="home">
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="glass-card p-6 rounded-xl border-l-4 border-red-600">
+                    <p class="text-gray-500 text-[10px] font-black uppercase mb-2">Active Roster</p>
+                    <h2 class="text-4xl font-black italic"><span id="rosterCount">--</span><span class="text-xs text-gray-600 ml-2">Athletes</span></h2>
+            </div>
+            <div class="glass-card p-6 rounded-xl border-l-4 border-blue-600">
+                    <p class="text-gray-500 text-[10px] font-black uppercase mb-2">Active Training Goals</p>
+                    <h2 class="text-4xl font-black italic"><span id="activeGoalCount">--</span><span class="text-xs text-gray-600 ml-2">Goals</span></h2>
+            </div>
+            <div class="glass-card p-6 rounded-xl border-l-4 border-green-600">
+                <p class="text-gray-500 text-[10px] font-black uppercase mb-2">Video Reviews</p>
+                <h2 class="text-4xl font-black italic text-green-500"><span id="videoReviewCount">--</span></h2>
+            </div>
+        </div>
+
+        <section class="glass-card p-6 rounded-xl border-t-2 border-yellow-500 mb-12">
+            <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-yellow-400">Coach Priority Queue</h3>
+            <div id="coachPriorityQueue" class="grid md:grid-cols-4 gap-4">
+                <p class="text-gray-600 text-xs italic">Loading priorities...</p>
+            </div>
+        </section>
+
+        <section class="glass-card p-6 rounded-xl border-t-2 border-orange-500 mb-12">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] text-orange-400">Coach Notifications / Inbox</h3>
+                    <p class="text-[9px] uppercase font-bold tracking-widest text-gray-600 mt-2">Athlete uploads, active goals, replies, and flagged sessions arrive here.</p>
+                </div>
+                <button onclick="markAllCoachNotificationsRead()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Mark All Read</button>
+            </div>
+            <div id="coachInboxList" class="grid md:grid-cols-2 gap-4">
+                <p class="text-gray-600 text-xs italic">No coach notifications yet.</p>
+            </div>
+        </section>
+
+        <!-- Two Column Layout -->
+        <div class="grid lg:grid-cols-3 gap-10">
+            
+            <!-- Athlete List -->
+            <div class="lg:col-span-2 space-y-6">
+                <h3 class="text-sm font-bold uppercase tracking-[0.3em] flex items-center mb-6">
+                    <span class="w-8 h-[2px] bg-red-600 mr-4"></span> Performance Roster
+                </h3>
+
+                <div id="coachRoster" class="space-y-4">
+                    <p class="text-gray-600 text-xs italic">Loading roster...</p>
+                </div>
+
+                <section id="coachAthleteDetail" class="glass-card p-8 rounded-2xl border-t-2 border-red-500 mt-8">
+                    <p class="text-gray-600 text-xs italic">Select an athlete to open their profile detail.</p>
+                </section>
+            </div>
+
+            <!-- Management Sidebar -->
+            <div class="space-y-8">
+                <section class="glass-card p-8 rounded-2xl border-t-2 border-yellow-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-yellow-400 italic">Invite Athlete</h3>
+                    <div class="space-y-4">
+                        <input type="text" id="inviteName" placeholder="Athlete name" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm">
+                        <input type="email" id="inviteEmail" placeholder="Athlete email" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm">
+                        <input type="tel" id="invitePhone" placeholder="Phone number (optional)" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm">
+                        <button onclick="createAthleteInvite()" class="w-full bg-yellow-600/90 py-3 rounded font-black text-[10px] uppercase tracking-widest hover:bg-yellow-600 transition">Create Invite</button>
+                        <p id="inviteStatus" class="text-[10px] text-gray-500 font-bold uppercase tracking-widest"></p>
+                    </div>
+                    <div id="inviteList" class="space-y-3 mt-6">
+                        <p class="text-gray-600 text-xs italic">Pending invites appear here.</p>
+                    </div>
+                </section>
+
+                <section class="glass-card p-8 rounded-2xl border-t-2 border-purple-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-purple-400 italic">Coach Display</h3>
+                    <select id="coachGradeSystem" onchange="updateCoachGradeSystem()" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300">
+                        <option value="original">Original entered grade</option>
+                        <option value="french">French / Fontainebleau</option>
+                        <option value="ewbank">Ewbank</option>
+                        <option value="uiaa">UIAA</option>
+                        <option value="southAfrica">South Africa</option>
+                        <option value="british">British</option>
+                    </select>
+                </section>
+
+                <!-- Collaborative Training Goal Form -->
+                <section class="glass-card p-8 rounded-2xl border-t-2 border-blue-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-blue-500 italic">Training Goal Builder</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[9px] uppercase font-bold text-gray-500">Select Athlete</label>
+                            <select id="coachAthleteSelect" onchange="selectCoachAthlete(this.value)" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300 mt-1">
+                                <option value="">Loading athletes...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] uppercase font-bold text-gray-500">Goal Title</label>
+                            <input type="text" id="coachGoalTitle" placeholder="e.g. Lock off strength block" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm mt-1">
+                        </div>
+                        <div>
+                            <label class="text-[9px] uppercase font-bold text-gray-500">Shared Coach/User Notes</label>
+                            <textarea id="coachGoalNotes" placeholder="Focus, milestones, next check-in..." class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm h-24 mt-1"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <select id="coachGoalStatus" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300">
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <input type="date" id="coachGoalTargetDate" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm">
+                        </div>
+                        <button onclick="saveCoachTrainingGoal()" class="w-full bg-blue-600 py-3 rounded font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition">Push to Athlete Profile</button>
+                    </div>
+                </section>
+
+                <section class="glass-card p-8 rounded-2xl">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-red-500 italic">Athlete Goals</h3>
+                    <div id="coachGoalsList" class="space-y-4">
+                        <p class="text-gray-600 text-xs italic">Select an athlete to view goals.</p>
+                    </div>
+                </section>
+
+                <section class="glass-card p-8 rounded-2xl border-t-2 border-green-500">
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] mb-6 text-green-400 italic">Weekly Plan Builder</h3>
+                    <div class="space-y-4">
+                        <input type="date" id="coachPlanWeek" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm">
+                        <select id="coachPlanDay" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300">
+                            <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+                        </select>
+                        <select id="coachPlanType" class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300">
+                            <option value="strength">Strength</option>
+                            <option value="limit bouldering">Limit Bouldering</option>
+                            <option value="limit climbing">Limit Climbing</option>
+                            <option value="endurance">Endurance</option>
+                            <option value="technique">Technique</option>
+                            <option value="rest">Rest Day</option>
+                        </select>
+                        <textarea id="coachPlanNotes" placeholder="Block details, volume, rest, intent..." class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm h-24"></textarea>
+                        <button onclick="assignTrainingPlan()" class="w-full bg-green-600 py-3 rounded font-black text-[10px] uppercase tracking-widest hover:bg-green-700 transition">Assign Weekly Block</button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+        </div>
+
+        <section id="adminRosterView" data-admin-view="roster" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <p class="text-[9px] uppercase font-black tracking-widest text-red-400">Roster Report</p>
+                    <h2 class="text-3xl font-black uppercase italic tracking-tight">Athlete Roster</h2>
+                </div>
+                <button onclick="showAdminView('home')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Back Home</button>
+            </div>
+            <div id="adminRosterReport" class="space-y-4">
+                <p class="text-gray-600 text-xs italic">Loading roster report...</p>
+            </div>
+        </section>
+
+        <section id="adminGoalsView" data-admin-view="goals" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <p class="text-[9px] uppercase font-black tracking-widest text-blue-400">Goals Report</p>
+                    <h2 class="text-3xl font-black uppercase italic tracking-tight">Athlete Goals Review</h2>
+                </div>
+                <button onclick="showAdminView('home')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Back Home</button>
+            </div>
+            <div id="adminGoalsReport" class="space-y-4">
+                <p class="text-gray-600 text-xs italic">Loading goal report...</p>
+            </div>
+        </section>
+
+        <section id="adminVideoView" data-admin-view="video" class="hidden space-y-6">
+            <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                <div>
+                    <p class="text-[9px] uppercase font-black tracking-widest text-purple-400">Video Queue</p>
+                    <h2 class="text-3xl font-black uppercase italic tracking-tight">Video Review Studio</h2>
+                    <p class="text-[10px] uppercase font-bold tracking-widest text-gray-600 mt-2">Review clips, jump by timestamp, annotate frames, and save coach notes.</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <select id="coachVideoAthleteSelect" onchange="selectCoachAthlete(this.value)" class="bg-black/40 border border-white/10 p-3 rounded text-sm text-gray-300 min-w-64">
+                        <option value="">Loading athletes...</option>
+                    </select>
+                    <button onclick="openCoachPriority('video')" class="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/20 text-purple-300 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Next Unreviewed</button>
+                </div>
+            </div>
+
+            <div id="coachVideoStudio" class="grid xl:grid-cols-[320px_1fr_360px] gap-6">
+                <aside class="glass-card p-5 rounded-xl border-t-2 border-purple-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-[9px] uppercase font-black tracking-widest text-purple-400">Athlete Videos</p>
+                        <span id="videoReviewCountSmall" class="text-[9px] uppercase font-black text-gray-500"></span>
+                    </div>
+                    <div id="coachVideoList" class="space-y-3">
+                        <p class="text-gray-600 text-xs italic">Select an athlete to view videos.</p>
+                    </div>
+                </aside>
+
+                <section class="glass-card p-5 rounded-xl border border-white/5">
+                    <video id="coachVideoPlayer" controls crossorigin="anonymous" class="w-full bg-black rounded-xl border border-white/10 mb-4 max-h-[62vh]"></video>
+                    <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
+                        <span>Selected: <span id="coachSelectedSecond" class="text-purple-400">0:00</span></span>
+                        <span id="coachVideoDuration">0 seconds</span>
+                    </div>
+                    <div id="coachVideoTimeline" class="flex gap-2 overflow-x-auto pb-2 mb-4">
+                        <p class="text-gray-600 text-xs italic">Open a video to review timestamps.</p>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onclick="seekCoachVideoNote('prev')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Previous Note</button>
+                        <button onclick="seekCoachVideoNote('next')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Next Note</button>
+                        <button onclick="captureVideoFrame()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Capture Frame</button>
+                        <button onclick="clearAnnotationCanvas()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Clear Drawing</button>
+                    </div>
+                    <div id="annotationWorkspace" class="hidden mt-4 space-y-3">
+                        <div class="flex items-center justify-between text-[9px] uppercase font-black tracking-widest text-gray-500">
+                            <span>Captured Frame: <span id="annotationCapturedSecond" class="text-purple-300">0:00</span></span>
+                            <span id="annotationAttachStatus" class="text-yellow-300">Draw, then add to note</span>
+                        </div>
+                        <canvas id="annotationCanvas" class="w-full bg-black rounded-xl border border-purple-500/30 cursor-crosshair"></canvas>
+                        <button onclick="attachAnnotationToTimestampNote()" class="w-full bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/20 text-purple-300 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Add Drawing To Timestamp Note</button>
+                    </div>
+                </section>
+
+                <aside class="glass-card p-5 rounded-xl border-t-2 border-purple-500">
+                    <p class="text-[9px] uppercase font-black tracking-widest text-purple-400 mb-4">Timestamp Note</p>
+                    <textarea id="coachVideoNote" placeholder="Leave coach notes for the selected second..." class="w-full bg-black/40 border border-white/10 p-3 rounded text-sm h-32 mb-3"></textarea>
+                    <button onclick="saveCoachVideoNote()" class="w-full bg-purple-600 py-3 rounded font-black text-[10px] uppercase tracking-widest hover:bg-purple-700 transition">Save Timestamp Note</button>
+                    <div id="coachVideoNotesList" class="space-y-3 mt-6">
+                        <p class="text-gray-600 text-xs italic">Timestamp notes will appear here.</p>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <div id="toastHost" class="fixed right-4 bottom-6 z-[120] space-y-3 w-[calc(100%-2rem)] max-w-sm"></div>
+
+    <!-- Admin Logic -->
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, OAuthProvider, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0ALZd0Xmh7FDsksWFQGKXEKVPcm5bdD4",
+            authDomain: "beta-vault-7bc94.firebaseapp.com",
+            projectId: "beta-vault-7bc94",
+            storageBucket: "beta-vault-7bc94.firebasestorage.app",
+            messagingSenderId: "757561763135",
+            appId: "1:757561763135:web:fa51913efcf84f86f85f8a",
+            measurementId: "G-8R1PP8ZXXP"
+        };
+
+        const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: "select_account" });
+        const appleProvider = new OAuthProvider("apple.com");
+        appleProvider.addScope("email");
+        appleProvider.addScope("name");
+
+        let coachUsers = [];
+        let coachAthletes = [];
+        let athleteInvites = [];
+        let coachTicks = [];
+        let coachTrainingPlans = [];
+        let coachSessionLogs = [];
+        let coachSessionComments = [];
+        let coachGoals = [];
+        let coachMilestones = [];
+        let coachGoalComments = [];
+        let coachTrainingRecommendations = [];
+        let coachVideos = [];
+        let coachVideoNotes = [];
+        let coachNotifications = [];
+        let selectedCoachVideo = null;
+        let selectedCoachSecond = 0;
+        let selectedCoachAthleteId = "";
+        let coachUnsubscribers = [];
+        let annotationHasDrawing = false;
+        let capturedAnnotationSecond = null;
+        let annotationAttachedToNote = false;
+        let currentCoachUser = null;
+        let coachGradeSystem = localStorage.getItem("betaVaultCoachGradeSystem") || "original";
+
+        const allowedCoachEmails = ["francrob9@gmail.com", "lmharr315@gmail.com"];
+        const athleteAppURL = "https://beta-vault-7bc94.web.app";
+
+        const gradeConversions = {
+            yds: {
+                "5.8": { french: "5b", ewbank: "16", uiaa: "VI-", southAfrica: "15", british: "HVS 4c" },
+                "5.9": { french: "5c", ewbank: "17", uiaa: "VI", southAfrica: "17", british: "HVS 5a" },
+                "5.10": { french: "6b", ewbank: "20", uiaa: "VII-", southAfrica: "19", british: "E2 5b" },
+                "5.10a": { french: "6a", ewbank: "18", uiaa: "VI+", southAfrica: "18", british: "E1 5a" },
+                "5.10-": { french: "6a", ewbank: "18", uiaa: "VI+", southAfrica: "18", british: "E1 5a" },
+                "5.10a/b": { french: "6a+", ewbank: "19", uiaa: "VI+", southAfrica: "19", british: "E2 5b" },
+                "5.10b": { french: "6a+", ewbank: "19", uiaa: "VII-", southAfrica: "19", british: "E2 5b" },
+                "5.10b/c": { french: "6b", ewbank: "20", uiaa: "VII", southAfrica: "20", british: "E2 5b" },
+                "5.10c": { french: "6b", ewbank: "20", uiaa: "VII", southAfrica: "20", british: "E2 5b" },
+                "5.10+": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "20", british: "E3 5b" },
+                "5.10c/d": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "21", british: "E3 5b" },
+                "5.10d": { french: "6b+", ewbank: "21", uiaa: "VII+", southAfrica: "21", british: "E3 5b" },
+                "5.11a": { french: "6c", ewbank: "22", uiaa: "VII+", southAfrica: "22", british: "E3 5c" },
+                "5.11b": { french: "6c", ewbank: "23", uiaa: "VIII-", southAfrica: "23", british: "E3 5c" },
+                "5.11c": { french: "6c+", ewbank: "24", uiaa: "VIII-", southAfrica: "24", british: "E4 6a" },
+                "5.11d": { french: "7a", ewbank: "24", uiaa: "VIII", southAfrica: "25", british: "E5 6a" },
+                "5.12a": { french: "7a+", ewbank: "25", uiaa: "VIII+", southAfrica: "25", british: "E5 6a" },
+                "5.12b": { french: "7b", ewbank: "26", uiaa: "VIII+", southAfrica: "26", british: "E5 6b" },
+                "5.12c": { french: "7b+", ewbank: "27", uiaa: "IX-", southAfrica: "27", british: "E6 6b" },
+                "5.12d": { french: "7c", ewbank: "28", uiaa: "IX", southAfrica: "28", british: "E6 6b" },
+                "5.13a": { french: "7c+", ewbank: "29", uiaa: "IX+", southAfrica: "29", british: "E6 6c" },
+                "5.13b": { french: "8a", ewbank: "29", uiaa: "IX+", southAfrica: "30", british: "E7 6c" },
+                "5.13c": { french: "8a+", ewbank: "30", uiaa: "X-", southAfrica: "31", british: "E7 7a" },
+                "5.13d": { french: "8b", ewbank: "31", uiaa: "X", southAfrica: "32", british: "E8 7a" },
+                "5.14a": { french: "8b+", ewbank: "32", uiaa: "X+", southAfrica: "32", british: "E8 7a" },
+                "5.14b": { french: "8c", ewbank: "33", uiaa: "X+", southAfrica: "33", british: "E9 7b" },
+                "5.14c": { french: "8c+", ewbank: "34", uiaa: "XI-", southAfrica: "35", british: "E9 7b" },
+                "5.14d": { french: "9a", ewbank: "35", uiaa: "XI", southAfrica: "36", british: "E10 7c" }
+            },
+            boulder: {
+                V1: { font: "5" }, V2: { font: "5+" }, V3: { font: "6A" }, V4: { font: "6B" }, V5: { font: "6C" }, V6: { font: "7A" },
+                V7: { font: "7A+" }, V8: { font: "7B" }, V9: { font: "7C" }, V10: { font: "7C+" }, V11: { font: "8A" }, V12: { font: "8A+" },
+                V13: { font: "8B" }, V14: { font: "8B+" }, V15: { font: "8C" }, V16: { font: "8C+" }, V17: { font: "9A" }
+            }
+        };
+
+        const conversionLabels = { french: "French", ewbank: "Ewbank", uiaa: "UIAA", southAfrica: "South Africa", british: "British" };
+
+        function showToast(message, type = "info") {
+            const host = document.getElementById('toastHost');
+            const colors = {
+                info: "border-blue-500/30 text-blue-100",
+                success: "border-green-500/30 text-green-100",
+                error: "border-red-500/30 text-red-100"
+            };
+            const toast = document.createElement('div');
+            toast.className = `glass-card border ${colors[type] || colors.info} rounded-lg p-4 text-xs font-bold uppercase tracking-widest shadow-2xl`;
+            toast.textContent = message;
+            host.appendChild(toast);
+            setTimeout(() => toast.remove(), 4200);
+        }
+
+        function showAdminLogin(message = "") {
+            const overlay = document.getElementById('adminLoginOverlay');
+            const messageElement = document.getElementById('adminLoginMessage');
+            overlay.classList.remove('hidden');
+            messageElement.innerText = message;
+        }
+
+        function hideAdminLogin() {
+            const overlay = document.getElementById('adminLoginOverlay');
+            const messageElement = document.getElementById('adminLoginMessage');
+            overlay.classList.add('hidden');
+            messageElement.innerText = "";
+        }
+
+        getRedirectResult(auth).catch((error) => {
+            console.error("Admin provider redirect login error:", error);
+            showAdminLogin(error?.message || "Login failed.");
+        });
+
+        async function adminProviderLogin(provider, label) {
+            const messageElement = document.getElementById('adminLoginMessage');
+            messageElement.innerText = `Opening ${label}...`;
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error(`Admin ${label} popup login error:`, error);
+                if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(error?.code)) {
+                    await signInWithRedirect(auth, provider);
+                    return;
+                }
+                messageElement.innerText = error?.message || `${label} login failed.`;
+            }
+        }
+
+        window.adminGoogleLogin = () => adminProviderLogin(googleProvider, "Google");
+        window.adminAppleLogin = () => adminProviderLogin(appleProvider, "Apple");
+
+        window.adminLogin = async () => {
+            const email = document.getElementById('adminLoginEmail').value.trim();
+            const password = document.getElementById('adminLoginPassword').value;
+            const messageElement = document.getElementById('adminLoginMessage');
+            const normalizedEmail = email.toLowerCase();
+
+            if (!email || !password) {
+                messageElement.innerText = "Email and password are required.";
+                return;
+            }
+            if (!allowedCoachEmails.includes(normalizedEmail)) {
+                messageElement.innerText = "Use francrob9@gmail.com or lmharr315@gmail.com.";
+                return;
+            }
+
+            messageElement.innerText = "Signing in...";
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Admin login error:", error);
+                messageElement.innerText = error?.message || "Admin login failed.";
+            }
+        };
+
+        const goalStatusStyles = {
+            active: "text-green-400 border-green-500/20 bg-green-500/10",
+            paused: "text-yellow-400 border-yellow-500/20 bg-yellow-500/10",
+            completed: "text-blue-400 border-blue-500/20 bg-blue-500/10"
+        };
+
+        function escapeHTML(value = "") {
+            return String(value).replace(/[&<>"']/g, (character) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            })[character]);
+        }
+
+        function normalizeGrade(value = "") {
+            return value.trim().replace(/\s+/g, "").replace(/^v/i, "V");
+        }
+
+        function formatCoachGrade(grade = "") {
+            const normalized = normalizeGrade(grade);
+            if (!normalized || coachGradeSystem === "original") return normalized || "---";
+            if (normalized.startsWith("V")) {
+                const font = gradeConversions.boulder[normalized]?.font;
+                return coachGradeSystem === "french" && font ? `${normalized} / ${font} Font` : normalized;
+            }
+            const converted = gradeConversions.yds[normalized]?.[coachGradeSystem];
+            return converted ? `${normalized} / ${converted} ${conversionLabels[coachGradeSystem]}` : normalized;
+        }
+
+        function isAllowedCoach(user, profile = {}) {
+            const email = user?.email?.toLowerCase() || "";
+            return allowedCoachEmails.includes(email);
+        }
+
+        function makeInviteCode() {
+            return Math.random().toString(36).slice(2, 8).toUpperCase();
+        }
+
+        function buildAthleteInviteEmail(invite = {}) {
+            const athleteName = invite.name || "there";
+            const subject = "Your Beta Vault athlete invite";
+            const body = [
+                `Hi ${athleteName},`,
+                "",
+                "You have been invited to Beta Vault, the athlete training portal we will use for goals, session logs, video review, and coach feedback.",
+                "",
+                `App link: ${athleteAppURL}`,
+                `Signup code: ${invite.inviteCode || ""}`,
+                "",
+                "Open the app, choose a sign-in method, and enter the invite code during signup/onboarding.",
+                "",
+                "See you in the Vault,"
+            ].join("\n");
+            return {
+                href: `mailto:${(invite.email || "").trim()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+                subject,
+                body
+            };
+        }
+
+        function cleanPhoneNumber(value = "") {
+            const trimmed = value.trim();
+            const leadingPlus = trimmed.startsWith("+") ? "+" : "";
+            return leadingPlus + trimmed.replace(/\D/g, "");
+        }
+
+        function buildAthleteInviteSms(invite = {}) {
+            const phone = cleanPhoneNumber(invite.phone || "");
+            const body = `You're invited to Beta Vault. App: ${athleteAppURL} Signup code: ${invite.inviteCode || ""}`;
+            return {
+                href: `sms:${phone}?&body=${encodeURIComponent(body)}`,
+                body
+            };
+        }
+
+        window.openAthleteInviteEmail = (inviteId) => {
+            const invite = athleteInvites.find((item) => item.id === inviteId);
+            if (!invite) return showToast("Invite not found", "error");
+            const draft = buildAthleteInviteEmail(invite);
+            window.open(draft.href, "_blank");
+            showToast("Opening email draft. If nothing opens, use Copy Invite.", "info");
+        };
+
+        window.copyAthleteInviteEmail = async (inviteId) => {
+            const invite = athleteInvites.find((item) => item.id === inviteId);
+            if (!invite) return showToast("Invite not found", "error");
+            const draft = buildAthleteInviteEmail(invite);
+            const sms = buildAthleteInviteSms(invite);
+            const message = `To: ${invite.email || invite.phone || ""}\nSubject: ${draft.subject}\n\n${draft.body}${invite.phone ? "\n\nSMS version:\n" + sms.body : ""}`;
+            try {
+                await navigator.clipboard.writeText(message);
+                showToast("Invite email copied", "success");
+            } catch (error) {
+                console.error("Copy invite error:", error);
+                showToast("Copy failed. Select the invite text manually.", "error");
+            }
+        };
+
+        function formatGoalDate(value) {
+            if (!value) return "No target date";
+            if (value.toDate) return value.toDate().toLocaleDateString();
+            return new Date(value).toLocaleDateString();
+        }
+
+        function formatDateTime(value) {
+            if (!value) return "";
+            if (value.toDate) return value.toDate().toLocaleString();
+            return new Date(value).toLocaleString();
+        }
+
+        function formatSeconds(totalSeconds) {
+            const safeSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+            const minutes = Math.floor(safeSeconds / 60);
+            const seconds = safeSeconds % 60;
+            return `${minutes}:${String(seconds).padStart(2, "0")}`;
+        }
+
+        function goalTime(goal) {
+            const value = goal.createdAt || goal.timestamp || 0;
+            return value?.toDate ? value.toDate().getTime() : new Date(value).getTime();
+        }
+
+        function getTimeMillis(value) {
+            if (!value) return 0;
+            if (value.toDate) return value.toDate().getTime();
+            const parsed = new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function daysAgo(days) {
+            return Date.now() - days * 24 * 60 * 60 * 1000;
+        }
+
+        function average(values) {
+            const clean = values.map(Number).filter((value) => Number.isFinite(value));
+            if (!clean.length) return 0;
+            return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+        }
+
+        function gradeScore(grade = "") {
+            const normalized = normalizeGrade(grade);
+            if (normalized.startsWith("V")) return Number(normalized.slice(1)) * 10;
+            const ydsBase = { "5.8": 80, "5.9": 90, "5.10": 100, "5.10-": 98, "5.10a": 101, "5.10a/b": 102, "5.10b": 103, "5.10b/c": 104, "5.10c": 105, "5.10+": 106, "5.10c/d": 107, "5.10d": 108 };
+            if (ydsBase[normalized]) return ydsBase[normalized];
+            const match = normalized.match(/^5\.(11|12|13|14)([abcd])$/);
+            if (!match) return 0;
+            return Number(match[1]) * 10 + { a: 1, b: 2, c: 3, d: 4 }[match[2]];
+        }
+
+        function analyzeAthleteProgress(athleteId) {
+            const sessions = coachSessionLogs
+                .filter((session) => session.userId === athleteId)
+                .sort((a, b) => getTimeMillis(a.createdAt || a.sessionDate) - getTimeMillis(b.createdAt || b.sessionDate));
+            const recentSessions = sessions.filter((session) => getTimeMillis(session.createdAt || session.sessionDate) >= daysAgo(14));
+            const previousSessions = sessions.filter((session) => {
+                const time = getTimeMillis(session.createdAt || session.sessionDate);
+                return time >= daysAgo(28) && time < daysAgo(14);
+            });
+            const weekSessions = sessions.filter((session) => getTimeMillis(session.createdAt || session.sessionDate) >= daysAgo(7));
+            const sends = coachTicks
+                .filter((tick) => tick.userId === athleteId && gradeScore(tick.grade))
+                .sort((a, b) => getTimeMillis(a.timestamp) - getTimeMillis(b.timestamp));
+            const recentSends = sends.filter((tick) => getTimeMillis(tick.timestamp) >= daysAgo(30));
+            const previousSends = sends.filter((tick) => {
+                const time = getTimeMillis(tick.timestamp);
+                return time >= daysAgo(60) && time < daysAgo(30);
+            });
+            const videos = coachVideos.filter((video) => video.userId === athleteId);
+            const videoNotes = coachVideoNotes.filter((note) => note.userId === athleteId);
+            const goals = coachGoals.filter((goal) => goal.userId === athleteId && (goal.status || "active") === "active");
+
+            const recentFatigue = average(recentSessions.map((session) => session.fatigue));
+            const previousFatigue = average(previousSessions.map((session) => session.fatigue));
+            const recentSleep = average(recentSessions.map((session) => session.sleep));
+            const previousSleep = average(previousSessions.map((session) => session.sleep));
+            const highIntensity = weekSessions.filter((session) => Number(session.effort || 0) >= 8 || Number(session.fatigue || 0) >= 8);
+            const restSessions = weekSessions.filter((session) => (session.type || "").toLowerCase() === "rest");
+            const painSessions = recentSessions.filter((session) => Number(session.pain || 0) >= 4);
+            const painAreas = painSessions.reduce((areas, session) => {
+                const area = (session.painArea || "unspecified").trim().toLowerCase();
+                areas[area] = (areas[area] || 0) + 1;
+                return areas;
+            }, {});
+            const recurringPainArea = Object.entries(painAreas).sort((a, b) => b[1] - a[1]).find(([, count]) => count >= 2);
+            const recentBest = Math.max(0, ...recentSends.map((tick) => gradeScore(tick.grade)));
+            const previousBest = Math.max(0, ...previousSends.map((tick) => gradeScore(tick.grade)));
+            const plateau = recentSends.length >= 3 && previousBest > 0 && recentBest <= previousBest;
+
+            const flags = [];
+            if (recentFatigue && previousFatigue && recentFatigue - previousFatigue >= 1.2) flags.push({ level: "yellow", title: "Fatigue rising", detail: `Recent average ${recentFatigue.toFixed(1)}/10, up from ${previousFatigue.toFixed(1)}.` });
+            if (recurringPainArea) flags.push({ level: "red", title: "Recurring pain", detail: `${recurringPainArea[1]} recent sessions mention ${recurringPainArea[0]}.` });
+            if ((recentSleep && recentSleep < 6.5) || (recentSleep && previousSleep && previousSleep - recentSleep >= 1)) flags.push({ level: "yellow", title: "Sleep dropping", detail: `Recent average sleep ${recentSleep.toFixed(1)} hours.` });
+            if (plateau) flags.push({ level: "blue", title: "Grade progression stalling", detail: "Recent logged sends are not exceeding the previous 30-day best." });
+            if (highIntensity.length >= 3 && restSessions.length < 2) flags.push({ level: "red", title: "High intensity load", detail: `${highIntensity.length} hard sessions in 7 days with ${restSessions.length} rest days logged.` });
+
+            let emphasis = "technique";
+            if (flags.some((flag) => flag.title === "Recurring pain") || flags.some((flag) => flag.title === "High intensity load")) emphasis = "rest";
+            else if (flags.some((flag) => flag.title === "Sleep dropping") || flags.some((flag) => flag.title === "Fatigue rising")) emphasis = "lower volume";
+            else if (plateau && goals.some((goal) => /power|strength|finger|hang/i.test(`${goal.title} ${goal.notes}`))) emphasis = "strength";
+            else if (plateau) emphasis = "technique";
+            else if (recentSessions.filter((session) => /endurance/i.test(session.type || "")).length === 0 && recentSessions.length >= 3) emphasis = "endurance";
+
+            const nextSessionNotes = {
+                rest: "Schedule a lower-demand recovery day. Keep movement easy, review pain notes, and avoid limit efforts until fatigue/pain trends settle.",
+                "lower volume": "Reduce total volume by 25-40% next session. Keep intensity controlled, stop before form breaks, and prioritize sleep/recovery.",
+                strength: "Use a focused strength session with conservative volume: warm up thoroughly, pick 2-3 main exercises, and leave 1-2 reps in reserve.",
+                technique: "Use a technique-focused session: easier grades, high-quality movement, repeat climbs, and one clear cue per attempt.",
+                endurance: "Add an endurance block: aerobic capacity or controlled intervals, moderate pump, and avoid stacking this after a high-fatigue day."
+            };
+
+            const unreviewedVideos = videos.filter((video) => !videoNotes.some((note) => note.videoId === video.id));
+            const recentVideoNotes = videoNotes.sort((a, b) => goalTime(b) - goalTime(a)).slice(0, 3);
+            const coachDraft = [
+                flags.length ? `Main flags: ${flags.map((flag) => flag.title.toLowerCase()).join(", ")}.` : "No major risk flags from recent logs.",
+                `Recommended next emphasis: ${emphasis}.`,
+                nextSessionNotes[emphasis],
+                unreviewedVideos.length ? `${unreviewedVideos.length} video(s) still need review before finalizing beta or technique advice.` : "Video review is current based on timestamp notes."
+            ].join("\n");
+
+            return {
+                sessions,
+                recentSessions,
+                sends,
+                recentSends,
+                videos,
+                videoNotes,
+                unreviewedVideos,
+                recentVideoNotes,
+                flags,
+                emphasis,
+                nextSessionNotes: nextSessionNotes[emphasis],
+                coachDraft,
+                planSuggestion: {
+                    blockType: emphasis === "lower volume" ? "technique" : emphasis,
+                    notes: nextSessionNotes[emphasis]
+                }
+            };
+        }
+
+        function renderProgressIntelligence(athleteId) {
+            const analysis = analyzeAthleteProgress(athleteId);
+            const flagClass = { red: "border-red-500/30 text-red-200 bg-red-500/10", yellow: "border-yellow-500/30 text-yellow-200 bg-yellow-500/10", blue: "border-blue-500/30 text-blue-200 bg-blue-500/10" };
+            return `
+                <section class="bg-black/20 border border-green-500/20 rounded-xl p-5 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <p class="text-[9px] uppercase font-black tracking-widest text-green-400">Progress Intelligence</p>
+                            <h4 class="text-lg font-black uppercase italic tracking-tight">Weekly Athlete Report</h4>
+                        </div>
+                        <button onclick="prefillCoachPlanSuggestion('${athleteId}')" class="bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 text-green-300 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Use Plan Draft</button>
+                    </div>
+                    <div class="grid md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">14-Day Sessions</p><p class="text-2xl font-black">${analysis.recentSessions.length}</p></div>
+                        <div class="bg-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">30-Day Sends</p><p class="text-2xl font-black text-green-300">${analysis.recentSends.length}</p></div>
+                        <div class="bg-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Videos To Review</p><p class="text-2xl font-black text-purple-300">${analysis.unreviewedVideos.length}</p></div>
+                        <div class="bg-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Next Emphasis</p><p class="text-sm font-black uppercase text-blue-300">${escapeHTML(analysis.emphasis)}</p></div>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        ${analysis.flags.length ? analysis.flags.map((flag) => `
+                            <div class="border rounded-lg p-3 ${flagClass[flag.level] || flagClass.blue}">
+                                <p class="text-[9px] uppercase font-black tracking-widest">${escapeHTML(flag.title)}</p>
+                                <p class="text-xs mt-1 text-gray-200">${escapeHTML(flag.detail)}</p>
+                            </div>
+                        `).join("") : '<p class="text-gray-600 text-xs italic">No major flags detected in the current window.</p>'}
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-white/5 border border-white/5 rounded-lg p-4">
+                            <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-2">Recommendation</p>
+                            <p class="text-sm text-gray-200 leading-relaxed">${escapeHTML(analysis.nextSessionNotes)}</p>
+                        </div>
+                        <div class="bg-white/5 border border-white/5 rounded-lg p-4">
+                            <p class="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-2">Coach-Facing Draft</p>
+                            <p class="text-sm text-gray-200 leading-relaxed whitespace-pre-line">${escapeHTML(analysis.coachDraft)}</p>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+
+        function dateAfterDays(days) {
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            return date.toISOString().slice(0, 10);
+        }
+
+        function buildMilestoneRecommendations(goal = {}, recommendation = {}) {
+            const text = `${goal.title || ""} ${goal.notes || ""} ${recommendation.recommendation || ""}`.toLowerCase();
+            if (/finger|hang|strength|power|campus|board/.test(text)) {
+                return [
+                    "Complete 3 strength sessions with RPE and pain notes logged",
+                    "Record baseline load, edge size, reps, and rest for main strength exercise",
+                    "Finish 2 weeks without pain above 3/10 during strength work",
+                    "Retest the goal movement or exercise and compare to baseline"
+                ];
+            }
+            if (/endurance|pump|route|lead|sport|5\./.test(text)) {
+                return [
+                    "Complete 2 aerobic capacity sessions below max effort",
+                    "Complete 1 power-endurance block with duration and heart-rate notes",
+                    "Log pacing, rest positions, and pump level after each route session",
+                    "Repeat target grade routes with lower RPE or fewer falls"
+                ];
+            }
+            if (/project|send|outdoor|redpoint|mp|mountain/.test(text)) {
+                return [
+                    "Create beta map with cruxes, rests, clips, and known links",
+                    "Film 2 project attempts and add timestamp notes for repeated breakdowns",
+                    "Link the hardest section twice in one session",
+                    "Complete one full attempt plan with warm-up, rest timing, and trip report"
+                ];
+            }
+            if (/technique|foot|feet|movement|body|balance|hip/.test(text)) {
+                return [
+                    "Film 2 climbs focused on one technique cue",
+                    "Repeat 3 moderate climbs with cleaner footwork or body position",
+                    "Add coach notes on one movement pattern to keep and one to change",
+                    "Complete a technique session with RPE 6 or lower"
+                ];
+            }
+            return [
+                "Log 3 sessions tied directly to this goal",
+                "Add one video or coach note showing current baseline",
+                "Complete the first training block and record fatigue, sleep, and pain",
+                "Review progress with coach and update next milestone"
+            ];
+        }
+
+        function getNextMilestoneRecommendation(goal, recommendation, milestones = []) {
+            const suggestions = buildMilestoneRecommendations(goal, recommendation);
+            const usedTitles = new Set(milestones.map((milestone) => (milestone.title || "").toLowerCase()));
+            const title = suggestions.find((suggestion) => !usedTitles.has(suggestion.toLowerCase())) || suggestions[Math.min(milestones.length, suggestions.length - 1)];
+            return {
+                title,
+                dueDate: dateAfterDays(14 * Math.min(milestones.length + 1, 4))
+            };
+        }
+
+        function refreshCoachViews() {
+            renderCoachRoster();
+            renderCoachAthleteSelect();
+            renderInviteList();
+            renderAdminRosterReport();
+            renderAdminGoalsReport();
+            document.getElementById('rosterCount').innerText = coachAthletes.length;
+            document.getElementById('activeGoalCount').innerText = coachGoals.filter((goal) => (goal.status || "active") === "active").length;
+            document.getElementById('videoReviewCount').innerText = coachVideos.length;
+            renderCoachPriorityQueue();
+            renderCoachInbox();
+
+            if (!selectedCoachAthleteId && coachAthletes.length) selectedCoachAthleteId = coachAthletes[0].id;
+            if (selectedCoachAthleteId) {
+                document.getElementById('coachAthleteSelect').value = selectedCoachAthleteId;
+                loadCoachTrainingGoals(selectedCoachAthleteId);
+                loadCoachVideos(selectedCoachAthleteId);
+                renderCoachAthleteDetail(selectedCoachAthleteId);
+            }
+        }
+
+        function loadCoachRoster() {
+            if (coachUnsubscribers.length) {
+                refreshCoachViews();
+                return;
+            }
+
+            const watch = (collectionName, setter) => {
+                const unsubscribe = onSnapshot(collection(db, collectionName), (snapshot) => {
+                    const rows = [];
+                    snapshot.forEach((itemDoc) => rows.push({ id: itemDoc.id, ...itemDoc.data() }));
+                    setter(rows);
+                    refreshCoachViews();
+                }, (e) => {
+                    console.error(`${collectionName} realtime error:`, e);
+                    showToast(`Error loading ${collectionName}`, "error");
+                });
+                coachUnsubscribers.push(unsubscribe);
+            };
+
+            watch("users", (rows) => {
+                coachUsers = rows;
+                coachAthletes = rows.filter((row) => (row.role || "athlete") === "athlete");
+            });
+            watch("athleteInvites", (rows) => athleteInvites = rows);
+            watch("ticks", (rows) => coachTicks = rows);
+            watch("trainingPlans", (rows) => coachTrainingPlans = rows);
+            watch("sessionLogs", (rows) => coachSessionLogs = rows);
+            watch("sessionComments", (rows) => coachSessionComments = rows);
+            watch("trainingGoals", (rows) => coachGoals = rows);
+            watch("goalMilestones", (rows) => coachMilestones = rows);
+            watch("goalComments", (rows) => coachGoalComments = rows);
+            watch("trainingRecommendations", (rows) => coachTrainingRecommendations = rows);
+            watch("videos", (rows) => coachVideos = rows);
+            watch("videoNotes", (rows) => coachVideoNotes = rows);
+            watch("notifications", (rows) => coachNotifications = rows.filter((row) => row.audience === "coach" || row.userId === "coach"));
+        }
+
+        function updateAdminBadges() {
+            const unreadInbox = coachNotifications.filter((notification) => !notification.read).length;
+            const unreviewedVideos = coachVideos.filter((video) => !coachVideoNotes.some((note) => note.videoId === video.id)).length;
+            const inboxBadge = document.getElementById('coachInboxBadge');
+            const videoBadge = document.getElementById('videoQueueBadge');
+            if (inboxBadge) {
+                inboxBadge.innerText = unreadInbox > 99 ? "99+" : String(unreadInbox);
+                inboxBadge.classList.toggle('hidden', unreadInbox === 0);
+            }
+            if (videoBadge) {
+                videoBadge.innerText = unreviewedVideos > 99 ? "99+" : String(unreviewedVideos);
+                videoBadge.classList.toggle('hidden', unreviewedVideos === 0);
+            }
+        }
+
+        function renderCoachInbox() {
+            updateAdminBadges();
+            const list = document.getElementById('coachInboxList');
+            if (!list) return;
+
+            if (!coachNotifications.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No coach notifications yet.</p>';
+                return;
+            }
+
+            const typeColors = {
+                "Video Uploaded": "purple",
+                "New Active Goal": "blue",
+                "Goal Reply": "green",
+                "Flagged Session": "yellow"
+            };
+            const sorted = [...coachNotifications].sort((a, b) => goalTime(b) - goalTime(a)).slice(0, 16);
+            list.innerHTML = sorted.map((notification) => {
+                const color = typeColors[notification.type] || "orange";
+                const athlete = coachAthletes.find((item) => item.id === notification.athleteId || item.id === notification.userId);
+                const athleteName = notification.athleteName || athlete?.name || notification.athleteEmail || athlete?.email || "Athlete";
+                return `
+                    <button onclick="openCoachNotification('${notification.id}')" class="text-left bg-black/20 border ${notification.read ? "border-white/5" : `border-${color}-500/40`} rounded-xl p-4 transition hover:bg-white/[0.04] hover:border-${color}-500/60">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-[9px] uppercase font-black tracking-widest text-${color}-300">${escapeHTML(notification.type || "Notification")}</p>
+                                <p class="text-sm font-black uppercase italic tracking-tight mt-1">${escapeHTML(athleteName)}</p>
+                            </div>
+                            <span class="text-[8px] uppercase font-black ${notification.read ? "text-gray-600" : "text-yellow-300"}">${notification.read ? "Read" : "New"}</span>
+                        </div>
+                        <p class="text-xs text-gray-300 leading-relaxed mt-3">${escapeHTML(notification.message || "")}</p>
+                        <p class="text-[8px] uppercase font-bold tracking-widest text-gray-600 mt-3">${escapeHTML(formatDateTime(notification.createdAt))}</p>
+                    </button>
+                `;
+            }).join("");
+        }
+
+        function renderCoachPriorityQueue() {
+            const queue = document.getElementById('coachPriorityQueue');
+            if (!queue) return;
+            const videosNeedingReview = coachVideos
+                .filter((video) => !coachVideoNotes.some((note) => note.videoId === video.id))
+                .sort((a, b) => goalTime(a) - goalTime(b));
+            const athleteReplies = coachGoalComments
+                .filter((comment) => comment.createdByRole === "user")
+                .sort((a, b) => goalTime(b) - goalTime(a));
+            const today = new Date().toISOString().slice(0, 10);
+            const overdueGoals = coachGoals
+                .filter((goal) => (goal.status || "active") === "active" && goal.targetDate && goal.targetDate < today)
+                .sort((a, b) => (a.targetDate || "").localeCompare(b.targetDate || ""));
+            const sessionsNeedAttention = coachSessionLogs
+                .filter((session) => Number(session.pain || 0) >= 5 || Number(session.fatigue || 0) >= 8)
+                .sort((a, b) => Math.max(Number(b.pain || 0), Number(b.fatigue || 0)) - Math.max(Number(a.pain || 0), Number(a.fatigue || 0)));
+            const athleteName = (userId) => {
+                const athlete = coachAthletes.find((item) => item.id === userId);
+                return athlete?.name || athlete?.email || "Open athlete";
+            };
+            const priorityCard = ({ type, label, count, color, target }) => `
+                <button onclick="openCoachPriority('${type}')" class="text-left bg-black/20 border border-white/5 rounded-lg p-4 transition hover:border-${color}-500/40 hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-${color}-500/40 ${count ? "" : "opacity-50 cursor-default"}">
+                    <p class="text-[9px] uppercase font-black text-gray-500 underline decoration-white/20 underline-offset-4">${label}</p>
+                    <p class="text-3xl font-black text-${color}-400">${count}</p>
+                    <p class="text-[8px] uppercase font-bold tracking-widest text-gray-600 mt-2">${target ? escapeHTML(target) : "Nothing waiting"}</p>
+                </button>
+            `;
+
+            queue.innerHTML = `
+                ${priorityCard({ type: "video", label: "Videos Need Review", count: videosNeedingReview.length, color: "purple", target: videosNeedingReview[0] ? athleteName(videosNeedingReview[0].userId) : "" })}
+                ${priorityCard({ type: "reply", label: "Athlete Replies", count: athleteReplies.length, color: "blue", target: athleteReplies[0] ? athleteName(athleteReplies[0].userId) : "" })}
+                ${priorityCard({ type: "overdue", label: "Overdue Goals", count: overdueGoals.length, color: "red", target: overdueGoals[0] ? athleteName(overdueGoals[0].userId) : "" })}
+                ${priorityCard({ type: "session", label: "Session Flags", count: sessionsNeedAttention.length, color: "yellow", target: sessionsNeedAttention[0] ? athleteName(sessionsNeedAttention[0].userId) : "" })}
+            `;
+        }
+
+        function renderInviteList() {
+            const list = document.getElementById('inviteList');
+            if (!list) return;
+            const invites = [...athleteInvites].sort((a, b) => goalTime(b) - goalTime(a)).slice(0, 6);
+            if (!invites.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No invites created yet.</p>';
+                return;
+            }
+            list.innerHTML = invites.map((invite) => `
+                <div class="bg-black/20 border border-white/5 rounded-lg p-4">
+                    <div class="flex justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-black uppercase italic">${escapeHTML(invite.name || invite.email || invite.phone || "Invited Athlete")}</p>
+                            <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(invite.email || "No email")} ${invite.phone ? "| " + escapeHTML(invite.phone) : ""}</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-black ${invite.status === "accepted" ? "text-green-400" : "text-yellow-400"}">${escapeHTML(invite.status || "pending")}</span>
+                    </div>
+                    <p class="text-lg font-black tracking-widest text-yellow-300 mt-3">${escapeHTML(invite.inviteCode || "")}</p>
+                    <p class="text-[9px] uppercase font-bold text-gray-600 mt-1">Give this code to the athlete for signup.</p>
+                    <div class="grid grid-cols-3 gap-2 mt-4">
+                        ${invite.email ? `<a href="${escapeHTML(buildAthleteInviteEmail(invite).href)}" target="_blank" rel="noopener" class="text-center bg-yellow-600/10 hover:bg-yellow-600/20 border border-yellow-500/20 text-yellow-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Email</a>` : '<span class="text-center bg-white/5 border border-white/10 text-gray-600 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest">Email</span>'}
+                        ${invite.phone ? `<a href="${escapeHTML(buildAthleteInviteSms(invite).href)}" class="text-center bg-green-600/10 hover:bg-green-600/20 border border-green-500/20 text-green-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">SMS</a>` : '<span class="text-center bg-white/5 border border-white/10 text-gray-600 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest">SMS</span>'}
+                        <button onclick="copyAthleteInviteEmail('${invite.id}')" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Copy Invite</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function profileContact(athlete = {}) {
+            return [athlete.email, athlete.phone].filter(Boolean).join(" | ") || "No contact saved";
+        }
+
+        function renderAdminRosterReport() {
+            const report = document.getElementById('adminRosterReport');
+            if (!report) return;
+            const systemAccounts = coachUsers.filter((user) => (user.role || "athlete") !== "athlete");
+            const systemMarkup = systemAccounts.length ? `
+                <section class="glass-card p-5 rounded-xl border border-yellow-500/20">
+                    <p class="text-[9px] uppercase font-black tracking-widest text-yellow-300 mb-3">System / Coach Accounts</p>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        ${systemAccounts.map((user) => `
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                                <p class="text-sm font-black uppercase italic">${escapeHTML(user.name || user.email || user.phone || "Unnamed Account")}</p>
+                                <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(profileContact(user))}</p>
+                                <p class="text-[9px] uppercase font-black text-yellow-300 mt-1">Role: ${escapeHTML(user.role || "unknown")}</p>
+                            </div>
+                        `).join("")}
+                    </div>
+                    <p class="text-[9px] uppercase font-bold text-gray-600 mt-3">Coach/admin accounts are intentionally excluded from the athlete roster.</p>
+                </section>
+            ` : "";
+
+            if (!coachAthletes.length) {
+                report.innerHTML = `${systemMarkup}<p class="text-gray-600 text-xs italic">No athlete profiles found. Ask the athlete to sign into the app once and complete onboarding.</p>`;
+                return;
+            }
+
+            const athleteMarkup = coachAthletes.map((athlete, index) => {
+                const activeGoals = coachGoals.filter((goal) => goal.userId === athlete.id && (goal.status || "active") === "active").length;
+                const sends = coachTicks.filter((tick) => tick.userId === athlete.id).length;
+                const videos = coachVideos.filter((video) => video.userId === athlete.id).length;
+                const sessions = coachSessionLogs.filter((session) => session.userId === athlete.id).length;
+                const profilePhoto = athlete.photoURL || `https://i.pravatar.cc/150?u=${encodeURIComponent(athlete.email || athlete.id || index)}`;
+                return `
+                    <div class="glass-card p-5 rounded-xl border border-white/5">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                            <div class="flex items-center gap-5">
+                                <img src="${escapeHTML(profilePhoto)}" class="w-16 h-16 rounded-xl object-cover border border-white/10">
+                                <div>
+                                    <h3 class="text-lg font-black uppercase italic tracking-tight">${escapeHTML(athlete.name || athlete.email || athlete.phone || "Unnamed Athlete")}</h3>
+                                    <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(profileContact(athlete))}</p>
+                                    <p class="text-[9px] uppercase font-bold text-gray-500 mt-1">Goal: ${escapeHTML(athlete.goal || "No primary goal saved")} ${athlete.onboardingComplete ? "" : "| Setup pending"}</p>
+                                </div>
+                            </div>
+                            <button onclick="openAthleteProfileFromReport('${athlete.id}')" class="bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 text-red-300 px-4 py-3 rounded text-[9px] font-black uppercase tracking-widest transition">Open Profile</button>
+                        </div>
+                        <div class="grid md:grid-cols-5 gap-3 mt-5">
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Max Grade</p><p class="text-sm font-black text-red-300 uppercase">${escapeHTML(formatCoachGrade(athlete.maxGrade))}</p></div>
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Goals</p><p class="text-xl font-black text-blue-300">${activeGoals}</p></div>
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Sends</p><p class="text-xl font-black text-green-300">${sends}</p></div>
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Videos</p><p class="text-xl font-black text-purple-300">${videos}</p></div>
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3"><p class="text-[8px] uppercase font-black text-gray-500">Sessions</p><p class="text-xl font-black text-yellow-300">${sessions}</p></div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+            report.innerHTML = `${systemMarkup}${athleteMarkup}`;
+        }
+
+        function renderAdminGoalsReport() {
+            const report = document.getElementById('adminGoalsReport');
+            if (!report) return;
+            if (!coachAthletes.length) {
+                report.innerHTML = '<p class="text-gray-600 text-xs italic">No athletes found.</p>';
+                return;
+            }
+
+            report.innerHTML = coachAthletes.map((athlete) => {
+                const goals = coachGoals
+                    .filter((goal) => goal.userId === athlete.id)
+                    .sort((a, b) => goalTime(b) - goalTime(a));
+                const goalMarkup = goals.length ? goals.map((goal) => {
+                    const recommendations = coachTrainingRecommendations
+                        .filter((recommendation) => recommendation.goalId === goal.id)
+                        .sort((a, b) => goalTime(b) - goalTime(a));
+                    const pendingRecommendation = recommendations.find((recommendation) => recommendation.status !== "approved");
+                    const approvedRecommendation = recommendations.find((recommendation) => recommendation.status === "approved");
+                    return `
+                        <div class="bg-black/20 border border-white/5 rounded-lg p-4 space-y-3">
+                            <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-black uppercase italic tracking-tight">${escapeHTML(goal.title || "Untitled Goal")}</p>
+                                    <p class="text-[9px] uppercase font-bold text-gray-600">Status ${escapeHTML(goal.status || "active")} | Target ${escapeHTML(formatGoalDate(goal.targetDate))}</p>
+                                </div>
+                                <button onclick="openGoalFromReport('${athlete.id}', '${goal.id}')" class="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-300 px-3 py-2 rounded text-[8px] font-black uppercase tracking-widest transition">Open Goal</button>
+                            </div>
+                            <p class="text-xs text-gray-300 whitespace-pre-line">${escapeHTML(goal.notes || "No notes saved.")}</p>
+                            ${pendingRecommendation ? `
+                                <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-3">
+                                    <p class="text-[9px] uppercase font-black tracking-widest text-yellow-300">Pending Recommendation</p>
+                                    <textarea id="report-recommendation-${pendingRecommendation.id}" class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs h-36">${escapeHTML(pendingRecommendation.recommendation || "")}</textarea>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button onclick="saveTrainingRecommendationEdit('${pendingRecommendation.id}', 'report-recommendation')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 rounded text-[8px] font-black uppercase tracking-widest transition">Save Edit</button>
+                                        <button onclick="approveTrainingRecommendation('${pendingRecommendation.id}', 'report-recommendation')" class="bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 text-green-300 px-3 py-2 rounded text-[8px] font-black uppercase tracking-widest transition">Approve</button>
+                                    </div>
+                                </div>
+                            ` : approvedRecommendation ? '<p class="text-[9px] uppercase font-black tracking-widest text-green-300">Recommendation approved</p>' : '<p class="text-[9px] uppercase font-bold text-gray-600">No recommendation draft yet.</p>'}
+                        </div>
+                    `;
+                }).join("") : '<p class="text-gray-600 text-xs italic">No goals for this athlete.</p>';
+                return `
+                    <section class="glass-card p-5 rounded-xl border border-white/5">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h3 class="text-lg font-black uppercase italic tracking-tight">${escapeHTML(athlete.name || athlete.email || athlete.phone || "Unnamed Athlete")}</h3>
+                                <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(profileContact(athlete))}</p>
+                            </div>
+                            <button onclick="openAthleteProfileFromReport('${athlete.id}')" class="bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-300 px-3 py-2 rounded text-[8px] font-black uppercase tracking-widest transition">Profile</button>
+                        </div>
+                        <div class="space-y-3">${goalMarkup}</div>
+                    </section>
+                `;
+            }).join("");
+        }
+
+        async function createNotification(userId, type, message) {
+            const athlete = coachAthletes.find((item) => item.id === userId);
+            const notificationRef = doc(collection(db, "notifications"));
+            const payload = {
+                userId,
+                audience: "athlete",
+                athleteId: userId,
+                athleteEmail: athlete?.email || "",
+                athleteName: athlete?.name || athlete?.email || "",
+                type,
+                message,
+                read: false,
+                createdAt: new Date()
+            };
+            await setDoc(notificationRef, payload);
+            await setDoc(doc(db, "users", userId, "notifications", notificationRef.id), payload);
+        }
+
+        function renderCoachRoster() {
+            const roster = document.getElementById('coachRoster');
+            if (!coachAthletes.length) {
+                roster.innerHTML = '<p class="text-gray-600 text-xs italic">No athletes found.</p>';
+                return;
+            }
+
+            roster.innerHTML = coachAthletes.map((athlete, index) => {
+                const goals = coachGoals.filter((goal) => goal.userId === athlete.id);
+                const activeGoals = goals.filter((goal) => (goal.status || "active") === "active").length;
+                const videos = coachVideos.filter((video) => video.userId === athlete.id).length;
+                const sends = coachTicks.filter((tick) => tick.userId === athlete.id).length;
+                const profilePhoto = athlete.photoURL || `https://i.pravatar.cc/150?u=${encodeURIComponent(athlete.email || athlete.id || index)}`;
+                return `
+                    <div class="glass-card p-6 rounded-xl flex flex-wrap md:flex-nowrap justify-between items-center group hover:bg-white/[0.04] transition">
+                        <div class="flex items-center space-x-6 mb-4 md:mb-0">
+                            <img src="${escapeHTML(profilePhoto)}" class="w-16 h-16 rounded-lg object-cover grayscale group-hover:grayscale-0 transition">
+                            <div>
+                                <h4 class="text-xl font-black uppercase italic tracking-tighter">${escapeHTML(athlete.name || athlete.email || "Unnamed Athlete")}</h4>
+                                <p class="text-gray-600 text-[9px] font-bold uppercase">${escapeHTML(profileContact(athlete))}</p>
+                                <p class="text-gray-500 text-[10px] font-bold">Current Max: <span class="text-red-500">${escapeHTML(formatCoachGrade(athlete.maxGrade))}</span> | Active Goals: <span class="text-blue-400">${activeGoals}</span> | Sends: <span class="text-green-400">${sends}</span> | Videos: <span class="text-purple-400">${videos}</span> ${athlete.onboardingComplete ? "" : '<span class="text-yellow-400 ml-2">| Setup Pending</span>'}</p>
+                            </div>
+                        </div>
+                        <button onclick="selectCoachAthlete('${athlete.id}')" class="px-4 py-2 bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition">Open Profile</button>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderCoachAthleteSelect() {
+            const select = document.getElementById('coachAthleteSelect');
+            const videoSelect = document.getElementById('coachVideoAthleteSelect');
+            if (!coachAthletes.length) {
+                if (select) select.innerHTML = '<option value="">No athletes found</option>';
+                if (videoSelect) videoSelect.innerHTML = '<option value="">No athletes found</option>';
+                return;
+            }
+
+            const options = coachAthletes.map((athlete) => (
+                `<option value="${athlete.id}">${escapeHTML(athlete.name || athlete.email || "Unnamed Athlete")}</option>`
+            )).join("");
+            if (select) select.innerHTML = options;
+            if (videoSelect) videoSelect.innerHTML = options;
+            if (selectedCoachAthleteId) {
+                if (select) select.value = selectedCoachAthleteId;
+                if (videoSelect) videoSelect.value = selectedCoachAthleteId;
+            }
+        }
+
+        window.selectCoachAthlete = (athleteId) => {
+            selectedCoachAthleteId = athleteId;
+            const select = document.getElementById('coachAthleteSelect');
+            const videoSelect = document.getElementById('coachVideoAthleteSelect');
+            if (select) select.value = athleteId;
+            if (videoSelect) videoSelect.value = athleteId;
+            loadCoachTrainingGoals(athleteId);
+            loadCoachVideos(athleteId);
+            renderCoachAthleteDetail(athleteId);
+        };
+
+        function setAdminNavActive(view) {
+            document.querySelectorAll('.admin-nav-link').forEach((link) => {
+                link.className = "admin-nav-link flex items-center space-x-4 text-gray-500 hover:text-white p-3 rounded-lg transition text-left";
+            });
+            const navId = view === "video" ? "nav-video" : `nav-${view}`;
+            const active = document.getElementById(navId);
+            if (active) active.className = "admin-nav-link flex items-center space-x-4 text-red-500 bg-red-500/10 p-3 rounded-lg text-left";
+        }
+
+        window.showAdminView = (view) => {
+            const targetView = view;
+            document.querySelectorAll('[data-admin-view]').forEach((section) => {
+                section.classList.toggle('hidden', section.dataset.adminView !== targetView);
+            });
+            setAdminNavActive(view);
+            if (view === "roster") renderAdminRosterReport();
+            if (view === "goals") renderAdminGoalsReport();
+            if (view === "video") {
+                if (selectedCoachAthleteId) loadCoachVideos(selectedCoachAthleteId);
+                setTimeout(() => focusCoachElement("coachVideoStudio"), 80);
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        };
+
+        window.openAthleteProfileFromReport = (athleteId) => {
+            window.showAdminView("home");
+            window.selectCoachAthlete(athleteId);
+            setTimeout(() => focusCoachElement("coachAthleteDetail"), 120);
+        };
+
+        window.openGoalFromReport = (athleteId, goalId) => {
+            window.showAdminView("home");
+            window.selectCoachAthlete(athleteId);
+            setTimeout(() => focusCoachElement(`coach-goal-${goalId}`), 150);
+        };
+
+        function focusCoachElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            element.style.boxShadow = "0 0 0 2px rgba(250, 204, 21, 0.55)";
+            element.style.transition = "box-shadow 0.3s ease";
+            setTimeout(() => {
+                element.style.boxShadow = "";
+            }, 2200);
+        }
+
+        function priorityLists() {
+            const videosNeedingReview = coachVideos
+                .filter((video) => !coachVideoNotes.some((note) => note.videoId === video.id))
+                .sort((a, b) => goalTime(a) - goalTime(b));
+            const athleteReplies = coachGoalComments
+                .filter((comment) => comment.createdByRole === "user")
+                .sort((a, b) => goalTime(b) - goalTime(a));
+            const today = new Date().toISOString().slice(0, 10);
+            const overdueGoals = coachGoals
+                .filter((goal) => (goal.status || "active") === "active" && goal.targetDate && goal.targetDate < today)
+                .sort((a, b) => (a.targetDate || "").localeCompare(b.targetDate || ""));
+            const sessionsNeedAttention = coachSessionLogs
+                .filter((session) => Number(session.pain || 0) >= 5 || Number(session.fatigue || 0) >= 8)
+                .sort((a, b) => Math.max(Number(b.pain || 0), Number(b.fatigue || 0)) - Math.max(Number(a.pain || 0), Number(a.fatigue || 0)));
+            return { videosNeedingReview, athleteReplies, overdueGoals, sessionsNeedAttention };
+        }
+
+        window.openCoachPriority = (type) => {
+            const { videosNeedingReview, athleteReplies, overdueGoals, sessionsNeedAttention } = priorityLists();
+
+            if (type === "video") {
+                const video = videosNeedingReview[0];
+                if (!video) return showToast("No videos need review", "info");
+                window.showAdminView("video");
+                window.selectCoachAthlete(video.userId);
+                setTimeout(() => {
+                    window.selectCoachVideo(video.id);
+                    focusCoachElement("coachVideoPlayer");
+                }, 150);
+                return;
+            }
+
+            if (type === "reply") {
+                const reply = athleteReplies[0];
+                if (!reply) return showToast("No athlete replies waiting", "info");
+                window.selectCoachAthlete(reply.userId);
+                setTimeout(() => focusCoachElement(`coach-goal-${reply.goalId}`), 150);
+                return;
+            }
+
+            if (type === "overdue") {
+                const goal = overdueGoals[0];
+                if (!goal) return showToast("No overdue goals", "info");
+                window.selectCoachAthlete(goal.userId);
+                setTimeout(() => focusCoachElement(`coach-goal-${goal.id}`), 150);
+                return;
+            }
+
+            if (type === "session") {
+                const session = sessionsNeedAttention[0];
+                if (!session) return showToast("No session flags", "info");
+                window.selectCoachAthlete(session.userId);
+                setTimeout(() => {
+                    const filter = document.getElementById('coachSessionFilter');
+                    if (filter) {
+                        filter.value = "all";
+                        renderCoachAthleteDetail(session.userId);
+                    }
+                    setTimeout(() => focusCoachElement(`coach-session-${session.id}`), 80);
+                }, 150);
+            }
+        };
+
+        window.openCoachNotification = async (notificationId) => {
+            const notification = coachNotifications.find((item) => item.id === notificationId);
+            if (!notification) return showToast("Notification not found", "error");
+
+            if (!notification.read) {
+                await updateDoc(doc(db, "notifications", notificationId), {
+                    read: true,
+                    readAt: new Date()
+                }).catch((error) => console.error("Notification read update error:", error));
+            }
+
+            const athleteId = notification.athleteId || notification.userId;
+            if (!athleteId || athleteId === "coach") {
+                showToast("Notification marked read", "success");
+                return;
+            }
+
+            if (notification.linkType === "video" && notification.videoId) {
+                window.showAdminView("video");
+                window.selectCoachAthlete(athleteId);
+                setTimeout(() => {
+                    window.selectCoachVideo(notification.videoId);
+                    focusCoachElement("coachVideoPlayer");
+                }, 180);
+                return;
+            }
+
+            window.showAdminView("home");
+            window.selectCoachAthlete(athleteId);
+
+            if (notification.linkType === "goal" && notification.goalId) {
+                setTimeout(() => focusCoachElement(`coach-goal-${notification.goalId}`), 180);
+                return;
+            }
+
+            if (notification.linkType === "session" && notification.sessionId) {
+                setTimeout(() => {
+                    const filter = document.getElementById('coachSessionFilter');
+                    if (filter) {
+                        filter.value = "all";
+                        renderCoachAthleteDetail(athleteId);
+                    }
+                    setTimeout(() => focusCoachElement(`coach-session-${notification.sessionId}`), 80);
+                }, 180);
+                return;
+            }
+
+            setTimeout(() => focusCoachElement("coachAthleteDetail"), 180);
+        };
+
+        window.markAllCoachNotificationsRead = async () => {
+            const unread = coachNotifications.filter((notification) => !notification.read);
+            if (!unread.length) return showToast("No unread coach notifications", "info");
+            await Promise.all(unread.map((notification) => updateDoc(doc(db, "notifications", notification.id), {
+                read: true,
+                readAt: new Date()
+            }).catch((error) => console.error("Notification read update error:", error))));
+            showToast("Coach inbox marked read", "success");
+        };
+
+        function sessionTime(session) {
+            if (session.sessionDate) return new Date(`${session.sessionDate}T12:00:00`).getTime();
+            return goalTime(session);
+        }
+
+        function renderCoachSessionTrends(sessions) {
+            const recent = [...sessions].sort((a, b) => sessionTime(a) - sessionTime(b)).slice(-10);
+            if (!recent.length) return '<p class="text-gray-600 text-xs italic">No session trends yet.</p>';
+            const metrics = [
+                { key: "fatigue", label: "Fatigue", color: "bg-yellow-500", max: 10 },
+                { key: "mood", label: "Mood", color: "bg-blue-500", max: 10 },
+                { key: "sleep", label: "Sleep", color: "bg-green-500", max: 12 },
+                { key: "pain", label: "Pain", color: "bg-red-500", max: 10 }
+            ];
+            return `
+                <div class="grid md:grid-cols-4 gap-3">
+                    ${metrics.map((metric) => {
+                        const values = recent.map((session) => Number(session[metric.key] || 0));
+                        const latest = values[values.length - 1] || 0;
+                        return `
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <p class="text-[9px] uppercase font-black text-gray-500">${metric.label}</p>
+                                    <p class="text-lg font-black">${latest || "-"}</p>
+                                </div>
+                                <div class="h-16 flex items-end gap-1">
+                                    ${values.map((value) => `<div class="${metric.color} flex-1 rounded-t opacity-80" style="height:${Math.max(6, (Math.min(value, metric.max) / metric.max) * 64)}px"></div>`).join("")}
+                                </div>
+                            </div>
+                        `;
+                    }).join("")}
+                </div>
+            `;
+        }
+
+        function renderCoachSessionTemplateSummary(session) {
+            const details = session.templateDetails || {};
+            if (session.type === "strength" && details.sets?.length) {
+                return `
+                    <div class="grid gap-2">
+                        ${details.sets.map((set) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(set.name || set.recommendedExercise || "Set")} | ${escapeHTML(set.muscleGroup || "-")} | ${escapeHTML(set.reps || "-")} | Rest ${escapeHTML(set.rest || "-")}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if ((session.type === "limit bouldering" || session.type === "limit climbing") && details.problems?.length) {
+                return `
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-600">${escapeHTML(details.environment || "indoor")}</p>
+                    <div class="grid md:grid-cols-2 gap-2">
+                        ${details.problems.map((problem, index) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${session.type === "limit climbing" && details.environment === "outdoor" ? "C" : "P"}${index + 1}: ${escapeHTML(problem.name || "Problem")} | ${escapeHTML(problem.grade || "-")} | ${escapeHTML(problem.attempts || "0")} attempts ${problem.mountainProjectUrl ? "| MP" : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "endurance" && details.blocks?.length) {
+                return `
+                    <div class="grid gap-2">
+                        ${details.blocks.map((block) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(block.system || "Endurance")} | ${escapeHTML(block.exercise || "-")} | ${escapeHTML(block.duration || "0")} min | HR ${escapeHTML(block.averageHeartRate || "-")}/${escapeHTML(block.maxHeartRate || "-")}${block.edgeSize ? " | Edge " + escapeHTML(block.edgeSize) : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "technique" && (details.drill || details.cue || details.volume || details.terrain)) {
+                return `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(details.drill || "Technique")} | Cue ${escapeHTML(details.cue || "-")} | Volume ${escapeHTML(details.volume || "-")} | Terrain ${escapeHTML(details.terrain || "-")}</p>`;
+            }
+            if (session.type === "projecting" && details.projects?.length) {
+                return `
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-600">${escapeHTML(details.environment || "indoor")}</p>
+                    <div class="grid gap-2">
+                        ${details.projects.map((project, index) => `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${details.environment === "indoor" ? "P" : "R"}${index + 1}: ${escapeHTML(project.routeName || "Project")} | ${escapeHTML(project.grade || "-")} | ${escapeHTML(project.attempts || "0")} attempts | Hangs ${escapeHTML(project.hangs || "0")} | Falls ${escapeHTML(project.falls || "0")} ${project.mountainProjectUrl ? "| MP" : ""}</p>`).join("")}
+                    </div>
+                `;
+            }
+            if (session.type === "rest" && (details.focus || details.sleepGoal || details.recoveryWork)) {
+                return `<p class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 rounded p-2">${escapeHTML(details.focus || "Rest")} | Sleep goal ${escapeHTML(details.sleepGoal || "-")} | ${escapeHTML(details.recoveryWork || "Recovery")}</p>`;
+            }
+            return "";
+        }
+
+        function buildCoachSessionReport(session, reportId = "") {
+            const flags = [];
+            if (Number(session.pain || 0) >= 5) flags.push(`Pain ${session.pain}${session.painArea ? " - " + session.painArea : ""}`);
+            if (Number(session.fatigue || 0) >= 8) flags.push(`High fatigue ${session.fatigue}/10`);
+            if (session.sleep && Number(session.sleep) < 6) flags.push(`Low sleep ${session.sleep}h`);
+            return {
+                id: reportId,
+                title: `${session.sessionDate || "Session"} ${session.type || "training"} report`,
+                status: "awaiting coach review",
+                flags,
+                generatedAt: new Date()
+            };
+        }
+
+        function renderCoachSessionHistory(athleteId) {
+            const filter = document.getElementById('coachSessionFilter')?.value || "all";
+            let sessions = coachSessionLogs.filter((session) => session.userId === athleteId);
+            if (filter !== "all") sessions = sessions.filter((session) => session.type === filter || session.style === filter || session.outcome === filter);
+            sessions = sessions.sort((a, b) => sessionTime(b) - sessionTime(a));
+            if (!sessions.length) return '<p class="text-gray-600 text-xs italic">No sessions match this filter.</p>';
+            return sessions.map((session) => {
+                const comments = coachSessionComments
+                    .filter((comment) => comment.sessionId === session.id)
+                    .sort((a, b) => goalTime(a) - goalTime(b));
+                const report = session.report || buildCoachSessionReport(session, session.id);
+                const reportStatus = session.reviewStatus || (comments.length ? "coach reviewed" : report.status || "awaiting coach review");
+                return `
+                    <div id="coach-session-${session.id}" class="bg-black/20 border border-white/5 rounded-lg p-5 space-y-3">
+                        <div class="flex justify-between gap-4 border-b border-white/5 pb-4">
+                            <div>
+                                <p class="text-[9px] uppercase font-black tracking-widest text-green-400">Session Report</p>
+                                <p class="text-lg font-black uppercase italic">${escapeHTML(report.title || session.type || "Session")}</p>
+                                <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(session.sessionDate || formatDateTime(session.createdAt))} ${session.duration ? "| " + escapeHTML(session.duration) + " min" : ""} ${session.location ? "| " + escapeHTML(session.location) : ""}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-[9px] uppercase font-black text-green-400">${escapeHTML(session.outcome || "")}</span>
+                                <span class="block text-[8px] uppercase font-black tracking-widest text-blue-400 mt-2">${escapeHTML(reportStatus)}</span>
+                            </div>
+                        </div>
+                        ${report.flags?.length ? `<div class="flex flex-wrap gap-2">${report.flags.map((flag) => `<span class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest">${escapeHTML(flag)}</span>`).join("")}</div>` : ""}
+                        <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Overview</p>
+                        <p class="text-[9px] uppercase font-bold text-gray-600">Type ${escapeHTML(session.type || "-")} | Effort ${escapeHTML(session.effort || "-")} | Fatigue ${escapeHTML(session.fatigue || "-")} | Mood ${escapeHTML(session.mood || "-")} | Sleep ${escapeHTML(session.sleep || "-")} | Pain ${escapeHTML(session.pain || "0")} ${session.painArea ? "| " + escapeHTML(session.painArea) : ""}</p>
+                        <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Training Detail</p>
+                        ${renderCoachSessionTemplateSummary(session)}
+                        <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Athlete Notes</p>
+                        <p class="text-xs text-gray-300 leading-relaxed whitespace-pre-line">${escapeHTML(session.notes || "")}</p>
+                        ${comments.length ? `
+                            <div class="space-y-2 border-t border-white/5 pt-3">
+                                ${comments.map((comment) => `
+                                    <div class="bg-white/5 border border-white/5 rounded-lg p-3">
+                                        <p class="text-[8px] uppercase font-black tracking-widest text-blue-400">${escapeHTML(comment.createdByRole || "coach")} ${escapeHTML(formatDateTime(comment.createdAt))}</p>
+                                        <p class="text-xs text-gray-300 mt-2">${escapeHTML(comment.comment || "")}</p>
+                                    </div>
+                                `).join("")}
+                            </div>
+                        ` : ""}
+                        <textarea id="session-comment-${session.id}" placeholder="Coach note on this session..." class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs h-20"></textarea>
+                        <button onclick="saveCoachSessionComment('${session.id}', '${athleteId}')" class="w-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/20 text-blue-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Save Session Note</button>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderCoachAthleteDetail(athleteId) {
+            const detail = document.getElementById('coachAthleteDetail');
+            const athlete = coachAthletes.find((item) => item.id === athleteId);
+            if (!athlete) {
+                detail.innerHTML = '<p class="text-gray-600 text-xs italic">Select an athlete to open their profile detail.</p>';
+                return;
+            }
+
+            const goals = coachGoals.filter((goal) => goal.userId === athleteId);
+            const activeGoals = goals.filter((goal) => (goal.status || "active") === "active");
+            const sends = coachTicks.filter((tick) => tick.userId === athleteId).sort((a, b) => goalTime(b) - goalTime(a)).slice(0, 4);
+            const sessions = coachSessionLogs.filter((session) => session.userId === athleteId);
+            const sessionFilter = document.getElementById('coachSessionFilter')?.value || "all";
+            const plans = coachTrainingPlans.filter((plan) => plan.userId === athleteId).sort((a, b) => (b.weekStart || "").localeCompare(a.weekStart || "")).slice(0, 3);
+            const videos = coachVideos.filter((video) => video.userId === athleteId);
+            const notes = coachVideoNotes.filter((note) => note.userId === athleteId).sort((a, b) => goalTime(b) - goalTime(a)).slice(0, 3);
+            const profilePhoto = athlete.photoURL || `https://i.pravatar.cc/150?u=${encodeURIComponent(athlete.email || athlete.id)}`;
+
+            detail.innerHTML = `
+                <div class="flex items-center gap-5 mb-6">
+                    <img src="${escapeHTML(profilePhoto)}" class="w-20 h-20 rounded-xl object-cover border border-white/10">
+                    <div>
+                        <p class="text-[9px] uppercase font-black tracking-widest text-red-400">Athlete Detail</p>
+                        <h3 class="text-2xl font-black uppercase italic tracking-tight">${escapeHTML(athlete.name || athlete.email || "Unnamed Athlete")}</h3>
+                        <p class="text-[10px] text-gray-500 uppercase font-bold mt-1">${escapeHTML(athlete.email || "")}</p>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-black/20 border border-white/5 rounded-lg p-4">
+                        <p class="text-[9px] uppercase font-black text-gray-500">Max Grade</p>
+                        <p class="text-xl font-black text-red-400 uppercase">${escapeHTML(formatCoachGrade(athlete.maxGrade))}</p>
+                    </div>
+                    <div class="bg-black/20 border border-white/5 rounded-lg p-4">
+                        <p class="text-[9px] uppercase font-black text-gray-500">Active Goals</p>
+                        <p class="text-xl font-black text-blue-400">${activeGoals.length}</p>
+                    </div>
+                    <div class="bg-black/20 border border-white/5 rounded-lg p-4">
+                        <p class="text-[9px] uppercase font-black text-gray-500">Sends / Videos</p>
+                        <p class="text-xl font-black"><span class="text-green-400">${sends.length}</span><span class="text-gray-600 mx-2">/</span><span class="text-purple-400">${videos.length}</span></p>
+                    </div>
+                </div>
+                ${renderProgressIntelligence(athleteId)}
+                <div class="space-y-3 mb-6">
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Recent Sends</p>
+                    ${sends.length ? sends.map((tick) => `
+                        <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                            <p class="text-sm font-black uppercase italic">${escapeHTML(tick.route || "Untitled")}</p>
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">${escapeHTML(formatCoachGrade(tick.grade))} <span class="ml-2">${escapeHTML(formatDateTime(tick.timestamp))}</span></p>
+                        </div>
+                    `).join("") : '<p class="text-gray-600 text-xs italic">No sends logged yet.</p>'}
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Session Trends</p>
+                            <select id="coachSessionFilter" onchange="renderCoachAthleteDetail('${athleteId}')" class="bg-black/40 border border-white/10 p-2 rounded text-[9px] uppercase font-bold text-gray-300">
+                                <option value="all" ${sessionFilter === "all" ? "selected" : ""}>All Sessions</option>
+                                <option value="strength" ${sessionFilter === "strength" ? "selected" : ""}>Strength</option>
+                                <option value="limit bouldering" ${sessionFilter === "limit bouldering" ? "selected" : ""}>Boulder</option>
+                                <option value="limit climbing" ${sessionFilter === "limit climbing" ? "selected" : ""}>Climb</option>
+                                <option value="endurance" ${sessionFilter === "endurance" ? "selected" : ""}>Endurance</option>
+                                <option value="technique" ${sessionFilter === "technique" ? "selected" : ""}>Technique</option>
+                                <option value="projecting" ${sessionFilter === "projecting" ? "selected" : ""}>Projecting</option>
+                                <option value="rest" ${sessionFilter === "rest" ? "selected" : ""}>Rest</option>
+                                <option value="struggle" ${sessionFilter === "struggle" ? "selected" : ""}>Struggle</option>
+                            </select>
+                        </div>
+                        ${renderCoachSessionTrends(sessions)}
+                    </div>
+                    <div class="space-y-3">
+                        <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Current Plan</p>
+                        ${plans.length ? plans.map((plan) => `
+                            <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                                <p class="text-sm font-black uppercase italic">${escapeHTML(plan.blockType || "Training")}</p>
+                                <p class="text-[9px] text-gray-500 uppercase font-bold">${escapeHTML(plan.weekStart || "")} ${plan.completed ? "| Done" : ""}</p>
+                            </div>
+                        `).join("") : '<p class="text-gray-600 text-xs italic">No plan assigned yet.</p>'}
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Recent Video Notes</p>
+                    ${notes.length ? notes.map((note) => `
+                        <button onclick="selectCoachVideo('${note.videoId}'); seekCoachVideo(${Number(note.second || 0)})" class="w-full text-left bg-black/20 border border-white/5 rounded-lg p-3 hover:border-purple-500/40 transition">
+                            <p class="text-[9px] uppercase font-black text-purple-400">${formatSeconds(note.second)} <span class="text-gray-600 ml-2">${escapeHTML(formatDateTime(note.createdAt))}</span></p>
+                            <p class="text-xs text-gray-300 mt-2">${escapeHTML(note.note || "")}</p>
+                        </button>
+                    `).join("") : '<p class="text-gray-600 text-xs italic">No timestamp notes yet.</p>'}
+                </div>
+                <div class="space-y-3 mt-6">
+                    <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Full Session History</p>
+                    ${renderCoachSessionHistory(athleteId)}
+                </div>
+            `;
+        }
+
+        window.loadCoachTrainingGoals = async (athleteId) => {
+            const list = document.getElementById('coachGoalsList');
+            if (!athleteId) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">Select an athlete to view goals.</p>';
+                return;
+            }
+
+            const goals = coachGoals.filter((goal) => goal.userId === athleteId).sort((a, b) => goalTime(b) - goalTime(a));
+            if (!goals.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No goals for this athlete yet.</p>';
+                return;
+            }
+
+            list.innerHTML = goals.map((goal) => {
+                const status = goal.status || "active";
+                const statusClass = goalStatusStyles[status] || goalStatusStyles.active;
+                const comments = coachGoalComments
+                    .filter((comment) => comment.goalId === goal.id)
+                    .sort((a, b) => goalTime(a) - goalTime(b));
+                const milestones = coachMilestones
+                    .filter((milestone) => milestone.goalId === goal.id)
+                    .sort((a, b) => goalTime(a) - goalTime(b));
+                const recommendations = coachTrainingRecommendations
+                    .filter((recommendation) => recommendation.goalId === goal.id)
+                    .sort((a, b) => goalTime(b) - goalTime(a));
+                const pendingRecommendation = recommendations.find((recommendation) => recommendation.status !== "approved");
+                const approvedRecommendation = recommendations.find((recommendation) => recommendation.status === "approved");
+                const milestoneRecommendation = getNextMilestoneRecommendation(goal, approvedRecommendation || pendingRecommendation || {}, milestones);
+                const completedMilestones = milestones.filter((milestone) => milestone.completed).length;
+                const progress = milestones.length ? Math.round((completedMilestones / milestones.length) * 100) : 0;
+                const commentHistory = comments.length
+                    ? comments.map((comment) => `
+                        <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                            <p class="text-[8px] uppercase font-black tracking-widest text-blue-400">${escapeHTML(comment.createdByRole || "user")} <span class="text-gray-600 ml-2">${escapeHTML(formatDateTime(comment.createdAt))}</span></p>
+                            <p class="text-xs text-gray-300 leading-relaxed mt-2 whitespace-pre-line">${escapeHTML(comment.comment || "")}</p>
+                        </div>
+                    `).join("")
+                    : (goal.notes ? `
+                        <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                            <p class="text-[8px] uppercase font-black tracking-widest text-gray-500">Initial note</p>
+                            <p class="text-xs text-gray-300 leading-relaxed mt-2 whitespace-pre-line">${escapeHTML(goal.notes)}</p>
+                        </div>
+                    ` : '<p class="text-gray-600 text-xs italic">No comments yet.</p>');
+                return `
+                    <div id="coach-goal-${goal.id}" class="glass-card p-5 rounded-xl border border-white/5 space-y-4">
+                        <div class="flex justify-between items-start gap-4">
+                            <div>
+                                <p class="text-sm font-black uppercase italic tracking-tight">${escapeHTML(goal.title)}</p>
+                                <p class="text-[9px] text-gray-600 uppercase font-bold mt-1">Target: ${escapeHTML(formatGoalDate(goal.targetDate))}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded border text-[8px] font-black uppercase tracking-widest ${statusClass}">${escapeHTML(status)}</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-[9px] uppercase font-black tracking-widest text-gray-500">
+                                <span>Milestones</span>
+                                <span>${progress}%</span>
+                            </div>
+                            <div class="h-2 bg-white/5 rounded overflow-hidden">
+                                <div class="h-full bg-green-500" style="width:${progress}%"></div>
+                            </div>
+                            ${milestones.length ? milestones.map((milestone) => `
+                                <div class="bg-black/20 border border-white/5 rounded-lg p-3">
+                                    <p class="text-xs font-bold text-gray-200">${milestone.completed ? "[Done] " : ""}${escapeHTML(milestone.title || "")}</p>
+                                    <p class="text-[9px] uppercase font-bold text-gray-600">${escapeHTML(milestone.dueDate || "No due date")}</p>
+                                </div>
+                            `).join("") : '<p class="text-gray-600 text-xs italic">No milestones yet.</p>'}
+                            <p class="text-[8px] uppercase font-black tracking-widest text-yellow-300">AI suggested next milestone</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="milestone-title-${goal.id}" value="${escapeHTML(milestoneRecommendation.title)}" placeholder="Milestone" class="w-full bg-black/40 border border-yellow-500/20 p-3 rounded text-xs">
+                                <input type="date" id="milestone-date-${goal.id}" value="${escapeHTML(milestoneRecommendation.dueDate)}" class="w-full bg-black/40 border border-yellow-500/20 p-3 rounded text-xs">
+                            </div>
+                            <button onclick="addCoachMilestone('${goal.id}', '${goal.userId}')" class="w-full bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 text-green-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Add Milestone</button>
+                        </div>
+                        <div class="space-y-3">
+                            <p class="text-[9px] uppercase font-black tracking-widest text-gray-500">Comment History</p>
+                            ${commentHistory}
+                        </div>
+                        ${pendingRecommendation ? `
+                            <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-[9px] uppercase font-black tracking-widest text-yellow-300">Pending Training Recommendation</p>
+                                        <p class="text-[9px] uppercase font-bold text-gray-500 mt-1">Email status: ${escapeHTML(pendingRecommendation.emailStatus || "not configured")}</p>
+                                    </div>
+                                    <span class="text-[8px] uppercase font-black tracking-widest text-gray-500">${escapeHTML(pendingRecommendation.source || "draft")}</span>
+                                </div>
+                                <textarea id="recommendation-${pendingRecommendation.id}" class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs h-44 whitespace-pre-line">${escapeHTML(pendingRecommendation.recommendation || "")}</textarea>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="saveTrainingRecommendationEdit('${pendingRecommendation.id}')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Save Edit</button>
+                                    <button onclick="approveTrainingRecommendation('${pendingRecommendation.id}')" class="bg-green-600/20 hover:bg-green-600/30 border border-green-500/20 text-green-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Approve</button>
+                                </div>
+                            </div>
+                        ` : approvedRecommendation ? `
+                            <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                                <p class="text-[9px] uppercase font-black tracking-widest text-green-300">Approved Training Recommendation</p>
+                                <p class="text-xs text-gray-200 leading-relaxed mt-3 whitespace-pre-line">${escapeHTML(approvedRecommendation.recommendation || "")}</p>
+                            </div>
+                        ` : ""}
+                        <div class="grid grid-cols-2 gap-3">
+                            <select id="coach-status-${goal.id}" class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs text-gray-300">
+                                <option value="active" ${status === "active" ? "selected" : ""}>Active</option>
+                                <option value="paused" ${status === "paused" ? "selected" : ""}>Paused</option>
+                                <option value="completed" ${status === "completed" ? "selected" : ""}>Completed</option>
+                            </select>
+                            <input type="date" id="coach-target-${goal.id}" value="${escapeHTML(goal.targetDate || "")}" class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs">
+                        </div>
+                        <textarea id="coach-comment-${goal.id}" class="w-full bg-black/40 border border-white/10 p-3 rounded text-xs h-20" placeholder="Add a coach reply..."></textarea>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="deleteCoachTrainingGoal('${goal.id}')" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Delete Goal</button>
+                            <button onclick="updateCoachTrainingGoal('${goal.id}')" class="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded text-[9px] font-black uppercase tracking-widest transition">Save Reply</button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        };
+
+        window.loadCoachVideos = (athleteId) => {
+            const list = document.getElementById('coachVideoList');
+            const keepOpenVideo = selectedCoachVideo?.userId === athleteId;
+            if (!keepOpenVideo) {
+                selectedCoachVideo = null;
+                selectedCoachSecond = 0;
+                document.getElementById('coachSelectedSecond').innerText = formatSeconds(0);
+                document.getElementById('coachVideoPlayer').removeAttribute('src');
+                document.getElementById('coachVideoTimeline').innerHTML = '<p class="text-gray-600 text-xs italic">Open a video to review timestamps.</p>';
+                document.getElementById('coachVideoNotesList').innerHTML = '<p class="text-gray-600 text-xs italic">Timestamp notes will appear here.</p>';
+            }
+
+            const videos = coachVideos.filter((video) => video.userId === athleteId).sort((a, b) => goalTime(b) - goalTime(a));
+            const unreviewedCount = videos.filter((video) => !coachVideoNotes.some((note) => note.videoId === video.id)).length;
+            const smallCount = document.getElementById('videoReviewCountSmall');
+            if (smallCount) smallCount.innerText = videos.length ? `${unreviewedCount} unreviewed` : "";
+            if (!videos.length) {
+                list.innerHTML = '<p class="text-gray-600 text-xs italic">No uploaded videos for this athlete.</p>';
+                return;
+            }
+
+            list.innerHTML = videos.map((video) => {
+                const reviewed = coachVideoNotes.some((note) => note.videoId === video.id);
+                return `
+                <div class="glass-card p-4 rounded-xl border border-white/5 hover:border-purple-500/40 transition">
+                    <button onclick="selectCoachVideo('${video.id}')" class="w-full text-left">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-sm font-black uppercase italic tracking-tight">${escapeHTML(video.title || "Untitled Video")}</p>
+                            <span class="text-[8px] uppercase font-black ${reviewed ? "text-green-400" : "text-yellow-400"}">${reviewed ? "Reviewed" : "Needs Review"}</span>
+                        </div>
+                        <p class="text-[9px] text-gray-600 uppercase font-bold mt-1">${escapeHTML(video.fileName || "Training video")}</p>
+                    </button>
+                    <button onclick="deleteCoachVideo('${video.id}')" class="mt-3 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest">Delete Video</button>
+                </div>
+            `;
+            }).join("");
+
+            if (keepOpenVideo && selectedCoachVideo) {
+                renderCoachVideoNotes(selectedCoachVideo.id);
+                const player = document.getElementById('coachVideoPlayer');
+                if (player.duration) renderCoachVideoTimeline(player.duration);
+            }
+        };
+
+        function renderCoachVideoTimeline(duration) {
+            const timeline = document.getElementById('coachVideoTimeline');
+            const seconds = Math.floor(duration || 0);
+            const noteSeconds = new Set(
+                coachVideoNotes
+                    .filter((note) => note.videoId === selectedCoachVideo?.id)
+                    .map((note) => Number(note.second || 0))
+            );
+            document.getElementById('coachVideoDuration').innerText = `${seconds} seconds`;
+
+            if (!seconds) {
+                timeline.innerHTML = '<p class="text-gray-600 text-xs italic">No timestamp data yet.</p>';
+                return;
+            }
+
+            timeline.innerHTML = Array.from({ length: seconds + 1 }, (_, second) => {
+                const hasNote = noteSeconds.has(second);
+                const markerClass = hasNote ? "bg-purple-600/30 border-purple-400 text-white shadow-lg shadow-purple-900/20" : "bg-white/5 border-white/10";
+                return `
+                    <button onclick="seekCoachVideo(${second})" class="min-w-12 px-3 py-2 hover:bg-purple-600 border rounded text-[9px] font-black transition ${markerClass}">${formatSeconds(second)}${hasNote ? '<span class="block text-[7px] mt-1">NOTE</span>' : ""}</button>
+                `;
+            }).join("");
+        }
+
+        function renderCoachVideoNotes(videoId) {
+            const notesList = document.getElementById('coachVideoNotesList');
+            const notes = coachVideoNotes.filter((note) => note.videoId === videoId).sort((a, b) => (a.second || 0) - (b.second || 0));
+
+            if (!notes.length) {
+                notesList.innerHTML = '<p class="text-gray-600 text-xs italic">No notes for this video yet.</p>';
+                return;
+            }
+
+            notesList.innerHTML = notes.map((note) => `
+                <div class="glass-card p-4 rounded-xl border border-white/5 hover:border-purple-500/40 transition">
+                    <button onclick="seekCoachVideo(${Number(note.second || 0)})" class="w-full text-left">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-purple-400">${formatSeconds(note.second)}</p>
+                        <p class="text-sm text-gray-300 leading-relaxed mt-2">${escapeHTML(note.note || "")}</p>
+                        ${note.annotationURL ? `<img src="${escapeHTML(note.annotationURL)}" class="mt-3 rounded-lg border border-white/10 w-full">` : ""}
+                    </button>
+                    <button onclick="deleteCoachVideoNote('${note.id}')" class="mt-3 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest">Delete Note</button>
+                </div>
+            `).join("");
+        }
+
+        window.selectCoachVideo = (videoId) => {
+            selectedCoachVideo = coachVideos.find((video) => video.id === videoId);
+            if (!selectedCoachVideo) return;
+
+            const player = document.getElementById('coachVideoPlayer');
+            player.crossOrigin = "anonymous";
+            player.src = selectedCoachVideo.downloadURL;
+            player.onloadedmetadata = () => renderCoachVideoTimeline(player.duration);
+            player.ontimeupdate = () => {
+                selectedCoachSecond = Math.floor(player.currentTime || 0);
+                document.getElementById('coachSelectedSecond').innerText = formatSeconds(selectedCoachSecond);
+            };
+            selectedCoachSecond = 0;
+            document.getElementById('coachSelectedSecond').innerText = formatSeconds(0);
+            renderCoachVideoNotes(videoId);
+        };
+
+        window.seekCoachVideo = (second) => {
+            const player = document.getElementById('coachVideoPlayer');
+            selectedCoachSecond = Math.floor(second || 0);
+            player.currentTime = selectedCoachSecond;
+            document.getElementById('coachSelectedSecond').innerText = formatSeconds(selectedCoachSecond);
+        };
+
+        window.seekCoachVideoNote = (direction) => {
+            if (!selectedCoachVideo) return;
+            const noteSeconds = [...new Set(
+                coachVideoNotes
+                    .filter((note) => note.videoId === selectedCoachVideo.id)
+                    .map((note) => Number(note.second || 0))
+            )].sort((a, b) => a - b);
+
+            if (!noteSeconds.length) return;
+
+            const target = direction === "prev"
+                ? [...noteSeconds].reverse().find((second) => second < selectedCoachSecond) ?? noteSeconds[noteSeconds.length - 1]
+                : noteSeconds.find((second) => second > selectedCoachSecond) ?? noteSeconds[0];
+
+            seekCoachVideo(target);
+        };
+
+        function setupAnnotationCanvasDrawing() {
+            const canvas = document.getElementById('annotationCanvas');
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+            const drawPoint = (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+                ctx.lineWidth = Math.max(4, canvas.width * 0.008);
+                ctx.lineCap = "round";
+                ctx.strokeStyle = "#ef4444";
+                return { x, y };
+            };
+            const draw = (event) => {
+                if (!drawing) return;
+                const { x, y } = drawPoint(event);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                annotationHasDrawing = true;
+                annotationAttachedToNote = false;
+                document.getElementById('annotationAttachStatus').innerText = "Drawing not attached";
+            };
+            canvas.onpointerdown = (event) => {
+                drawing = true;
+                const { x, y } = drawPoint(event);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + 0.1, y + 0.1);
+                ctx.stroke();
+                annotationHasDrawing = true;
+                annotationAttachedToNote = false;
+                document.getElementById('annotationAttachStatus').innerText = "Drawing not attached";
+            };
+            canvas.onpointermove = draw;
+            canvas.onpointerup = () => drawing = false;
+            canvas.onpointerleave = () => drawing = false;
+        }
+
+        window.captureVideoFrame = () => {
+            if (!selectedCoachVideo) return showToast("Open a video first", "error");
+            const video = document.getElementById('coachVideoPlayer');
+            const canvas = document.getElementById('annotationCanvas');
+            if (!video.videoWidth) return showToast("Play or load the video first", "error");
+            capturedAnnotationSecond = Math.floor(video.currentTime || selectedCoachSecond || 0);
+            selectedCoachSecond = capturedAnnotationSecond;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            document.getElementById('annotationWorkspace').classList.remove('hidden');
+            document.getElementById('annotationCapturedSecond').innerText = formatSeconds(capturedAnnotationSecond);
+            document.getElementById('annotationAttachStatus').innerText = "Draw, then add to note";
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            annotationHasDrawing = false;
+            annotationAttachedToNote = false;
+            document.getElementById('coachSelectedSecond').innerText = formatSeconds(selectedCoachSecond);
+            setupAnnotationCanvasDrawing();
+        };
+
+        window.clearAnnotationCanvas = () => {
+            const canvas = document.getElementById('annotationCanvas');
+            if (document.getElementById('annotationWorkspace').classList.contains('hidden')) return;
+            const video = document.getElementById('coachVideoPlayer');
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            annotationHasDrawing = false;
+            annotationAttachedToNote = false;
+            document.getElementById('annotationAttachStatus').innerText = "Draw, then add to note";
+        };
+
+        window.attachAnnotationToTimestampNote = () => {
+            if (capturedAnnotationSecond === null) return showToast("Capture a frame first", "error");
+            if (!annotationHasDrawing) return showToast("Draw on the captured frame first", "error");
+            annotationAttachedToNote = true;
+            selectedCoachSecond = capturedAnnotationSecond;
+            document.getElementById('coachSelectedSecond').innerText = formatSeconds(selectedCoachSecond);
+            document.getElementById('annotationAttachStatus').innerText = `Attached to ${formatSeconds(capturedAnnotationSecond)}`;
+            showToast(`Drawing attached to ${formatSeconds(capturedAnnotationSecond)}`, "success");
+        };
+
+        window.saveCoachVideoNote = async () => {
+            const note = document.getElementById('coachVideoNote').value.trim();
+            if (!selectedCoachVideo) return alert("Open a video first");
+            if (!note) return alert("Add a note first");
+            if (annotationHasDrawing && !annotationAttachedToNote) {
+                return showToast("Click Add Drawing To Timestamp Note before saving", "error");
+            }
+
+            try {
+                const selectedVideoId = selectedCoachVideo.id;
+                const selectedVideoUserId = selectedCoachVideo.userId;
+                const selectedAthleteId = selectedCoachVideo.userId || document.getElementById('coachVideoAthleteSelect')?.value || document.getElementById('coachAthleteSelect')?.value || "";
+                const selectedSecond = annotationAttachedToNote && capturedAnnotationSecond !== null ? capturedAnnotationSecond : selectedCoachSecond;
+
+                const noteRef = doc(collection(db, "videoNotes"));
+                let annotationURL = "";
+                let annotationStoragePath = "";
+                const canvas = document.getElementById('annotationCanvas');
+                if (annotationAttachedToNote && annotationHasDrawing) {
+                    annotationStoragePath = `users/${selectedVideoUserId}/videos/${selectedVideoId}/annotations/${Date.now()}.png`;
+                    const annotationRef = ref(storage, annotationStoragePath);
+                    let annotationDataURL = "";
+                    try {
+                        annotationDataURL = canvas.toDataURL("image/png");
+                    } catch (error) {
+                        console.error("Annotation export error:", error);
+                        throw new Error("Video frame export blocked by Storage CORS. Set Firebase Storage CORS, then reload the admin page.");
+                    }
+                    await uploadString(annotationRef, annotationDataURL, "data_url");
+                    annotationURL = await getDownloadURL(annotationRef);
+                }
+
+                const notePayload = {
+                    videoId: selectedVideoId,
+                    userId: selectedVideoUserId,
+                    athleteEmail: selectedCoachVideo.athleteEmail || "",
+                    second: selectedSecond,
+                    note,
+                    annotationURL,
+                    annotationStoragePath,
+                    annotationSecond: annotationURL ? selectedSecond : null,
+                    createdAt: new Date(),
+                    createdByRole: "coach"
+                };
+                await setDoc(noteRef, notePayload);
+                await setDoc(doc(db, "users", selectedVideoUserId, "videos", selectedVideoId, "notes", noteRef.id), notePayload);
+
+                document.getElementById('coachVideoNote').value = "";
+                document.getElementById('annotationWorkspace').classList.add('hidden');
+                annotationHasDrawing = false;
+                annotationAttachedToNote = false;
+                capturedAnnotationSecond = null;
+                const mainSelect = document.getElementById('coachAthleteSelect');
+                const videoSelect = document.getElementById('coachVideoAthleteSelect');
+                if (mainSelect) mainSelect.value = selectedAthleteId;
+                if (videoSelect) videoSelect.value = selectedAthleteId;
+                loadCoachVideos(selectedAthleteId);
+                selectedCoachVideo = coachVideos.find((video) => video.id === selectedVideoId) || selectedCoachVideo;
+                selectedCoachSecond = selectedSecond;
+                if (selectedCoachVideo) {
+                    const player = document.getElementById('coachVideoPlayer');
+                    player.crossOrigin = "anonymous";
+                    player.src = selectedCoachVideo.downloadURL;
+                    player.onloadedmetadata = () => {
+                        renderCoachVideoTimeline(player.duration);
+                        seekCoachVideo(selectedCoachSecond);
+                    };
+                    player.ontimeupdate = () => {
+                        selectedCoachSecond = Math.floor(player.currentTime || 0);
+                        document.getElementById('coachSelectedSecond').innerText = formatSeconds(selectedCoachSecond);
+                    };
+                }
+                if (document.getElementById('coachVideoPlayer').duration) {
+                    renderCoachVideoTimeline(document.getElementById('coachVideoPlayer').duration);
+                }
+                renderCoachVideoNotes(selectedVideoId);
+                showToast("Timestamp note saved", "success");
+                await createNotification(selectedVideoUserId, "Video Note", `Coach added a note at ${formatSeconds(selectedSecond)}.`);
+            } catch (error) {
+                console.error("Video note save error:", error);
+                showToast(error?.message || "Video note save failed", "error");
+            }
+        };
+
+        window.saveCoachTrainingGoal = async () => {
+            const athleteId = document.getElementById('coachAthleteSelect').value;
+            const athlete = coachAthletes.find((item) => item.id === athleteId);
+            const title = document.getElementById('coachGoalTitle').value.trim();
+            const notes = document.getElementById('coachGoalNotes').value.trim();
+            const status = document.getElementById('coachGoalStatus').value;
+            const targetDate = document.getElementById('coachGoalTargetDate').value;
+
+            if (!athleteId) return alert("Select an athlete first");
+            if (!title) return alert("Goal title is required");
+
+            const goalRef = doc(collection(db, "trainingGoals"));
+            const goalPayload = {
+                userId: athleteId,
+                athleteEmail: athlete?.email || "",
+                title,
+                notes,
+                status,
+                targetDate,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                createdByRole: "coach",
+                updatedByRole: "coach"
+            };
+            await setDoc(goalRef, goalPayload);
+            await setDoc(doc(db, "users", athleteId, "goals", goalRef.id), goalPayload);
+
+            if (notes) {
+                const commentRef = doc(collection(db, "goalComments"));
+                const commentPayload = {
+                    goalId: goalRef.id,
+                    userId: athleteId,
+                    athleteEmail: athlete?.email || "",
+                    comment: notes,
+                    createdAt: new Date(),
+                    createdByRole: "coach"
+                };
+                await setDoc(commentRef, commentPayload);
+                await setDoc(doc(db, "users", athleteId, "goals", goalRef.id, "comments", commentRef.id), commentPayload);
+            }
+
+            document.getElementById('coachGoalTitle').value = "";
+            document.getElementById('coachGoalNotes').value = "";
+            document.getElementById('coachGoalStatus').value = "active";
+            document.getElementById('coachGoalTargetDate').value = "";
+            document.getElementById('coachAthleteSelect').value = athleteId;
+            loadCoachTrainingGoals(athleteId);
+            loadCoachVideos(athleteId);
+            showToast("Goal pushed", "success");
+            await createNotification(athleteId, "New Goal", `Coach assigned a new goal: ${title}.`);
+        };
+
+        window.updateCoachTrainingGoal = async (goalId) => {
+            const selectedAthleteId = document.getElementById('coachAthleteSelect').value;
+            const selectedAthlete = coachAthletes.find((athlete) => athlete.id === selectedAthleteId);
+            const comment = document.getElementById(`coach-comment-${goalId}`).value.trim();
+            await updateDoc(doc(db, "trainingGoals", goalId), {
+                status: document.getElementById(`coach-status-${goalId}`).value,
+                targetDate: document.getElementById(`coach-target-${goalId}`).value,
+                updatedAt: new Date(),
+                updatedByRole: "coach"
+            });
+            await setDoc(doc(db, "users", selectedAthleteId, "goals", goalId), {
+                status: document.getElementById(`coach-status-${goalId}`).value,
+                targetDate: document.getElementById(`coach-target-${goalId}`).value,
+                updatedAt: new Date(),
+                updatedByRole: "coach"
+            }, { merge: true });
+
+            if (comment) {
+                const commentRef = doc(collection(db, "goalComments"));
+                const commentPayload = {
+                    goalId,
+                    userId: selectedAthleteId,
+                    athleteEmail: selectedAthlete?.email || "",
+                    comment,
+                    createdAt: new Date(),
+                    createdByRole: "coach"
+                };
+                await setDoc(commentRef, commentPayload);
+                await setDoc(doc(db, "users", selectedAthleteId, "goals", goalId, "comments", commentRef.id), commentPayload);
+            }
+
+            document.getElementById('coachAthleteSelect').value = selectedAthleteId;
+            loadCoachTrainingGoals(selectedAthleteId);
+            showToast("Coach reply saved", "success");
+            if (comment) await createNotification(selectedAthleteId, "Goal Reply", "Coach replied to a training goal.");
+        };
+
+        window.saveTrainingRecommendationEdit = async (recommendationId, inputPrefix = "recommendation") => {
+            const recommendation = coachTrainingRecommendations.find((item) => item.id === recommendationId);
+            const text = document.getElementById(`${inputPrefix}-${recommendationId}`)?.value.trim();
+            if (!recommendation || !text) return showToast("Recommendation text required", "error");
+            await updateDoc(doc(db, "trainingRecommendations", recommendationId), {
+                recommendation: text,
+                status: "edited",
+                editedAt: new Date(),
+                editedBy: currentCoachUser?.email || "coach",
+                updatedAt: new Date()
+            });
+            await setDoc(doc(db, "users", recommendation.userId, "trainingRecommendations", recommendationId), {
+                recommendation: text,
+                status: "edited",
+                editedAt: new Date(),
+                editedBy: currentCoachUser?.email || "coach",
+                updatedAt: new Date()
+            }, { merge: true }).catch(() => {});
+            showToast("Recommendation edit saved", "success");
+        };
+
+        window.approveTrainingRecommendation = async (recommendationId, inputPrefix = "recommendation") => {
+            const recommendation = coachTrainingRecommendations.find((item) => item.id === recommendationId);
+            const text = document.getElementById(`${inputPrefix}-${recommendationId}`)?.value.trim() || recommendation?.recommendation || "";
+            if (!recommendation || !text) return showToast("Recommendation text required", "error");
+            const approvedPayload = {
+                recommendation: text,
+                status: "approved",
+                approvedAt: new Date(),
+                approvedBy: currentCoachUser?.email || "coach",
+                updatedAt: new Date()
+            };
+            await updateDoc(doc(db, "trainingRecommendations", recommendationId), approvedPayload);
+            await setDoc(doc(db, "users", recommendation.userId, "trainingRecommendations", recommendationId), approvedPayload, { merge: true }).catch(() => {});
+            await updateDoc(doc(db, "trainingGoals", recommendation.goalId), {
+                approvedTrainingRecommendation: text,
+                approvedTrainingRecommendationId: recommendationId,
+                updatedAt: new Date(),
+                updatedByRole: "coach"
+            }).catch(() => {});
+            await setDoc(doc(db, "users", recommendation.userId, "goals", recommendation.goalId), {
+                approvedTrainingRecommendation: text,
+                approvedTrainingRecommendationId: recommendationId,
+                updatedAt: new Date(),
+                updatedByRole: "coach"
+            }, { merge: true }).catch(() => {});
+            await createNotification(recommendation.userId, "Training Recommendation", `Coach approved a recommendation for: ${recommendation.goalTitle || "your goal"}.`);
+            showToast("Recommendation approved for athlete", "success");
+        };
+
+        window.assignTrainingPlan = async () => {
+            const athleteId = document.getElementById('coachAthleteSelect').value;
+            const athlete = coachAthletes.find((item) => item.id === athleteId);
+            const weekStart = document.getElementById('coachPlanWeek').value;
+            const day = document.getElementById('coachPlanDay').value;
+            const blockType = document.getElementById('coachPlanType').value;
+            const notes = document.getElementById('coachPlanNotes').value.trim();
+            if (!athleteId || !weekStart) return showToast("Select athlete and week date", "error");
+            const planRef = doc(collection(db, "trainingPlans"));
+            const payload = {
+                userId: athleteId,
+                athleteEmail: athlete?.email || "",
+                weekStart,
+                day,
+                blockType,
+                notes,
+                completed: false,
+                createdAt: new Date(),
+                createdByRole: "coach"
+            };
+            await setDoc(planRef, payload);
+            await setDoc(doc(db, "users", athleteId, "trainingPlans", planRef.id), payload);
+            document.getElementById('coachPlanNotes').value = "";
+            showToast("Training block assigned", "success");
+            await createNotification(athleteId, "Training Plan", `Coach assigned ${blockType} for ${day}.`);
+        };
+
+        window.prefillCoachPlanSuggestion = (athleteId) => {
+            const analysis = analyzeAthleteProgress(athleteId);
+            document.getElementById('coachAthleteSelect').value = athleteId;
+            document.getElementById('coachPlanType').value = analysis.planSuggestion.blockType;
+            document.getElementById('coachPlanNotes').value = `Progress intelligence draft:\n${analysis.planSuggestion.notes}\n\nCoach review before assigning:\n`;
+            if (!document.getElementById('coachPlanWeek').value) document.getElementById('coachPlanWeek').value = new Date().toISOString().slice(0, 10);
+            showToast("Plan draft loaded. Review before assigning.", "success");
+        };
+
+        window.addCoachMilestone = async (goalId, athleteId) => {
+            const athlete = coachAthletes.find((item) => item.id === athleteId);
+            const title = document.getElementById(`milestone-title-${goalId}`).value.trim();
+            const dueDate = document.getElementById(`milestone-date-${goalId}`).value;
+            if (!title) return showToast("Milestone title required", "error");
+            const milestoneRef = doc(collection(db, "goalMilestones"));
+            const payload = {
+                goalId,
+                userId: athleteId,
+                athleteEmail: athlete?.email || "",
+                title,
+                dueDate,
+                completed: false,
+                createdAt: new Date(),
+                createdByRole: "coach"
+            };
+            await setDoc(milestoneRef, payload);
+            await setDoc(doc(db, "users", athleteId, "goals", goalId, "milestones", milestoneRef.id), payload);
+            showToast("Milestone added", "success");
+            await createNotification(athleteId, "Goal Milestone", `Coach added milestone: ${title}.`);
+        };
+
+        window.deleteCoachTrainingGoal = async (goalId) => {
+            const selectedAthleteId = document.getElementById('coachAthleteSelect').value;
+            if (!confirm("Delete this training goal?")) return;
+            await deleteDoc(doc(db, "trainingGoals", goalId));
+            await deleteDoc(doc(db, "users", selectedAthleteId, "goals", goalId)).catch(() => {});
+            showToast("Goal deleted", "success");
+        };
+
+        window.deleteCoachVideo = async (videoId) => {
+            const video = coachVideos.find((item) => item.id === videoId);
+            if (!video || !confirm("Delete this video record?")) return;
+            await deleteDoc(doc(db, "videos", videoId));
+            await deleteDoc(doc(db, "users", video.userId, "videos", videoId)).catch(() => {});
+            if (selectedCoachVideo?.id === videoId) {
+                selectedCoachVideo = null;
+                document.getElementById('coachVideoPlayer').removeAttribute('src');
+                document.getElementById('coachVideoNotesList').innerHTML = '<p class="text-gray-600 text-xs italic">Timestamp notes will appear here.</p>';
+            }
+            showToast("Video deleted", "success");
+        };
+
+        window.deleteCoachVideoNote = async (noteId) => {
+            const note = coachVideoNotes.find((item) => item.id === noteId);
+            if (!note || !confirm("Delete this timestamp note?")) return;
+            await deleteDoc(doc(db, "videoNotes", noteId));
+            await deleteDoc(doc(db, "users", note.userId, "videos", note.videoId, "notes", noteId)).catch(() => {});
+            showToast("Timestamp note deleted", "success");
+        };
+
+        window.saveCoachSessionComment = async (sessionId, athleteId) => {
+            const input = document.getElementById(`session-comment-${sessionId}`);
+            const comment = input.value.trim();
+            if (!comment) return showToast("Session note required", "error");
+            const athlete = coachAthletes.find((item) => item.id === athleteId);
+            const commentRef = doc(collection(db, "sessionComments"));
+            const payload = {
+                sessionId,
+                userId: athleteId,
+                athleteEmail: athlete?.email || "",
+                comment,
+                createdAt: new Date(),
+                createdByRole: "coach"
+            };
+            await setDoc(commentRef, payload);
+            await setDoc(doc(db, "users", athleteId, "sessionLogs", sessionId, "comments", commentRef.id), payload);
+            await updateDoc(doc(db, "sessionLogs", sessionId), {
+                reviewStatus: "coach reviewed",
+                reviewedAt: new Date(),
+                reviewedBy: currentCoachUser?.email || "coach",
+                "report.status": "coach reviewed"
+            }).catch(() => {});
+            await setDoc(doc(db, "users", athleteId, "sessionLogs", sessionId), {
+                reviewStatus: "coach reviewed",
+                reviewedAt: new Date(),
+                reviewedBy: currentCoachUser?.email || "coach",
+                report: { status: "coach reviewed" }
+            }, { merge: true }).catch(() => {});
+            input.value = "";
+            showToast("Session note saved", "success");
+            await createNotification(athleteId, "Session Note", "Coach commented on a session log.");
+        };
+
+        window.createAthleteInvite = async () => {
+            const name = document.getElementById('inviteName').value.trim();
+            const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+            const phone = document.getElementById('invitePhone').value.trim();
+            const status = document.getElementById('inviteStatus');
+            if (!email && !phone) {
+                status.innerText = "Athlete email or phone number required";
+                return;
+            }
+            const inviteCode = makeInviteCode();
+            const inviteRef = doc(collection(db, "athleteInvites"));
+            const invitePayload = {
+                name,
+                email,
+                phone,
+                inviteCode,
+                status: "pending",
+                coachId: currentCoachUser?.uid || "",
+                coachEmail: currentCoachUser?.email || "",
+                createdAt: new Date()
+            };
+            await setDoc(inviteRef, invitePayload);
+            document.getElementById('inviteName').value = "";
+            document.getElementById('inviteEmail').value = "";
+            document.getElementById('invitePhone').value = "";
+            const emailLink = email ? `<a class="text-yellow-300 underline" href="${escapeHTML(buildAthleteInviteEmail(invitePayload).href)}" target="_blank" rel="noopener">Open email draft</a>` : "";
+            const smsLink = phone ? `<a class="text-green-300 underline" href="${escapeHTML(buildAthleteInviteSms(invitePayload).href)}">Open SMS draft</a>` : "";
+            status.innerHTML = `Invite ready: ${inviteCode}. ${[emailLink, smsLink].filter(Boolean).join(" | ")}`;
+            showToast("Athlete invite created. Use the draft link below.", "success");
+        };
+
+        window.updateCoachGradeSystem = () => {
+            coachGradeSystem = document.getElementById('coachGradeSystem').value;
+            localStorage.setItem("betaVaultCoachGradeSystem", coachGradeSystem);
+            refreshCoachViews();
+        };
+
+        window.logoutAdmin = () => signOut(auth).then(() => showAdminLogin("Signed out."));
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                showAdminLogin("Sign in with francrob9@gmail.com or lmharr315@gmail.com.");
+                return;
+            }
+
+            currentCoachUser = user;
+            const profileRef = doc(db, "users", user.uid);
+            const profileSnap = await getDoc(profileRef).catch(() => null);
+            const profile = profileSnap?.exists() ? profileSnap.data() : {};
+            if (!isAllowedCoach(user, profile)) {
+                showAdminLogin(`Signed in as ${user.email}. Use an approved coach Gmail.`);
+                return;
+            }
+
+            hideAdminLogin();
+
+            if (allowedCoachEmails.includes(user.email.toLowerCase())) {
+                await setDoc(profileRef, {
+                    email: user.email,
+                    role: "coach",
+                    name: profile.name || user.email,
+                    updatedAt: new Date()
+                }, { merge: true }).catch(() => {});
+            }
+
+            document.getElementById('coachGradeSystem').value = coachGradeSystem;
+            loadCoachRoster();
+        });
+    </script>
+</body>
+</html>

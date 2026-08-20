@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+tmp/
+certs/
+*.pfx
+*.cer
+*.key
+*.pem
+.DS_Store
+Thumbs.db
+
+# Raw media should go through hosted storage or Git LFS if needed.
+*.mov
+*.avi
+*.mkv
