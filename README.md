@@ -13,6 +13,7 @@ The goal is not to show one narrow stack. It is to show how I turn ambiguous bus
 | [Business App Portfolio](apps/business-app-portfolio/) | Portfolio site, strategic positioning, app showcase, IT roadmap concept, cognitive bias atlas entry point | Hiring teams, executives, prospective clients |
 | [Unfound Door Asset Launchroom](apps/unfound-door-asset-launchroom/) | Client asset library, image/video review workflows, lightweight social posting concepts | Creative teams, clients, media operations |
 | [Cognitive Bias Atlas Game](apps/cognitive-bias-atlas-game/) | Three.js interactive learning prototype with procedural terrain, collision, collection loops, and game mechanics | Learning design, edtech, interactive media |
+| [ParityPulse Rate Integrity Monitor](apps/paritypulse-rate-integrity-monitor/) | Hotel rate-parity monitoring, live public-page comparisons, evidence scoring, leakage estimates, and channel investigation workflow | Revenue managers, distribution teams, hotel groups |
 
 ## Skills Demonstrated
 
@@ -35,6 +36,7 @@ Start with the case studies, then open the relevant app folder:
 - [Workday roadmap case study](case-studies/workday-optimization-roadmap.md)
 - [Asset Launchroom case study](case-studies/asset-launchroom.md)
 - [Cognitive Bias Atlas case study](case-studies/cognitive-bias-atlas-game.md)
+- [ParityPulse case study](case-studies/paritypulse-rate-integrity-monitor.md)
 
 Each app folder includes its own README with problem statement, users, features, tech notes, screenshots, and next steps.
 
