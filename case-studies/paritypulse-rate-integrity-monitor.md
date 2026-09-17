@@ -10,7 +10,7 @@ ParityPulse organizes those signals into a revenue-manager workbench. It priorit
 
 ## Live-data approach
 
-The portfolio build includes a conservative public-page scanner. A user supplies direct and comparison URLs for the same stay conditions. The scanner attempts to read visible rate text, retains the evidence links and timestamp, and refuses to infer a value when a source is gated or blocked.
+The portfolio build includes a conservative live public-offer scanner for real Marriott Bonvoy properties in the Denver market. A user selects a property and stay window; the scanner reads the current Google Hotels seller stack, retains the evidence link and timestamp, and refuses to infer a value when a source is gated or blocked.
 
 For production, the same normalized offer model would sit behind authorized rate-shopping feeds, contractual OTA integrations, hotel CRS data, and scheduled observations.
 

@@ -31,21 +31,21 @@
   <main>
     <section class="summary" id="overview" aria-labelledby="pageTitle">
       <div>
-        <p class="eyebrow">Denver portfolio · 6 properties</p>
+        <p class="eyebrow">Marriott Bonvoy · Denver market</p>
         <h1 id="pageTitle">Rate integrity</h1>
-        <p class="period">Next 30 arrival dates · Updated <span id="updatedAt">now</span></p>
+        <p class="period">Live public offers · Observed <span id="updatedAt">not yet shopped</span></p>
       </div>
       <div class="filters" aria-label="Dashboard filters">
         <label>Property
           <select id="propertyFilter">
-            <option value="all">All properties</option>
+            <option value="all">All shopped properties</option>
           </select>
         </label>
         <label>Window
-          <select id="windowFilter">
-            <option value="30">Next 30 days</option>
-            <option value="14">Next 14 days</option>
-            <option value="7">Next 7 days</option>
+          <select id="windowFilter" aria-label="Stay length">
+            <option value="1">1 night</option>
+            <option value="2">2 nights</option>
+            <option value="3">3 nights</option>
           </select>
         </label>
       </div>
@@ -53,12 +53,12 @@
 
     <section class="metrics" aria-label="Rate integrity summary">
       <article class="score-card">
-        <div class="score-ring" id="scoreRing"><span id="parityScore">82</span><small>/ 100</small></div>
-        <div><p>Portfolio parity</p><strong id="scoreStatus">Needs attention</strong><small id="scoreDelta">4 points below target</small></div>
+        <div class="score-ring" id="scoreRing"><span id="parityScore">—</span><small>/ 100</small></div>
+        <div><p>Shop parity</p><strong id="scoreStatus">Awaiting live shop</strong><small id="scoreDelta">No modeled rates</small></div>
       </article>
-      <article><p>Open disparities</p><strong id="openIssues">12</strong><small><span class="critical-dot"></span><span id="criticalIssues">3 critical</span></small></article>
-      <article><p>Est. monthly leakage</p><strong id="leakage">$18.4k</strong><small id="leakageDetail">Direct revenue at risk</small></article>
-      <article><p>Repeat offenders</p><strong id="repeatOffenders">3</strong><small id="offenderDetail">Across 4 properties</small></article>
+      <article><p>Live undercuts</p><strong id="openIssues">—</strong><small><span class="critical-dot"></span><span id="criticalIssues">Run a shop</span></small></article>
+      <article><p>Largest observed gap</p><strong id="leakage">—</strong><small id="leakageDetail">Seller-level comparison</small></article>
+      <article><p>Sources returned</p><strong id="repeatOffenders">—</strong><small id="offenderDetail">Official + OTA offers</small></article>
     </section>
 
     <section class="workspace">
@@ -81,30 +81,30 @@
       </div>
 
       <aside class="detail-panel" id="detailPanel" aria-live="polite">
-        <div class="detail-kicker"><span id="detailSeverity">Critical</span><span id="detailConfidence">94% confidence</span></div>
-        <h2 id="detailTitle">Mobile OTA rate undercuts direct</h2>
-        <p id="detailSummary">The same refundable king room appears below the direct flexible rate after taxes.</p>
+        <div class="detail-kicker"><span id="detailSeverity">Live shop</span><span id="detailConfidence">No observation</span></div>
+        <h2 id="detailTitle">Choose a Marriott property</h2>
+        <p id="detailSummary">Run a live shop to compare Marriott's official offer with OTA offers returned for the same stay.</p>
         <div class="rate-compare">
-          <div><small>Brand.com</small><strong id="detailDirect">$249</strong><span id="detailDirectTerms">Flexible · tax included</span></div>
-          <div class="gap-arrow">→<b id="detailGap">−$31</b></div>
-          <div><small id="detailChannel">Booking.com</small><strong id="detailObserved">$218</strong><span id="detailObservedTerms">Mobile · tax included</span></div>
+          <div><small>Marriott official</small><strong id="detailDirect">—</strong><span id="detailDirectTerms">Awaiting source</span></div>
+          <div class="gap-arrow">→<b id="detailGap">—</b></div>
+          <div><small id="detailChannel">OTA</small><strong id="detailObserved">—</strong><span id="detailObservedTerms">Awaiting source</span></div>
         </div>
         <section class="explanation">
           <h3>Why it matters</h3>
-          <p id="detailWhy">This offer is 12.4% below direct and may shift high-intent demand to a commissioned channel.</p>
+          <p id="detailWhy">No parity claim is made until a timestamped seller stack is returned.</p>
         </section>
         <dl class="evidence">
-          <div><dt>Room match</dt><dd id="roomMatch">Exact</dd></div>
-          <div><dt>Cancellation</dt><dd id="cancelMatch">Matched</dd></div>
-          <div><dt>Tax treatment</dt><dd id="taxMatch">Matched</dd></div>
-          <div><dt>Monthly exposure</dt><dd id="detailExposure">$4,280</dd></div>
+          <div><dt>Rate basis</dt><dd id="roomMatch">Not observed</dd></div>
+          <div><dt>Cancellation</dt><dd id="cancelMatch">Not observed</dd></div>
+          <div><dt>Tax treatment</dt><dd id="taxMatch">Not observed</dd></div>
+          <div><dt>Observed at</dt><dd id="detailExposure">—</dd></div>
         </dl>
         <div class="recommended-action">
           <h3>Recommended next move</h3>
-          <p id="detailAction">Review the mobile promotion and wholesaler distribution path. Capture evidence before requesting a channel correction.</p>
+          <p id="detailAction">Use the + Live Shop control to request current seller offers.</p>
         </div>
         <div class="detail-actions">
-          <a id="sourceLink" class="button secondary" href="#" target="_blank" rel="noreferrer">Open source</a>
+          <a id="sourceLink" class="button secondary" href="https://www.marriott.com/en-us/destinations/united-states/colorado/denver.mi" target="_blank" rel="noreferrer">Marriott portfolio</a>
           <button class="button primary" id="markInvestigating">Start investigation</button>
         </div>
       </aside>
@@ -119,17 +119,16 @@
   <dialog id="scannerDialog">
     <form method="dialog" class="scanner-shell" id="scannerForm">
       <header>
-        <div><p class="eyebrow">Public-page comparison</p><h2>Run a live rate shop</h2></div>
+        <div><p class="eyebrow">Timestamped public offers</p><h2>Run a live Marriott shop</h2></div>
         <button class="dialog-close" value="cancel" aria-label="Close">×</button>
       </header>
-      <p class="scanner-intro">Paste the direct and comparison pages for the same hotel, arrival date, stay length, occupancy, and room terms. ParityPulse reads publicly visible prices and keeps the evidence links.</p>
+      <p class="scanner-intro">Choose a real Marriott Denver property and stay date. ParityPulse reads the current public seller stack, compares Marriott's official offer with returned OTA offers, and records the observation time.</p>
       <div class="scanner-grid">
-        <label>Hotel name<input id="scanHotel" required value="Boulder Marriott" /></label>
+        <label>Marriott property<select id="scanHotel" required></select></label>
         <label>Arrival date<input id="scanArrival" required type="date" /></label>
-        <label>Direct / corporate URL<input id="scanDirectUrl" required type="url" placeholder="https://www.marriott.com/..." /></label>
-        <label>OTA / metasearch URL<input id="scanOtaUrl" required type="url" placeholder="https://www.kayak.com/..." /></label>
+        <label>Stay length<select id="scanNights"><option value="1">1 night</option><option value="2">2 nights</option><option value="3">3 nights</option></select></label>
       </div>
-      <div class="scanner-note"><b>Live-data note</b><span>Dynamic or protected pages may block automated reading. When that happens, the source is marked blocked and no rate is inferred.</span></div>
+      <div class="scanner-note"><b>Freshness</b><span>Rates are live observations, not guaranteed inventory. Seller pricing can change immediately with occupancy, device, membership, geography, cookies, taxes, and availability.</span></div>
       <div class="scan-progress" id="scanProgress" hidden><i></i><span>Reading public rate pages…</span></div>
       <div class="scan-results" id="scanResults" hidden></div>
       <footer>
@@ -139,6 +138,6 @@
     </form>
   </dialog>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=live-marriott-3"></script>
 </body>
 </html>

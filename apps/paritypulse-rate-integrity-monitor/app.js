@@ -1,85 +1,106 @@
-const issues = [
-  {id:1,property:"Boulder Marriott",arrival:"Sep 24",channel:"Booking.com",direct:249,observed:218,severity:"critical",type:"Mobile-only discount",confidence:94,room:"Deluxe King",terms:"Flexible · tax included",observedTerms:"Mobile · tax included",why:"This offer is 12.4% below direct and may shift high-intent demand to a commissioned channel.",action:"Review the mobile promotion and wholesaler distribution path. Capture evidence before requesting a channel correction.",exposure:4280,roomMatch:"Exact",cancelMatch:"Matched",taxMatch:"Matched",repeat:true,source:"https://www.booking.com/"},
-  {id:2,property:"Denver Tech Center Hotel",arrival:"Sep 27",channel:"Kayak",direct:189,observed:166,severity:"critical",type:"Metasearch undercut",confidence:91,room:"Standard King",terms:"Flexible · tax included",observedTerms:"Flexible · fees unclear",why:"Kayak surfaces a lower public offer before the guest reaches the direct booking path, creating a measurable conversion risk.",action:"Trace the displayed seller, verify final checkout taxes, then escalate the source-of-inventory leak.",exposure:3640,roomMatch:"Likely",cancelMatch:"Matched",taxMatch:"Review",repeat:true,source:"https://www.kayak.com/hotels"},
-  {id:3,property:"Cherry Creek Suites",arrival:"Oct 02",channel:"Expedia",direct:312,observed:281,severity:"critical",type:"Member rate exposed",confidence:88,room:"One-bedroom Suite",terms:"Flexible · room only",observedTerms:"Member · room only",why:"A gated rate appears to be indexed in a public shopping path and is 9.9% below direct.",action:"Confirm whether the offer requires sign-in. If publicly accessible, audit Expedia campaign eligibility and rate-plan mapping.",exposure:2980,roomMatch:"Exact",cancelMatch:"Matched",taxMatch:"Matched",repeat:true,source:"https://www.expedia.com/Hotels"},
-  {id:4,property:"Boulder Marriott",arrival:"Oct 06",channel:"Agoda",direct:229,observed:211,severity:"high",type:"Wholesale leakage",confidence:86,room:"Deluxe King",terms:"Flexible · tax included",observedTerms:"Non-refundable · tax included",why:"The visible price is lower, but cancellation terms differ. It still merits review because the gap exceeds the policy-adjusted threshold.",action:"Compare the fenced non-refundable direct rate, then identify whether a wholesaler supplied the inventory.",exposure:1730,roomMatch:"Exact",cancelMatch:"Different",taxMatch:"Matched",repeat:true,source:"https://www.agoda.com/"},
-  {id:5,property:"Union Station Hotel",arrival:"Oct 08",channel:"Google Hotels",direct:274,observed:260,severity:"high",type:"Tax display mismatch",confidence:82,room:"Classic Queen",terms:"Flexible · tax included",observedTerms:"Flexible · pre-tax",why:"The headline rate is 5.1% lower, but taxes may explain part of the gap. The guest still sees an apparent undercut in search.",action:"Validate the landing-page total and align tax-display settings in the metasearch feed.",exposure:1420,roomMatch:"Exact",cancelMatch:"Matched",taxMatch:"Different",repeat:false,source:"https://www.google.com/travel/hotels"},
-  {id:6,property:"Airport Gateway Hotel",arrival:"Oct 10",channel:"Hotels.com",direct:175,observed:166,severity:"high",type:"Loyalty discount",confidence:78,room:"Standard Two Queen",terms:"Flexible · tax included",observedTerms:"Member · tax included",why:"The 5.1% difference is tied to a loyalty offer. It is not necessarily a contract breach, but it weakens the direct-value proposition.",action:"Confirm the loyalty fence and consider a matching direct-member benefit.",exposure:980,roomMatch:"Exact",cancelMatch:"Matched",taxMatch:"Matched",repeat:false,source:"https://www.hotels.com/"},
-  {id:7,property:"Golden Foothills Lodge",arrival:"Oct 13",channel:"Priceline",direct:204,observed:198,severity:"medium",type:"Small public gap",confidence:95,room:"Mountain King",terms:"Flexible · tax included",observedTerms:"Flexible · tax included",why:"The public offer is 2.9% below direct. The dollar gap is small, but exact comparability makes it worth monitoring.",action:"Watch the next two shops and open an investigation if the undercut persists.",exposure:470,roomMatch:"Exact",cancelMatch:"Matched",taxMatch:"Matched",repeat:false,source:"https://www.priceline.com/"},
-  {id:8,property:"Union Station Hotel",arrival:"Oct 15",channel:"Booking.com",direct:289,observed:282,severity:"medium",type:"Geo-targeted offer",confidence:73,room:"Classic King",terms:"Flexible · tax included",observedTerms:"Geo offer · tax included",why:"The offer may be point-of-sale restricted. It is visible enough to affect selected markets but should not be treated as a universal disparity.",action:"Re-shop from the target point of sale and verify the geo fence before escalation.",exposure:390,roomMatch:"Likely",cancelMatch:"Matched",taxMatch:"Matched",repeat:false,source:"https://www.booking.com/"}
+const portfolio = [
+  {name:"Sheraton Denver Downtown Hotel",code:"dends",url:"https://www.marriott.com/en-us/hotels/dends-sheraton-denver-downtown-hotel/overview/"},
+  {name:"Element Denver Downtown East",code:"denel",url:"https://www.marriott.com/en-us/hotels/denel-element-denver-downtown-east/overview/"},
+  {name:"The Brown Palace Hotel and Spa, Autograph Collection",code:"denak",url:"https://www.marriott.com/en-us/hotels/denak-the-brown-palace-hotel-and-spa-autograph-collection/overview/"},
+  {name:"Le Méridien Denver Downtown",code:"denmd",url:"https://www.marriott.com/en-us/hotels/denmd-le-meridien-denver-downtown/overview/"},
+  {name:"Renaissance Denver Downtown City Center Hotel",code:"dendr",url:"https://www.marriott.com/en-us/hotels/dendr-renaissance-denver-downtown-city-center-hotel/overview/"},
+  {name:"Residence Inn by Marriott Denver City Center",code:"dencd",url:"https://www.marriott.com/en-us/hotels/dencd-residence-inn-denver-city-center/overview/"},
+  {name:"The Westin Denver Downtown",code:"denwi",url:"https://www.marriott.com/en-us/hotels/denwi-the-westin-denver-downtown/overview/"}
 ];
 
-const properties=[...new Set(issues.map(i=>i.property))];
-const channels=[
-  {name:"Booking.com",risk:89,issues:4,gap:"−8.7%",level:"high"},{name:"Kayak",risk:81,issues:3,gap:"−7.1%",level:"high"},{name:"Expedia",risk:64,issues:2,gap:"−5.4%",level:"medium"},{name:"Agoda",risk:58,issues:2,gap:"−4.8%",level:"medium"},{name:"Google Hotels",risk:31,issues:1,gap:"−2.2%",level:"low"}
-];
-
+const sellerNames=["Official Site","Marriott.com","Booking.com","Expedia.com","Hotels.com","Priceline","Agoda","Travelocity","Orbitz","Super.com","Vio.com","Trip.com"];
+let issues=[],offers=[],selected=null,severityFilter="all",lastObservation=null;
 const $=s=>document.querySelector(s);
 const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n);
-const pct=i=>((i.direct-i.observed)/i.direct*100).toFixed(1);
-let selected=issues[0], severityFilter="all";
+const pct=i=>i.direct?((i.direct-i.observed)/i.direct*100).toFixed(1):"0.0";
 
 function init(){
-  $("#updatedAt").textContent=new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit"}).format(new Date());
-  const arrival=new Date();arrival.setDate(arrival.getDate()+7);$("#scanArrival").value=arrival.toISOString().slice(0,10);
-  properties.forEach(p=>$("#propertyFilter").insertAdjacentHTML("beforeend",`<option>${p}</option>`));
-  renderIssues();renderDetail(selected);renderChannels();restoreLiveScans();
+  const arrival=new Date();arrival.setDate(arrival.getDate()+14);$("#scanArrival").value=arrival.toISOString().slice(0,10);
+  portfolio.forEach(p=>{
+    $("#scanHotel").insertAdjacentHTML("beforeend",`<option value="${p.code}">${p.name}</option>`);
+    $("#propertyFilter").insertAdjacentHTML("beforeend",`<option value="${p.name}">${p.name}</option>`);
+  });
+  renderIssues();renderChannels();
   document.querySelectorAll("[data-severity]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-severity]").forEach(x=>x.classList.remove("active"));b.classList.add("active");severityFilter=b.dataset.severity;renderIssues()}));
   $("#propertyFilter").addEventListener("change",renderIssues);
+  $("#windowFilter").addEventListener("change",e=>$("#scanNights").value=e.target.value);
   $("#openScanner").addEventListener("click",()=>$("#scannerDialog").showModal());
   $("#scannerForm").addEventListener("submit",runLiveScan);
   $("#markInvestigating").addEventListener("click",()=>{$("#markInvestigating").textContent="Investigation opened";$("#markInvestigating").disabled=true});
+  restoreLiveShop();
 }
 
 function visibleIssues(){const property=$("#propertyFilter").value;return issues.filter(i=>(property==="all"||i.property===property)&&(severityFilter==="all"||i.severity===severityFilter))}
 function renderIssues(){
   const list=visibleIssues(),rows=$("#issueRows");rows.innerHTML="";$("#emptyState").hidden=!!list.length;
-  list.forEach(i=>rows.insertAdjacentHTML("beforeend",`<tr data-id="${i.id}" class="${selected.id===i.id?"active":""}"><td><span class="property-cell"><strong>${i.property}</strong><span>${i.arrival} · ${i.room}</span></span></td><td>${i.channel}</td><td class="money">${money(i.direct)}</td><td class="money">${money(i.observed)}</td><td class="money negative">−${money(i.direct-i.observed)}<br><small>−${pct(i)}%</small></td><td><span class="severity ${i.severity}">${i.severity}</span></td></tr>`));
-  rows.querySelectorAll("tr").forEach(r=>r.addEventListener("click",()=>{selected=issues.find(i=>i.id===Number(r.dataset.id));renderIssues();renderDetail(selected)}));
+  $("#emptyState").textContent=issues.length?"No disparities match this filter.":"No live disparities loaded. Run a Marriott shop to populate this queue.";
+  list.forEach(i=>rows.insertAdjacentHTML("beforeend",`<tr data-id="${i.id}" class="${selected&&selected.id===i.id?"active":""}"><td><span class="property-cell"><strong>${i.property}</strong><span>${i.arrival} · public seller stack</span></span></td><td>${i.channel}</td><td class="money">${money(i.direct)}</td><td class="money">${money(i.observed)}</td><td class="money negative">−${money(i.direct-i.observed)}<br><small>−${pct(i)}%</small></td><td><span class="severity ${i.severity}">${i.severity}</span></td></tr>`));
+  rows.querySelectorAll("tr").forEach(r=>r.addEventListener("click",()=>{selected=issues.find(i=>i.id===r.dataset.id);renderIssues();renderDetail(selected)}));
 }
-function renderDetail(i){
+function renderDetail(i){if(!i)return;
   $("#detailSeverity").textContent=i.severity;$("#detailSeverity").style.color=i.severity==="critical"?"var(--red)":i.severity==="high"?"var(--amber)":"var(--green)";
-  $("#detailConfidence").textContent=`${i.confidence}% confidence`;$("#detailTitle").textContent=i.type;$("#detailSummary").textContent=`${i.property} · ${i.arrival} · ${i.room}`;
+  $("#detailConfidence").textContent="Observed live";$("#detailTitle").textContent=`${i.channel} undercuts Marriott`;$("#detailSummary").textContent=`${i.property} · ${i.arrival}`;
   $("#detailDirect").textContent=money(i.direct);$("#detailObserved").textContent=money(i.observed);$("#detailGap").textContent=`−${money(i.direct-i.observed)}`;$("#detailChannel").textContent=i.channel;
-  $("#detailDirectTerms").textContent=i.terms;$("#detailObservedTerms").textContent=i.observedTerms;$("#detailWhy").textContent=i.why;$("#detailAction").textContent=i.action;
-  $("#roomMatch").textContent=i.roomMatch;$("#cancelMatch").textContent=i.cancelMatch;$("#taxMatch").textContent=i.taxMatch;$("#detailExposure").textContent=money(i.exposure);$("#sourceLink").href=i.source;
+  $("#detailDirectTerms").textContent="Official public offer";$("#detailObservedTerms").textContent="OTA public offer";
+  $("#detailWhy").textContent=`The observed ${i.channel} offer is ${pct(i)}% below Marriott's official offer in the same seller stack. Final parity requires checkout-level validation of room and terms.`;
+  $("#detailAction").textContent="Open the live source, confirm identical room, cancellation, occupancy, tax, membership, and device conditions, then preserve evidence before escalation.";
+  $("#roomMatch").textContent="Headline offer";$("#cancelMatch").textContent="Verify at checkout";$("#taxMatch").textContent="Displayed with fees";$("#detailExposure").textContent=formatTimestamp(i.observedAt);$("#sourceLink").href=i.source;
+  $("#sourceLink").textContent="Open live source";
   $("#markInvestigating").textContent="Start investigation";$("#markInvestigating").disabled=false;
 }
-function renderChannels(){$("#channelGrid").innerHTML=channels.map(c=>`<article class="channel-card ${c.level}"><header><h3>${c.name}</h3><span class="risk ${c.level}">${c.risk}/100</span></header><div class="risk-bar"><i style="width:${c.risk}%"></i></div><footer><span>${c.issues} issues</span><b>${c.gap} avg.</b></footer></article>`).join("")}
-
-async function fetchPublicPage(url){
-  const reader=`https://r.jina.ai/http://${url.replace(/^https?:\/\//,"")}`;
-  const response=await fetch(reader,{headers:{Accept:"text/plain"}});
-  if(!response.ok)throw new Error(`Source blocked (${response.status})`);
-  return {text:await response.text(),reader};
+function updateMetrics(){
+  const direct=offers.find(o=>o.isDirect),undercuts=issues.length,score=direct?Math.max(0,Math.round(100-(undercuts/Math.max(offers.length-1,1))*100)):null;
+  $("#parityScore").textContent=score??"—";$("#scoreRing").style.setProperty("--score",score??0);$("#scoreStatus").textContent=score===null?"No official rate returned":score===100?"No public undercut":"Review live disparities";$("#scoreDelta").textContent=lastObservation?formatTimestamp(lastObservation):"No modeled rates";
+  $("#openIssues").textContent=undercuts;const critical=issues.filter(i=>i.severity==="critical").length;$("#criticalIssues").textContent=`${critical} critical`;
+  const largest=issues.length?Math.max(...issues.map(i=>(i.direct-i.observed)/i.direct*100)):0;$("#leakage").textContent=issues.length?`${largest.toFixed(1)}%`:"0%";$("#repeatOffenders").textContent=offers.length;$("#offenderDetail").textContent=offers.map(o=>o.seller).join(" · ")||"No sources returned";
+  $("#updatedAt").textContent=lastObservation?formatTimestamp(lastObservation):"not yet shopped";$("#dataMode").textContent=lastObservation?"Live observation loaded":"Live shop ready";
 }
-function extractRate(text){
-  const normalized=text.replace(/,/g,"");
-  const patterns=[/(?:total|nightly|per night|room rate|price)[^$]{0,60}\$\s?(\d{2,5}(?:\.\d{2})?)/ig,/\$\s?(\d{2,5}(?:\.\d{2})?)[^\n]{0,45}(?:per night|nightly|total)/ig];
-  const values=[];patterns.forEach(re=>{let m;while((m=re.exec(normalized))&&values.length<25){const n=Number(m[1]);if(n>=40&&n<=5000)values.push(n)}});
-  return values.length?Math.min(...values):null;
+function renderChannels(){
+  const grid=$("#channelGrid");
+  if(!offers.length){grid.innerHTML=`<article class="channel-card"><header><h3>No live seller stack</h3><span class="risk low">READY</span></header><div class="risk-bar"><i style="width:0"></i></div><footer><span>Run a shop</span><b>Current offers only</b></footer></article>`;return}
+  const direct=offers.find(o=>o.isDirect)?.rate;
+  grid.innerHTML=offers.map(o=>{const gap=direct?((direct-o.rate)/direct*100):0,level=o.isDirect||gap<=0?"low":gap>=10?"high":"medium",risk=o.isDirect?0:Math.max(0,Math.min(100,Math.round(gap*8)));return `<article class="channel-card ${level}"><header><h3>${o.seller}</h3><span class="risk ${level}">${o.isDirect?"DIRECT":gap>0?"UNDERCUT":"IN PARITY"}</span></header><div class="risk-bar"><i style="width:${risk}%"></i></div><footer><span>${money(o.rate)}</span><b>${o.isDirect?"baseline":`${gap>0?"−":"+"}${Math.abs(gap).toFixed(1)}%`}</b></footer></article>`}).join("")
+}
+
+function formatTimestamp(value){return new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date(value))}
+function checkoutDate(arrival,nights){const d=new Date(`${arrival}T12:00:00`);d.setDate(d.getDate()+Number(nights));return d.toISOString().slice(0,10)}
+function liveSourceUrl(property,arrival,nights){
+  const departure=checkoutDate(arrival,nights),query=encodeURIComponent(property.name);
+  return `https://www.google.com/travel/search?q=${query}&checkin=${arrival}&checkout=${departure}&curr=USD`;
+}
+async function fetchSellerStack(property,arrival,nights){
+  const source=liveSourceUrl(property,arrival,nights),reader=`https://r.jina.ai/http://${source.replace(/^https?:\/\//,"")}`;
+  const response=await fetch(reader,{headers:{Accept:"text/plain"}});if(!response.ok)throw new Error(`Live source returned ${response.status}`);
+  const text=await response.text();return {source,text,offers:parseOffers(text),stay:parseObservedStay(text)};
+}
+function parseObservedStay(text){const match=text.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s*[–-]\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+)?\d{1,2}\b/);return match?match[0]:null}
+function parseOffers(text){
+  const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),found=[];
+  for(let i=0;i<lines.length;i++){
+    const seller=sellerNames.find(name=>lines[i].toLowerCase()===name.toLowerCase());if(!seller)continue;
+    const window=lines.slice(i+1,i+9).join(" "),match=window.match(/\$\s?([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{2,5})/);if(!match)continue;
+    const rate=Number(match[1].replace(",",""));if(rate<40||rate>10000)continue;
+    const normalized=seller==="Official Site"||seller==="Marriott.com"?"Marriott Official":seller;
+    if(!found.some(o=>o.seller===normalized))found.push({seller:normalized,rate,isDirect:normalized==="Marriott Official"});
+  }
+  return found;
 }
 async function runLiveScan(event){
-  event.preventDefault();
-  const submitter=event.submitter;if(submitter&&submitter.value==="cancel")return;
-  const progress=$("#scanProgress"),result=$("#scanResults"),button=$("#runScan");progress.hidden=false;result.hidden=true;button.disabled=true;
-  const urls=[$("#scanDirectUrl").value,$("#scanOtaUrl").value];
+  event.preventDefault();if(event.submitter&&event.submitter.value==="cancel")return;
+  const progress=$("#scanProgress"),result=$("#scanResults"),button=$("#runScan"),property=portfolio.find(p=>p.code===$("#scanHotel").value),arrival=$("#scanArrival").value,nights=$("#scanNights").value;
+  progress.hidden=false;result.hidden=true;button.disabled=true;
   try{
-    const settled=await Promise.allSettled(urls.map(fetchPublicPage));
-    const rates=settled.map(s=>s.status==="fulfilled"?extractRate(s.value.text):null);
-    const blocked=settled.map((s,index)=>s.status==="rejected"?`${index===0?"Direct":"Comparison"}: ${s.reason.message}`:null).filter(Boolean);
-    if(rates.every(Boolean)){
-      const gap=rates[0]-rates[1],gapPct=gap/rates[0]*100;
-      result.innerHTML=`<b>${gap>0?"Potential disparity found":"No undercut found"}</b><br>Direct ${money(rates[0])} · comparison ${money(rates[1])} · ${gap>0?`${gapPct.toFixed(1)}% below direct`:`${Math.abs(gapPct).toFixed(1)}% at or above direct`}<br><small>Candidate prices extracted from the public pages. Confirm room, tax, occupancy, and cancellation terms before action.</small>`;
-      saveLiveScan({hotel:$("#scanHotel").value,arrival:$("#scanArrival").value,urls,rates,at:new Date().toISOString()});
-    }else{
-      const found=rates.map((r,i)=>r?`${i===0?"Direct":"Comparison"} ${money(r)}`:null).filter(Boolean).join(" · ");
-      result.innerHTML=`<b>Comparison needs review</b><br>${found||"No defensible public rate could be extracted."}${blocked.length?`<br>${blocked.join(" · ")}`:""}<br><small>ParityPulse does not invent values when a page is dynamic, gated, or blocked.</small>`;
-    }
-    result.hidden=false;$("#dataMode").textContent="Live source checked";$("#updatedAt").textContent="just now";
-  }catch(error){result.innerHTML=`<b>Live scan could not finish</b><br>${error.message}`;result.hidden=false}
+    const live=await fetchSellerStack(property,arrival,nights);offers=live.offers;lastObservation=new Date().toISOString();
+    const direct=offers.find(o=>o.isDirect);issues=[];
+    if(direct){offers.filter(o=>!o.isDirect&&o.rate<direct.rate).forEach(o=>{const gap=(direct.rate-o.rate)/direct.rate*100;issues.push({id:`${property.code}-${o.seller}`,property:property.name,arrival:live.stay||arrival,channel:o.seller,direct:direct.rate,observed:o.rate,severity:gap>=10?"critical":gap>=5?"high":"medium",observedAt:lastObservation,source:live.source})})}
+    selected=issues[0]||null;renderIssues();renderChannels();updateMetrics();if(selected)renderDetail(selected);
+    $("#propertyFilter").value=property.name;
+    result.innerHTML=`<b>${offers.length} live seller offer${offers.length===1?"":"s"} returned</b><br>${offers.map(o=>`${o.seller}: ${money(o.rate)}`).join(" · ")||"No readable seller prices were returned."}<br><small>${live.stay?`Source stay: ${live.stay}. `:""}Observed ${formatTimestamp(lastObservation)}. Verify room and policy terms at checkout before taking action.</small>`;result.hidden=false;
+    localStorage.setItem("paritypulse-live-shop",JSON.stringify({property,arrival,nights,offers,issues,lastObservation,source:live.source}));
+  }catch(error){result.innerHTML=`<b>Live shop unavailable</b><br>${error.message}<br><small>No rates were created or inferred.</small>`;result.hidden=false}
   finally{progress.hidden=true;button.disabled=false}
 }
-function saveLiveScan(scan){const scans=JSON.parse(localStorage.getItem("paritypulse-live-scans")||"[]");scans.unshift(scan);localStorage.setItem("paritypulse-live-scans",JSON.stringify(scans.slice(0,10)))}
-function restoreLiveScans(){const scans=JSON.parse(localStorage.getItem("paritypulse-live-scans")||"[]");if(scans.length){$("#dataMode").textContent=`${scans.length} saved live scan${scans.length===1?"":"s"}`}}
+function restoreLiveShop(){
+  try{const saved=JSON.parse(localStorage.getItem("paritypulse-live-shop")||"null");if(!saved)return;offers=saved.offers||[];issues=saved.issues||[];lastObservation=saved.lastObservation;selected=issues[0]||null;renderIssues();renderChannels();updateMetrics();if(selected)renderDetail(selected)}catch{}
+}
 document.addEventListener("DOMContentLoaded",init);
