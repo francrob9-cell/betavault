@@ -798,6 +798,87 @@ h2 {
   background: #23624f;
 }
 
+.parity-card {
+  background: linear-gradient(180deg, #fffdf7 0, #f5eee8 100%);
+}
+
+.parity-card::before {
+  background: linear-gradient(90deg, #421c3b, #c84b31, #e8ad57);
+}
+
+.parity-card .project-body::before {
+  content: "Hospitality / distribution / revenue integrity";
+}
+
+.parity-card .project-meta span {
+  background: #421c3b;
+}
+
+.parity-card .project-meta span:nth-child(2) {
+  background: #c84b31;
+}
+
+.parity-shot {
+  display: grid;
+  place-items: center;
+  background: #241323;
+}
+
+.parity-mini {
+  width: min(84%, 460px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 22px;
+  color: #fff8e9;
+  background: #32182f;
+  box-shadow: 12px 12px 0 #c84b31;
+}
+
+.parity-mini-head,
+.parity-mini > div:not(.parity-mini-head) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.parity-mini-head {
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.parity-mini-head span {
+  border: 1px solid #e8ad57;
+  padding: 3px 7px;
+  color: #e8ad57;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.parity-mini > strong {
+  display: block;
+  color: #e8ad57;
+  font-size: 48px;
+  line-height: 1;
+}
+
+.parity-mini > small {
+  display: block;
+  margin: 4px 0 16px;
+  color: #cdbbc7;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.parity-mini > div:not(.parity-mini-head) {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 7px 0;
+  font-size: 12px;
+}
+
+.parity-mini .parity-alert {
+  color: #ffb19f;
+}
+
 .roadmap-shot {
   display: grid;
   place-items: center;

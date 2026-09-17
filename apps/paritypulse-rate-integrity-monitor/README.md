@@ -22,4 +22,8 @@ The live scanner reads the current public Google Hotels seller stack through a b
 - Rate comparability and severity-scoring logic
 - Live-source adapter with explicit uncertainty states
 
+## From prototype to production
+
+The production path is documented in the [AI Process Discovery and PMS Integration Guide](../../docs/PARITYPULSE_AI_PMS_INTEGRATION.md). It explains how AI can accelerate process discovery and data mapping while hotel systems, approved integrations, and human owners remain authoritative.
+
 Open `index.html` directly or serve the repository with any static web server.

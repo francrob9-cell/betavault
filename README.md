@@ -46,6 +46,7 @@ Each app folder includes its own README with problem statement, users, features,
 - [Running locally](docs/RUNNING_LOCALLY.md)
 - [Security and privacy notes](docs/SECURITY.md)
 - [Portfolio roadmap](docs/ROADMAP.md)
+- [ParityPulse AI process discovery and PMS integration](docs/PARITYPULSE_AI_PMS_INTEGRATION.md)
 
 ## Repository Notes
 
