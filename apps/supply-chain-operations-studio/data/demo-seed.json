@@ -1,0 +1,117 @@
+{
+  "revision": 1,
+  "orders": [
+    {
+      "id": "PO-1041",
+      "department": "Science labs",
+      "supplier": "Summit Scientific",
+      "item": "Nitrile gloves · case",
+      "sku": "LAB-100",
+      "qty": 20,
+      "unitCents": 4800,
+      "received": 12,
+      "invoiceQty": 20,
+      "invoiceUnitCents": 4800,
+      "status": "Receiving",
+      "need": "Teaching labs cannot wait for a complete shipment."
+    },
+    {
+      "id": "PO-1042",
+      "department": "Campus IT",
+      "supplier": "Front Range Devices",
+      "item": "USB-C docks",
+      "sku": "IT-240",
+      "qty": 15,
+      "unitCents": 12500,
+      "received": 0,
+      "invoiceQty": 15,
+      "invoiceUnitCents": 12500,
+      "status": "Requested",
+      "need": "New staff need a predictable equipment handoff."
+    },
+    {
+      "id": "PO-1043",
+      "department": "Facilities",
+      "supplier": "Alpine Maintenance",
+      "item": "Air filters · box",
+      "sku": "FAC-310",
+      "qty": 10,
+      "unitCents": 7200,
+      "received": 10,
+      "invoiceQty": 10,
+      "invoiceUnitCents": 7900,
+      "status": "Receiving",
+      "need": "The invoice price exceeds the agreed purchase price."
+    }
+  ],
+  "inventory": [
+    {
+      "sku": "LAB-100",
+      "item": "Nitrile gloves · case",
+      "location": "Science storeroom",
+      "onHand": 8,
+      "dailyDemand": 3,
+      "leadDays": 5,
+      "safety": 6,
+      "onOrder": 8
+    },
+    {
+      "sku": "IT-240",
+      "item": "USB-C docks",
+      "location": "IT service desk",
+      "onHand": 4,
+      "dailyDemand": 1,
+      "leadDays": 7,
+      "safety": 3,
+      "onOrder": 0
+    },
+    {
+      "sku": "FAC-310",
+      "item": "Air filters · box",
+      "location": "Facilities warehouse",
+      "onHand": 24,
+      "dailyDemand": 2,
+      "leadDays": 4,
+      "safety": 4,
+      "onOrder": 0
+    }
+  ],
+  "events": [
+    {
+      "id": "EVT-7001",
+      "source": "Supplier SaaS",
+      "target": "Oracle EBS adapter (simulated)",
+      "type": "Shipment receipt",
+      "externalSupplier": "SUMMIT-LABS",
+      "qty": 8,
+      "orderId": "PO-1041",
+      "state": "Failed",
+      "error": "Supplier SUMMIT-LABS has no canonical mapping.",
+      "attempts": 1
+    },
+    {
+      "id": "EVT-7002",
+      "source": "Procurement SaaS",
+      "target": "Workday adapter (simulated)",
+      "type": "Purchase order acknowledgement",
+      "externalSupplier": "FR-DEVICES",
+      "orderId": "PO-1042",
+      "state": "Delivered",
+      "attempts": 1
+    }
+  ],
+  "mappings": {
+    "FR-DEVICES": "Front Range Devices"
+  },
+  "processed": [
+    "EVT-7002"
+  ],
+  "readiness": [
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "audit": []
+}

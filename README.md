@@ -8,6 +8,7 @@ The goal is not to show one narrow stack. It is to show how I turn ambiguous bus
 
 | App | What It Shows | Primary Audience |
 | --- | --- | --- |
+| [Supply Chain Operations Studio](apps/supply-chain-operations-studio/) | Procure-to-pay, inventory planning, simulated ERP/SaaS integration recovery, shared domain rules, local API, tests, change delivery and PDF case study | Supply chain, procurement, ERP and transformation teams |
 | [BetaVault Coaching App](apps/betavault-coaching-app/) | Role-based athlete/coach portal, Firebase auth/data workflows, session logs, video review, AI-assisted training concepts | Coaches, athletes, program admins |
 | [Workday Optimization Roadmap](apps/workday-optimization-roadmap/) | Executive roadmap planning, dependency mapping, Jira/Smartsheet context, board packet export | IT leadership, PMO, finance, operations |
 | [Business App Portfolio](apps/business-app-portfolio/) | Portfolio site, strategic positioning, app showcase, IT roadmap concept, cognitive bias atlas entry point | Hiring teams, executives, prospective clients |
@@ -31,6 +32,8 @@ The goal is not to show one narrow stack. It is to show how I turn ambiguous bus
 ## How To Review
 
 Start with the case studies, then open the relevant app folder:
+
+- [Supply Chain Operations Studio case study](case-studies/supply-chain-operations-studio.md)
 
 - [BetaVault case study](case-studies/betavault-coaching-platform.md)
 - [Workday roadmap case study](case-studies/workday-optimization-roadmap.md)
