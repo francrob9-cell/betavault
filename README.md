@@ -8,6 +8,7 @@ The goal is not to show one narrow stack. It is to show how I turn ambiguous bus
 
 | App | What It Shows | Primary Audience |
 | --- | --- | --- |
+| [Creative & Brand Portfolio](apps/creative-brand-studio/) | Six visual project pages, brand strategy, editorial design, identity explorations, photography, creative operations and a downloadable resume | Creative teams, brands and hiring managers |
 | [Supply Chain Operations Studio](apps/supply-chain-operations-studio/) | Procure-to-pay, inventory planning, simulated ERP/SaaS integration recovery, shared domain rules, local API, tests, change delivery and PDF case study | Supply chain, procurement, ERP and transformation teams |
 | [BetaVault Coaching App](apps/betavault-coaching-app/) | Role-based athlete/coach portal, Firebase auth/data workflows, session logs, video review, AI-assisted training concepts | Coaches, athletes, program admins |
 | [Workday Optimization Roadmap](apps/workday-optimization-roadmap/) | Executive roadmap planning, dependency mapping, Jira/Smartsheet context, board packet export | IT leadership, PMO, finance, operations |
